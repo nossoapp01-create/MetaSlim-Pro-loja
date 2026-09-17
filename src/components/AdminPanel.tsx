@@ -22,6 +22,14 @@ import {
   AlertCircle,
   ChevronDown,
   ChevronUp,
+  Cloud,
+  Database,
+  LogIn,
+  LogOut,
+  Globe,
+  Terminal,
+  Copy,
+  Check,
 } from 'lucide-react';
 
 export const AdminPanel: React.FC = () => {
@@ -41,12 +49,21 @@ export const AdminPanel: React.FC = () => {
     resetDefaults,
     showToast,
     formatPrice,
+    firebaseUser,
+    isAdminUser,
+    isFirebaseConnected,
+    isSyncing,
+    loginWithGoogle,
+    logout,
+    syncAllToFirebase,
+    refreshFromFirebase,
   } = useStore();
 
-  const [activeAdminTab, setActiveAdminTab] = useState<'produtos' | 'banners' | 'depoimentos' | 'configuracoes'>('produtos');
+  const [activeAdminTab, setActiveAdminTab] = useState<'produtos' | 'banners' | 'depoimentos' | 'configuracoes' | 'vercel'>('produtos');
   const [selectedProdId, setSelectedProdId] = useState<string>(products[0]?.id || 'retatrutide-10mg');
   const [expandedBannerId, setExpandedBannerId] = useState<number | null>(1);
   const [isSaving, setIsSaving] = useState(false);
+  const [copiedEnv, setCopiedEnv] = useState(false);
 
   const selectedProduct = products.find((p) => p.id === selectedProdId) || products[0];
 
@@ -110,12 +127,16 @@ export const AdminPanel: React.FC = () => {
     });
   };
 
-  const triggerGlobalSave = () => {
+  const triggerGlobalSave = async () => {
     setIsSaving(true);
-    setTimeout(() => {
+    try {
+      await syncAllToFirebase();
+      showToast('Alterações salvas e sincronizadas na nuvem Firebase!');
+    } catch {
+      showToast('Salvo localmente! Faça login para sincronizar no Firebase.');
+    } finally {
       setIsSaving(false);
-      showToast('Todas as alterações foram sincronizadas na loja!');
-    }, 700);
+    }
   };
 
   const testGatewayUrl = (url: string) => {
@@ -152,8 +173,75 @@ export const AdminPanel: React.FC = () => {
             <span>Restaurar Padrões</span>
           </button>
           <span className="font-mono text-[10px] bg-slate-100 px-2 py-1 rounded text-slate-500 font-bold">
-            v2.4.9-core
+            v2.5.0-cloud
           </span>
+        </div>
+      </div>
+
+      {/* Cloud & Firebase Sync Card */}
+      <div className="bg-gradient-to-r from-[#006750]/5 via-emerald-50/50 to-white rounded-2xl p-4 sm:p-5 border border-emerald-200/70 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-start sm:items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-[#006750] text-white flex items-center justify-center shrink-0 shadow-sm">
+            <Cloud className="w-5 h-5 text-[#93f5d4]" />
+          </div>
+          <div className="flex flex-col">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold text-slate-900">
+                Firebase Firestore Nuvem
+              </span>
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-100 text-[#006750] font-bold">
+                {isFirebaseConnected ? 'Conectado • europe-west2' : 'Conectando...'}
+              </span>
+            </div>
+            <p className="text-[11px] text-slate-500 mt-0.5 font-mono">
+              Projeto: <span className="font-semibold text-slate-700">gen-lang-client-0356673859</span>
+              {firebaseUser && (
+                <span className="ml-2 text-emerald-700 font-sans font-medium">
+                  • Autenticado: <strong>{firebaseUser.email}</strong> {isAdminUser && '(Super Admin)'}
+                </span>
+              )}
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 shrink-0">
+          {firebaseUser ? (
+            <button
+              onClick={() => logout()}
+              className="px-3 py-1.5 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-semibold flex items-center gap-1.5 transition-colors"
+            >
+              <LogOut className="w-3.5 h-3.5 text-slate-400" />
+              <span>Desconectar</span>
+            </button>
+          ) : (
+            <button
+              onClick={() => loginWithGoogle()}
+              className="px-3 py-1.5 rounded-xl bg-white border border-emerald-300 hover:bg-emerald-50 text-[#006750] text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-xs"
+            >
+              <LogIn className="w-3.5 h-3.5" />
+              <span>Login com Google</span>
+            </button>
+          )}
+
+          <button
+            onClick={() => refreshFromFirebase()}
+            disabled={isSyncing}
+            className="px-3 py-1.5 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-semibold flex items-center gap-1.5 transition-colors"
+            title="Recarregar dados do banco de dados na nuvem"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 text-slate-500 ${isSyncing ? 'animate-spin' : ''}`} />
+            <span>Puxar da Nuvem</span>
+          </button>
+
+          <button
+            onClick={() => syncAllToFirebase()}
+            disabled={isSyncing}
+            className="px-3.5 py-1.5 rounded-xl bg-[#006750] hover:bg-[#0d8267] text-white text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all"
+            title="Sincronizar todo o catálogo com o Firestore"
+          >
+            <Database className="w-3.5 h-3.5 text-[#93f5d4]" />
+            <span>{isSyncing ? 'Sincronizando...' : 'Enviar para Nuvem'}</span>
+          </button>
         </div>
       </div>
 
@@ -257,6 +345,17 @@ export const AdminPanel: React.FC = () => {
           }`}
         >
           Configurações Gerais
+        </button>
+        <button
+          onClick={() => setActiveAdminTab('vercel')}
+          className={`px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5 ${
+            activeAdminTab === 'vercel'
+              ? 'bg-[#131b2e] text-white shadow-md'
+              : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
+          }`}
+        >
+          <Globe className="w-3.5 h-3.5 text-[#71face]" />
+          <span>Deploy na Vercel</span>
         </button>
       </div>
 
@@ -818,6 +917,129 @@ export const AdminPanel: React.FC = () => {
                 <ExternalLink className="w-3.5 h-3.5" />
                 <span>Testar</span>
               </button>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* TAB 5: Vercel & Deployment Guide */}
+      {activeAdminTab === 'vercel' && (
+        <section className="bg-white rounded-2xl p-5 sm:p-7 shadow-sm border border-slate-200/70 flex flex-col gap-6">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-4">
+            <div>
+              <div className="flex items-center gap-2">
+                <Globe className="w-5 h-5 text-[#006750]" />
+                <h2 className="text-lg font-bold text-slate-900">
+                  Deploy na Vercel &amp; Produção
+                </h2>
+              </div>
+              <p className="text-xs text-slate-500 mt-1">
+                Seu projeto já está totalmente configurado com <code className="bg-slate-100 px-1 py-0.5 rounded text-emerald-800 font-mono">vercel.json</code>, Firestore e autenticação Google.
+              </p>
+            </div>
+            <span className="px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-[#006750] flex items-center gap-1">
+              <CheckCircle className="w-3.5 h-3.5" />
+              <span>Pronto para Vercel</span>
+            </span>
+          </div>
+
+          {/* Quick Step by Step Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/70 flex flex-col">
+              <span className="w-6 h-6 rounded-full bg-[#006750] text-white text-xs font-bold flex items-center justify-center mb-2">
+                1
+              </span>
+              <h3 className="text-xs font-bold text-slate-900 mb-1">Exportar ou Subir no GitHub</h3>
+              <p className="text-[11px] text-slate-600 leading-relaxed">
+                Baixe o ZIP do projeto pelo menu AI Studio ou suba este repositório para o seu GitHub pessoal/empresa.
+              </p>
+            </div>
+
+            <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/70 flex flex-col">
+              <span className="w-6 h-6 rounded-full bg-[#006750] text-white text-xs font-bold flex items-center justify-center mb-2">
+                2
+              </span>
+              <h3 className="text-xs font-bold text-slate-900 mb-1">Importar na Vercel</h3>
+              <p className="text-[11px] text-slate-600 leading-relaxed">
+                Acesse <a href="https://vercel.com" target="_blank" rel="noreferrer" className="text-[#006750] underline font-semibold">vercel.com</a>, clique em <strong>Add New Project</strong> e selecione o repositório.
+              </p>
+            </div>
+
+            <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/70 flex flex-col">
+              <span className="w-6 h-6 rounded-full bg-[#006750] text-white text-xs font-bold flex items-center justify-center mb-2">
+                3
+              </span>
+              <h3 className="text-xs font-bold text-slate-900 mb-1">Deploy Automático</h3>
+              <p className="text-[11px] text-slate-600 leading-relaxed">
+                O arquivo <code className="font-mono bg-white px-1 rounded text-slate-700">vercel.json</code> gerencia todas as rotas SPA e cache. Clique em <strong>Deploy</strong> e sua loja estará online!
+              </p>
+            </div>
+          </div>
+
+          {/* Vercel CLI Instructions */}
+          <div className="bg-slate-900 text-slate-100 rounded-xl p-4 sm:p-5 flex flex-col gap-3 font-mono text-xs">
+            <div className="flex items-center justify-between text-slate-400 border-b border-slate-800 pb-2">
+              <span className="flex items-center gap-1.5 font-bold">
+                <Terminal className="w-4 h-4 text-emerald-400" />
+                Opção Rápida via Terminal (Vercel CLI)
+              </span>
+            </div>
+            <div className="space-y-1.5 text-[11px] text-slate-300">
+              <p className="text-slate-500"># 1. Instalar Vercel CLI globalmente (se não tiver):</p>
+              <div className="bg-slate-950 p-2.5 rounded-lg text-emerald-400 select-all">
+                npm i -g vercel
+              </div>
+              <p className="text-slate-500 pt-1"># 2. Publicar diretamente em produção:</p>
+              <div className="bg-slate-950 p-2.5 rounded-lg text-emerald-400 select-all">
+                vercel --prod
+              </div>
+            </div>
+          </div>
+
+          {/* Environment Variables on Vercel */}
+          <div className="border border-slate-200 rounded-xl p-4 flex flex-col gap-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-xs font-bold text-slate-900">
+                  Variáveis de Ambiente na Vercel (Opcional se desejar configurar chaves personalizadas)
+                </h3>
+                <p className="text-[11px] text-slate-500">
+                  Adicione em <em>Settings &gt; Environment Variables</em> no painel da Vercel.
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  const envContent = `VITE_FIREBASE_PROJECT_ID=gen-lang-client-0356673859\nVITE_FIREBASE_AUTH_DOMAIN=gen-lang-client-0356673859.firebaseapp.com\nVITE_FIREBASE_DATABASE_ID=(default)\nVITE_FIREBASE_STORAGE_BUCKET=gen-lang-client-0356673859.firebasestorage.app`;
+                  navigator.clipboard.writeText(envContent);
+                  setCopiedEnv(true);
+                  setTimeout(() => setCopiedEnv(false), 2000);
+                  showToast('Variáveis copiadas para a área de transferência!');
+                }}
+                className="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold flex items-center gap-1.5 transition-colors"
+              >
+                {copiedEnv ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                <span>{copiedEnv ? 'Copiado!' : 'Copiar Variáveis'}</span>
+              </button>
+            </div>
+
+            <pre className="bg-slate-50 p-3 rounded-lg text-[11px] font-mono text-slate-700 border border-slate-200 overflow-x-auto">
+{`VITE_FIREBASE_PROJECT_ID=gen-lang-client-0356673859
+VITE_FIREBASE_AUTH_DOMAIN=gen-lang-client-0356673859.firebaseapp.com
+VITE_FIREBASE_DATABASE_ID=(default)
+VITE_FIREBASE_STORAGE_BUCKET=gen-lang-client-0356673859.firebasestorage.app`}
+            </pre>
+          </div>
+
+          {/* Vercel.json verification */}
+          <div className="bg-emerald-50/70 border border-emerald-200/80 rounded-xl p-4 flex items-start gap-3">
+            <CheckCircle className="w-5 h-5 text-[#006750] shrink-0 mt-0.5" />
+            <div className="text-xs text-slate-700 space-y-1">
+              <p className="font-bold text-slate-900">
+                Arquivo <code className="bg-white px-1.5 py-0.5 rounded text-emerald-900 font-mono">vercel.json</code> já configurado
+              </p>
+              <p className="text-[11px] text-slate-600 leading-relaxed">
+                Todas as requisições SPA (roteamento sem recarregamento de página, cabeçalhos de segurança e cache otimizado para Vite) já estão configuradas e prontas para entrega global pela CDN da Vercel.
+              </p>
             </div>
           </div>
         </section>

@@ -40,11 +40,13 @@ export const CartView: React.FC = () => {
     settings,
     setActiveTab,
     showToast,
+    createOrderInFirestore,
   } = useStore();
 
   const [inputCoupon, setInputCoupon] = useState('');
   const [isCouponEditing, setIsCouponEditing] = useState(false);
   const [secondsLeft, setSecondsLeft] = useState(14 * 60 + 59);
+  const [isProcessingOrder, setIsProcessingOrder] = useState(false);
 
   // Reservation Countdown timer
   useEffect(() => {
@@ -73,11 +75,22 @@ export const CartView: React.FC = () => {
     primaryItem?.paymentLink ||
     `${settings.defaultPaymentLink}?amount=${cartTotal}&cart_items=${cart.length}`;
 
-  const handleProceedToPayment = () => {
+  const handleProceedToPayment = async () => {
     if (cart.length === 0) {
       showToast('Seu carrinho está vazio.');
       return;
     }
+
+    setIsProcessingOrder(true);
+    try {
+      const orderId = await createOrderInFirestore(deliveryNotes);
+      if (orderId) {
+        showToast(`Pedido #${orderId} registrado no Firebase! Redirecionando...`);
+      }
+    } finally {
+      setIsProcessingOrder(false);
+    }
+
     if (paymentUrl.startsWith('http')) {
       window.open(paymentUrl, '_blank');
     } else {

@@ -1,6 +1,8 @@
 {
-  "name": "MetaSlim-Pro Peptídeos",
+  "name": "MetaSlim-Pro-loja",
   "description": "Loja oficial de peptídeos MetaSlim-Pro com catálogo clínico, laudos HPLC, antes e depois, carrinho com checkout direto e painel administrativo gerenciável.",
   "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
 }

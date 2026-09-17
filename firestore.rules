@@ -1,0 +1,124 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global Safety Net: Default-deny catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isSuperAdmin() {
+      return isSignedIn() && request.auth.token.email == 'nossoapp01@gmail.com';
+    }
+
+    function isAdmin() {
+      return isSuperAdmin() || (isSignedIn() && exists(/databases/$(database)/documents/admins/$(request.auth.uid)));
+    }
+
+    // Diagnostics / Connectivity test document
+    match /test/{docId} {
+      allow read: if isValidId(docId);
+      allow write: if isAdmin();
+    }
+
+    // Admins collection
+    match /admins/{adminId} {
+      allow read: if isSignedIn();
+      allow write: if isSuperAdmin();
+    }
+
+    // Product validation helper
+    function isValidProduct(data) {
+      return data.id is string && data.id.size() <= 128 &&
+             data.name is string && data.name.size() <= 150 &&
+             data.category is string &&
+             data.price is number && data.price >= 0 &&
+             data.refCode is string && data.refCode.size() <= 50 &&
+             data.whatIsItFor is string && data.whatIsItFor.size() <= 500 &&
+             data.image is string && data.image.size() <= 1000;
+    }
+
+    // Products catalog
+    match /products/{productId} {
+      allow read: if isValidId(productId);
+      allow create: if isAdmin() && isValidId(productId) && isValidProduct(incoming());
+      allow update: if isAdmin() && isValidId(productId) && isValidProduct(incoming());
+      allow delete: if isAdmin() && isValidId(productId);
+    }
+
+    // Banner slides validation
+    function isValidBanner(data) {
+      return data.title is string && data.title.size() <= 150 &&
+             data.subtitle is string && data.subtitle.size() <= 300 &&
+             data.image is string && data.image.size() <= 1000;
+    }
+
+    match /banners/{bannerId} {
+      allow read: if isValidId(bannerId);
+      allow create, update: if isAdmin() && isValidId(bannerId) && isValidBanner(incoming());
+      allow delete: if isAdmin() && isValidId(bannerId);
+    }
+
+    // Testimonials
+    function isValidTestimonial(data) {
+      return data.id is string && data.id.size() <= 128 &&
+             data.name is string && data.name.size() <= 100 &&
+             data.protocol is string && data.protocol.size() <= 100 &&
+             data.weightLost is string && data.weightLost.size() <= 60 &&
+             data.beforeImage is string && data.beforeImage.size() <= 1000 &&
+             data.afterImage is string && data.afterImage.size() <= 1000 &&
+             data.quote is string && data.quote.size() <= 1000;
+    }
+
+    match /testimonials/{testimonialId} {
+      allow read: if isValidId(testimonialId);
+      allow create, update: if isAdmin() && isValidId(testimonialId) && isValidTestimonial(incoming());
+      allow delete: if isAdmin() && isValidId(testimonialId);
+    }
+
+    // Store settings
+    function isValidSettings(data) {
+      return data.storeName is string && data.storeName.size() <= 120 &&
+             data.currencySymbol is string && data.currencySymbol.size() <= 5 &&
+             data.defaultPaymentLink is string && data.defaultPaymentLink.size() <= 1000;
+    }
+
+    match /settings/{settingId} {
+      allow read: if isValidId(settingId);
+      allow write: if isAdmin() && isValidId(settingId) && isValidSettings(incoming());
+    }
+
+    // Orders
+    function isValidOrder(data) {
+      return data.id is string && data.id.size() <= 128 &&
+             data.totalAmount is number && data.totalAmount >= 0 &&
+             data.status is string && data.status.size() <= 30;
+    }
+
+    match /orders/{orderId} {
+      allow get: if isValidId(orderId) && (isAdmin() || (isSignedIn() && existing().userId == request.auth.uid));
+      allow list: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
+      allow create: if isValidId(orderId) && isValidOrder(incoming());
+      allow update: if isAdmin() && isValidId(orderId) && isValidOrder(incoming());
+      allow delete: if isAdmin() && isValidId(orderId);
+    }
+  }
+}

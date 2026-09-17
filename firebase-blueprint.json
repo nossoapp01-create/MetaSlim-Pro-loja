@@ -1,0 +1,120 @@
+{
+  "entities": {
+    "Product": {
+      "title": "Product",
+      "description": "Peptide product entity in the MetaSlim-Pro catalog",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "name": { "type": "string", "maxLength": 150 },
+        "subtitle": { "type": "string", "maxLength": 250 },
+        "refCode": { "type": "string", "maxLength": 50 },
+        "category": { "type": "string", "enum": ["glp1", "muscular", "longevidade", "kits"] },
+        "categoryLabel": { "type": "string", "maxLength": 100 },
+        "price": { "type": "number" },
+        "originalPrice": { "type": "number" },
+        "purity": { "type": "string", "maxLength": 50 },
+        "whatIsItFor": { "type": "string", "maxLength": 500 },
+        "scientificDescription": { "type": "string", "maxLength": 2000 },
+        "stock": { "type": "number" },
+        "image": { "type": "string", "maxLength": 1000 },
+        "batchNumber": { "type": "string", "maxLength": 60 },
+        "casNumber": { "type": "string", "maxLength": 60 },
+        "molecularWeight": { "type": "string", "maxLength": 60 },
+        "formula": { "type": "string", "maxLength": 60 },
+        "paymentLink": { "type": "string", "maxLength": 1000 },
+        "featured": { "type": "boolean" },
+        "badge": { "type": "string", "maxLength": 60 }
+      },
+      "required": ["id", "name", "category", "price", "refCode", "image", "whatIsItFor"]
+    },
+    "BannerSlide": {
+      "title": "BannerSlide",
+      "description": "Rotating promotional and educational hero banner slide",
+      "type": "object",
+      "properties": {
+        "id": { "type": "number" },
+        "title": { "type": "string", "maxLength": 150 },
+        "subtitle": { "type": "string", "maxLength": 300 },
+        "tag": { "type": "string", "maxLength": 80 },
+        "image": { "type": "string", "maxLength": 1000 },
+        "ctaText": { "type": "string", "maxLength": 60 },
+        "ctaLink": { "type": "string", "maxLength": 500 },
+        "badgeText": { "type": "string", "maxLength": 60 }
+      },
+      "required": ["id", "title", "subtitle", "image"]
+    },
+    "Testimonial": {
+      "title": "Testimonial",
+      "description": "Client before-and-after testimonial and weight evolution record",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "name": { "type": "string", "maxLength": 100 },
+        "age": { "type": "number" },
+        "protocol": { "type": "string", "maxLength": 100 },
+        "duration": { "type": "string", "maxLength": 60 },
+        "weightLost": { "type": "string", "maxLength": 60 },
+        "beforeImage": { "type": "string", "maxLength": 1000 },
+        "afterImage": { "type": "string", "maxLength": 1000 },
+        "quote": { "type": "string", "maxLength": 1000 },
+        "verified": { "type": "boolean" }
+      },
+      "required": ["id", "name", "protocol", "weightLost", "beforeImage", "afterImage", "quote"]
+    },
+    "StoreSettings": {
+      "title": "StoreSettings",
+      "description": "Global store configuration and payment link defaults",
+      "type": "object",
+      "properties": {
+        "storeName": { "type": "string", "maxLength": 120 },
+        "storeSubtitle": { "type": "string", "maxLength": 250 },
+        "logoText": { "type": "string", "maxLength": 80 },
+        "currencySymbol": { "type": "string", "enum": ["€", "R$"] },
+        "currencyRateEurToBrl": { "type": "number" },
+        "defaultPaymentLink": { "type": "string", "maxLength": 1000 },
+        "whatsappNumber": { "type": "string", "maxLength": 40 },
+        "freeShippingThreshold": { "type": "number" }
+      },
+      "required": ["storeName", "currencySymbol", "defaultPaymentLink"]
+    },
+    "Order": {
+      "title": "Order",
+      "description": "Order record submitted through cart checkout",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "customerEmail": { "type": "string", "maxLength": 150 },
+        "totalAmount": { "type": "number" },
+        "currency": { "type": "string", "maxLength": 10 },
+        "status": { "type": "string", "enum": ["pending", "paid", "shipped", "cancelled"] },
+        "deliveryNotes": { "type": "string", "maxLength": 500 },
+        "createdAt": { "type": "string", "maxLength": 60 }
+      },
+      "required": ["id", "totalAmount", "status"]
+    }
+  },
+  "firestore": {
+    "/products/{productId}": {
+      "schema": "#/entities/Product",
+      "description": "Public catalog of peptide vials and clinical research compounds"
+    },
+    "/banners/{bannerId}": {
+      "schema": "#/entities/BannerSlide",
+      "description": "Rotational promotional hero banners"
+    },
+    "/testimonials/{testimonialId}": {
+      "schema": "#/entities/Testimonial",
+      "description": "Verified client before-and-after photo records"
+    },
+    "/settings/{settingId}": {
+      "schema": "#/entities/StoreSettings",
+      "description": "General store configuration"
+    },
+    "/orders/{orderId}": {
+      "schema": "#/entities/Order",
+      "description": "Customer orders and checkout intents"
+    }
+  }
+}

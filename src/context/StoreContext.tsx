@@ -1,6 +1,37 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { Product, BannerSlide, Testimonial, StoreSettings, CartItem } from '../types';
 import { initialProducts, initialBanners, initialTestimonials, initialStoreSettings } from '../data/initialData';
+import {
+  db,
+  auth,
+  testFirestoreConnection,
+  signInWithGoogle,
+  signOutUser,
+  onAuthStateChanged,
+  handleFirestoreError,
+  OperationType,
+  FirebaseUser,
+} from '../firebase';
+import {
+  collection,
+  doc,
+  getDocs,
+  setDoc,
+  deleteDoc,
+  onSnapshot,
+} from 'firebase/firestore';
+
+export interface OrderRecord {
+  id: string;
+  userId?: string;
+  customerEmail?: string;
+  totalAmount: number;
+  currency: string;
+  itemsCount: number;
+  deliveryNotes?: string;
+  status: 'pending' | 'paid' | 'shipped' | 'cancelled';
+  createdAt: string;
+}
 
 interface StoreContextType {
   products: Product[];
@@ -17,6 +48,10 @@ interface StoreContextType {
   couponCode: string;
   couponDiscountPercent: number;
   deliveryNotes: string;
+  firebaseUser: FirebaseUser | null;
+  isAdminUser: boolean;
+  isFirebaseConnected: boolean;
+  isSyncing: boolean;
   setActiveTab: (tab: 'inicio' | 'produtos' | 'produto-detalhe' | 'resultados' | 'carrinho' | 'admin') => void;
   setSelectedProductId: (id: string) => void;
   setSelectedCategory: (cat: string) => void;
@@ -30,16 +65,21 @@ interface StoreContextType {
   clearCart: () => void;
   applyCoupon: (code: string) => boolean;
   removeCoupon: () => void;
-  updateProduct: (updated: Product) => void;
-  addProduct: (newProd: Omit<Product, 'id'>) => void;
-  deleteProduct: (id: string) => void;
-  updateBanner: (updated: BannerSlide) => void;
-  updateTestimonial: (updated: Testimonial) => void;
-  addTestimonial: (newTest: Omit<Testimonial, 'id'>) => void;
-  deleteTestimonial: (id: string) => void;
-  updateSettings: (newSettings: Partial<StoreSettings>) => void;
+  updateProduct: (updated: Product) => Promise<void>;
+  addProduct: (newProd: Omit<Product, 'id'>) => Promise<void>;
+  deleteProduct: (id: string) => Promise<void>;
+  updateBanner: (updated: BannerSlide) => Promise<void>;
+  updateTestimonial: (updated: Testimonial) => Promise<void>;
+  addTestimonial: (newTest: Omit<Testimonial, 'id'>) => Promise<void>;
+  deleteTestimonial: (id: string) => Promise<void>;
+  updateSettings: (newSettings: Partial<StoreSettings>) => Promise<void>;
   resetDefaults: () => void;
   showToast: (msg: string) => void;
+  loginWithGoogle: () => Promise<void>;
+  logout: () => Promise<void>;
+  syncAllToFirebase: () => Promise<void>;
+  refreshFromFirebase: () => Promise<void>;
+  createOrderInFirestore: (notes?: string) => Promise<string | null>;
   cartSubtotal: number;
   cartDiscount: number;
   cartTotal: number;
@@ -49,13 +89,15 @@ interface StoreContextType {
 const StoreContext = createContext<StoreContextType | undefined>(undefined);
 
 const STORAGE_KEYS = {
-  PRODUCTS: 'metaslim_pro_products_v2',
-  BANNERS: 'metaslim_pro_banners_v2',
-  TESTIMONIALS: 'metaslim_pro_testimonials_v2',
-  SETTINGS: 'metaslim_pro_settings_v2',
-  CART: 'metaslim_pro_cart_v2',
-  CURRENCY: 'metaslim_pro_currency_v2',
+  PRODUCTS: 'metaslim_pro_products_v3',
+  BANNERS: 'metaslim_pro_banners_v3',
+  TESTIMONIALS: 'metaslim_pro_testimonials_v3',
+  SETTINGS: 'metaslim_pro_settings_v3',
+  CART: 'metaslim_pro_cart_v3',
+  CURRENCY: 'metaslim_pro_currency_v3',
 };
+
+const SUPER_ADMIN_EMAIL = 'nossoapp01@gmail.com';
 
 export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [products, setProducts] = useState<Product[]>(() => {
@@ -98,7 +140,6 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     try {
       const saved = localStorage.getItem(STORAGE_KEYS.CART);
       if (saved) return JSON.parse(saved);
-      // Pre-populate with initial items matching the reference design!
       const p1 = initialProducts[0];
       const p2 = initialProducts.find((p) => p.id === 'agua-bacteriostatica-10ml') || initialProducts[1];
       return [
@@ -144,36 +185,241 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [couponDiscountPercent, setCouponDiscountPercent] = useState<number>(10);
   const [deliveryNotes, setDeliveryNotes] = useState<string>('');
 
-  // Persist to localStorage
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(products));
-  }, [products]);
+  // Firebase states
+  const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
+  const [isFirebaseConnected, setIsFirebaseConnected] = useState<boolean>(false);
+  const [isSyncing, setIsSyncing] = useState<boolean>(false);
 
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.BANNERS, JSON.stringify(banners));
-  }, [banners]);
+  const isAdminUser = Boolean(
+    firebaseUser &&
+      (firebaseUser.email?.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase() ||
+        firebaseUser.email?.includes('admin'))
+  );
 
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.TESTIMONIALS, JSON.stringify(testimonials));
-  }, [testimonials]);
-
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(settings));
-  }, [settings]);
-
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.CART, JSON.stringify(cart));
-  }, [cart]);
-
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.CURRENCY, currency);
-  }, [currency]);
-
-  const showToast = (msg: string) => {
+  const showToast = useCallback((msg: string) => {
     setToast(msg);
     setTimeout(() => {
       setToast(null);
     }, 3200);
+  }, []);
+
+  // Persist to localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(products));
+    } catch (e) {
+      console.warn('Could not save products to local storage', e);
+    }
+  }, [products]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEYS.BANNERS, JSON.stringify(banners));
+    } catch (e) {
+      console.warn('Could not save banners to local storage', e);
+    }
+  }, [banners]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEYS.TESTIMONIALS, JSON.stringify(testimonials));
+    } catch (e) {
+      console.warn('Could not save testimonials to local storage', e);
+    }
+  }, [testimonials]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(settings));
+    } catch (e) {
+      console.warn('Could not save settings to local storage', e);
+    }
+  }, [settings]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEYS.CART, JSON.stringify(cart));
+    } catch (e) {
+      console.warn('Could not save cart to local storage', e);
+    }
+  }, [cart]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEYS.CURRENCY, currency);
+    } catch (e) {
+      console.warn('Could not save currency to local storage', e);
+    }
+  }, [currency]);
+
+  // Test connection and listen to auth state changes
+  useEffect(() => {
+    testFirestoreConnection().then((connected) => {
+      setIsFirebaseConnected(connected);
+    });
+
+    const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
+      setFirebaseUser(user);
+      if (user) {
+        console.log('Firebase user signed in:', user.email);
+      }
+    });
+
+    return () => {
+      unsubscribeAuth();
+    };
+  }, []);
+
+  // Initial load from Firestore (if documents exist)
+  const refreshFromFirebase = useCallback(async () => {
+    setIsSyncing(true);
+    try {
+      // Products
+      const prodSnap = await getDocs(collection(db, 'products')).catch((err) => {
+        handleFirestoreError(err, OperationType.GET, 'products');
+      });
+      if (prodSnap && !prodSnap.empty) {
+        const loadedProds: Product[] = [];
+        prodSnap.forEach((d) => {
+          loadedProds.push(d.data() as Product);
+        });
+        if (loadedProds.length > 0) {
+          setProducts(loadedProds);
+        }
+      }
+
+      // Banners
+      const bannerSnap = await getDocs(collection(db, 'banners')).catch((err) => {
+        handleFirestoreError(err, OperationType.GET, 'banners');
+      });
+      if (bannerSnap && !bannerSnap.empty) {
+        const loadedBanners: BannerSlide[] = [];
+        bannerSnap.forEach((d) => {
+          loadedBanners.push(d.data() as BannerSlide);
+        });
+        if (loadedBanners.length > 0) {
+          loadedBanners.sort((a, b) => a.id - b.id);
+          setBanners(loadedBanners);
+        }
+      }
+
+      // Testimonials
+      const testSnap = await getDocs(collection(db, 'testimonials')).catch((err) => {
+        handleFirestoreError(err, OperationType.GET, 'testimonials');
+      });
+      if (testSnap && !testSnap.empty) {
+        const loadedTests: Testimonial[] = [];
+        testSnap.forEach((d) => {
+          loadedTests.push(d.data() as Testimonial);
+        });
+        if (loadedTests.length > 0) {
+          setTestimonials(loadedTests);
+        }
+      }
+
+      // Settings
+      const settingsSnap = await getDocs(collection(db, 'settings')).catch((err) => {
+        handleFirestoreError(err, OperationType.GET, 'settings');
+      });
+      if (settingsSnap && !settingsSnap.empty) {
+        const generalDoc = settingsSnap.docs.find((d) => d.id === 'general');
+        if (generalDoc) {
+          setSettings(generalDoc.data() as StoreSettings);
+        }
+      }
+
+      setIsFirebaseConnected(true);
+      showToast('Dados sincronizados com o Firebase Firestore!');
+    } catch (err) {
+      console.warn('Could not read from Firestore, keeping local dataset.', err);
+    } finally {
+      setIsSyncing(false);
+    }
+  }, [showToast]);
+
+  // Real-time listener for public updates
+  useEffect(() => {
+    let unsubProducts: (() => void) | undefined;
+    try {
+      unsubProducts = onSnapshot(
+        collection(db, 'products'),
+        (snapshot) => {
+          if (!snapshot.empty) {
+            const list: Product[] = [];
+            snapshot.forEach((d) => list.push(d.data() as Product));
+            if (list.length > 0) setProducts(list);
+          }
+        },
+        (error) => {
+          console.warn('Realtime products snapshot notice:', error.message);
+        }
+      );
+    } catch (e) {
+      console.warn('Listener setup notice:', e);
+    }
+
+    return () => {
+      if (unsubProducts) unsubProducts();
+    };
+  }, []);
+
+  // Sync all current store datasets to Firebase Firestore
+  const syncAllToFirebase = async () => {
+    setIsSyncing(true);
+    try {
+      // Push products
+      for (const prod of products) {
+        await setDoc(doc(db, 'products', prod.id), prod).catch((err) => {
+          handleFirestoreError(err, OperationType.WRITE, `products/${prod.id}`);
+        });
+      }
+
+      // Push banners
+      for (const banner of banners) {
+        await setDoc(doc(db, 'banners', String(banner.id)), banner).catch((err) => {
+          handleFirestoreError(err, OperationType.WRITE, `banners/${banner.id}`);
+        });
+      }
+
+      // Push testimonials
+      for (const test of testimonials) {
+        await setDoc(doc(db, 'testimonials', test.id), test).catch((err) => {
+          handleFirestoreError(err, OperationType.WRITE, `testimonials/${test.id}`);
+        });
+      }
+
+      // Push settings
+      await setDoc(doc(db, 'settings', 'general'), settings).catch((err) => {
+        handleFirestoreError(err, OperationType.WRITE, 'settings/general');
+      });
+
+      showToast('Catálogo e configurações salvos no Firebase com sucesso!');
+    } catch (error) {
+      console.error('Error syncing to Firebase:', error);
+      showToast('Erro ao sincronizar com o Firebase. Verifique as permissões de administrador.');
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  const loginWithGoogle = async () => {
+    try {
+      const user = await signInWithGoogle();
+      if (user) {
+        showToast(`Bem-vindo, ${user.displayName || user.email}!`);
+      }
+    } catch (error) {
+      showToast('Falha no login com Google. Tente novamente.');
+    }
+  };
+
+  const logout = async () => {
+    try {
+      await signOutUser();
+      showToast('Sessão encerrada com sucesso.');
+    } catch (error) {
+      showToast('Erro ao desconectar.');
+    }
   };
 
   const toggleCurrency = () => {
@@ -190,12 +436,11 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const addToCart = (product: Product, vialsCount = 1, quantity = 1) => {
-    // calculate unit price based on vialsCount discount tier
     let unitPrice = product.price;
     if (vialsCount === 2) {
-      unitPrice = Math.round(product.price * 2 * 0.8 * 100) / 100; // 20% discount on 2 vials total
+      unitPrice = Math.round(product.price * 2 * 0.8 * 100) / 100;
     } else if (vialsCount === 3) {
-      unitPrice = Math.round(product.price * 3 * 0.7 * 100) / 100; // 30% discount on 3 vials total
+      unitPrice = Math.round(product.price * 3 * 0.7 * 100) / 100;
     }
 
     const itemId = `${product.id}-${vialsCount}vial`;
@@ -284,9 +529,9 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     showToast('Cupom removido');
   };
 
-  const updateProduct = (updated: Product) => {
+  // Product mutations
+  const updateProduct = async (updated: Product) => {
     setProducts((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
-    // Also update any cart items that hold this product
     setCart((prev) =>
       prev.map((item) =>
         item.productId === updated.id
@@ -300,46 +545,98 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       )
     );
     showToast(`Produto "${updated.name}" atualizado!`);
+
+    try {
+      await setDoc(doc(db, 'products', updated.id), updated);
+    } catch (e) {
+      console.warn('Note: saved locally, cloud sync pending admin auth.');
+    }
   };
 
-  const addProduct = (newProd: Omit<Product, 'id'>) => {
+  const addProduct = async (newProd: Omit<Product, 'id'>) => {
     const id = newProd.name.toLowerCase().replace(/[^a-z0-9]/g, '-') + '-' + Date.now().toString().slice(-4);
     const product: Product = { ...newProd, id };
     setProducts((prev) => [product, ...prev]);
-    showToast(`Novo produto "${product.name}" criado com sucesso!`);
+    showToast(`Novo produto "${product.name}" criado!`);
+
+    try {
+      await setDoc(doc(db, 'products', id), product);
+    } catch (e) {
+      console.warn('Note: saved locally, cloud sync pending admin auth.');
+    }
   };
 
-  const deleteProduct = (id: string) => {
+  const deleteProduct = async (id: string) => {
     setProducts((prev) => prev.filter((p) => p.id !== id));
     setCart((prev) => prev.filter((item) => item.productId !== id));
     showToast('Produto excluído do catálogo');
+
+    try {
+      await deleteDoc(doc(db, 'products', id));
+    } catch (e) {
+      console.warn('Note: removed locally, cloud sync pending admin auth.');
+    }
   };
 
-  const updateBanner = (updated: BannerSlide) => {
+  // Banner mutations
+  const updateBanner = async (updated: BannerSlide) => {
     setBanners((prev) => prev.map((b) => (b.id === updated.id ? updated : b)));
     showToast(`Banner "${updated.title}" atualizado!`);
+
+    try {
+      await setDoc(doc(db, 'banners', String(updated.id)), updated);
+    } catch (e) {
+      console.warn('Note: saved locally.');
+    }
   };
 
-  const updateTestimonial = (updated: Testimonial) => {
+  // Testimonial mutations
+  const updateTestimonial = async (updated: Testimonial) => {
     setTestimonials((prev) => prev.map((t) => (t.id === updated.id ? updated : t)));
     showToast(`Depoimento de "${updated.name}" atualizado!`);
+
+    try {
+      await setDoc(doc(db, 'testimonials', updated.id), updated);
+    } catch (e) {
+      console.warn('Note: saved locally.');
+    }
   };
 
-  const addTestimonial = (newTest: Omit<Testimonial, 'id'>) => {
+  const addTestimonial = async (newTest: Omit<Testimonial, 'id'>) => {
     const id = 'test-' + Date.now().toString().slice(-4);
     const testimonial: Testimonial = { ...newTest, id };
     setTestimonials((prev) => [testimonial, ...prev]);
     showToast(`Novo depoimento de "${testimonial.name}" adicionado!`);
+
+    try {
+      await setDoc(doc(db, 'testimonials', id), testimonial);
+    } catch (e) {
+      console.warn('Note: saved locally.');
+    }
   };
 
-  const deleteTestimonial = (id: string) => {
+  const deleteTestimonial = async (id: string) => {
     setTestimonials((prev) => prev.filter((t) => t.id !== id));
     showToast('Depoimento removido');
+
+    try {
+      await deleteDoc(doc(db, 'testimonials', id));
+    } catch (e) {
+      console.warn('Note: removed locally.');
+    }
   };
 
-  const updateSettings = (newSettings: Partial<StoreSettings>) => {
-    setSettings((prev) => ({ ...prev, ...newSettings }));
+  // Settings mutations
+  const updateSettings = async (newSettings: Partial<StoreSettings>) => {
+    const merged = { ...settings, ...newSettings };
+    setSettings(merged);
     showToast('Configurações da loja salvas com sucesso!');
+
+    try {
+      await setDoc(doc(db, 'settings', 'general'), merged);
+    } catch (e) {
+      console.warn('Note: saved locally.');
+    }
   };
 
   const resetDefaults = () => {
@@ -348,6 +645,31 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setTestimonials(initialTestimonials);
     setSettings(initialStoreSettings);
     showToast('Dados restaurados para o padrão de demonstração!');
+  };
+
+  // Record an order in Firestore
+  const createOrderInFirestore = async (notes?: string): Promise<string | null> => {
+    try {
+      const orderId = 'ORD-' + Date.now().toString().slice(-6) + '-' + Math.floor(100 + Math.random() * 900);
+      const orderPayload: OrderRecord = {
+        id: orderId,
+        userId: firebaseUser?.uid || 'guest',
+        customerEmail: firebaseUser?.email || 'cliente@checkout.com',
+        totalAmount: cartTotal,
+        currency,
+        itemsCount: cartItemsCount,
+        deliveryNotes: notes || deliveryNotes,
+        status: 'pending',
+        createdAt: new Date().toISOString(),
+      };
+
+      await setDoc(doc(db, 'orders', orderId), orderPayload);
+      console.log('Order registered in Firestore:', orderId);
+      return orderId;
+    } catch (err) {
+      console.warn('Could not record order in Firestore, proceeding with checkout url:', err);
+      return null;
+    }
   };
 
   // Calculations
@@ -373,6 +695,10 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         couponCode,
         couponDiscountPercent,
         deliveryNotes,
+        firebaseUser,
+        isAdminUser,
+        isFirebaseConnected,
+        isSyncing,
         setActiveTab,
         setSelectedProductId,
         setSelectedCategory,
@@ -396,6 +722,11 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         updateSettings,
         resetDefaults,
         showToast,
+        loginWithGoogle,
+        logout,
+        syncAllToFirebase,
+        refreshFromFirebase,
+        createOrderInFirestore,
         cartSubtotal,
         cartDiscount,
         cartTotal,
