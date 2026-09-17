@@ -55,6 +55,15 @@ export interface Testimonial {
   verified: boolean;
 }
 
+export interface MyPOSConfig {
+  enabled: boolean;
+  mode: 'sandbox' | 'production';
+  sid: string;
+  walletNumber: string;
+  keyIndex: number;
+  payLink: string;
+}
+
 export interface StoreSettings {
   storeName: string;
   storeSubtitle: string;
@@ -64,4 +73,5 @@ export interface StoreSettings {
   defaultPaymentLink: string;
   whatsappNumber: string;
   freeShippingThreshold: number;
+  mypos?: MyPOSConfig;
 }

@@ -30,6 +30,10 @@ import {
   Terminal,
   Copy,
   Check,
+  CreditCard,
+  ShieldCheck,
+  Lock,
+  Info,
 } from 'lucide-react';
 
 export const AdminPanel: React.FC = () => {
@@ -59,7 +63,7 @@ export const AdminPanel: React.FC = () => {
     refreshFromFirebase,
   } = useStore();
 
-  const [activeAdminTab, setActiveAdminTab] = useState<'produtos' | 'banners' | 'depoimentos' | 'configuracoes' | 'vercel'>('produtos');
+  const [activeAdminTab, setActiveAdminTab] = useState<'produtos' | 'banners' | 'depoimentos' | 'configuracoes' | 'mypos' | 'vercel'>('produtos');
   const [selectedProdId, setSelectedProdId] = useState<string>(products[0]?.id || 'retatrutide-10mg');
   const [expandedBannerId, setExpandedBannerId] = useState<number | null>(1);
   const [isSaving, setIsSaving] = useState(false);
@@ -345,6 +349,20 @@ export const AdminPanel: React.FC = () => {
           }`}
         >
           Configurações Gerais
+        </button>
+        <button
+          onClick={() => setActiveAdminTab('mypos')}
+          className={`px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5 ${
+            activeAdminTab === 'mypos'
+              ? 'bg-[#006750] text-white shadow-md'
+              : 'bg-white text-slate-700 hover:bg-emerald-50 border border-slate-200'
+          }`}
+        >
+          <CreditCard className="w-3.5 h-3.5 text-[#71face]" />
+          <span>Gateway myPOS</span>
+          <span className="bg-emerald-100 text-[#006750] text-[9px] px-1.5 py-0.2 rounded font-mono font-bold">
+            OFICIAL
+          </span>
         </button>
         <button
           onClick={() => setActiveAdminTab('vercel')}
@@ -917,6 +935,317 @@ export const AdminPanel: React.FC = () => {
                 <ExternalLink className="w-3.5 h-3.5" />
                 <span>Testar</span>
               </button>
+            </div>
+          </div>
+
+          {/* Quick myPOS Status Banner in Settings */}
+          <div className="p-4 bg-emerald-50/60 rounded-xl border border-emerald-200/80 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-lg bg-[#006750] text-white flex items-center justify-center font-bold text-xs">
+                myPOS
+              </div>
+              <div>
+                <h4 className="text-xs font-bold text-slate-900">
+                  myPOS Online Checkout ({settings.mypos?.enabled !== false ? 'Ativado' : 'Desativado'})
+                </h4>
+                <p className="text-[11px] text-slate-500">
+                  {settings.mypos?.mode === 'sandbox' ? 'Ambiente Sandbox (Testes)' : 'Ambiente Produção (Live)'} • SID: {settings.mypos?.sid || '000000000000001'}
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setActiveAdminTab('mypos')}
+              className="px-3 py-1.5 rounded-lg bg-[#006750] text-white text-xs font-bold hover:bg-[#0d8267] transition-all"
+            >
+              Configurar myPOS
+            </button>
+          </div>
+        </section>
+      )}
+
+      {/* TAB: myPOS Checkout Gateway Management */}
+      {activeAdminTab === 'mypos' && (
+        <section className="bg-white rounded-2xl p-5 sm:p-7 shadow-sm border border-slate-200/70 flex flex-col gap-6">
+          {/* Header */}
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-4">
+            <div>
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-[#006750] text-white flex items-center justify-center font-black text-xs shadow-xs">
+                  myPOS
+                </div>
+                <h2 className="text-lg font-bold text-slate-900">
+                  Integração myPOS Online Checkout
+                </h2>
+                <span className="text-[10px] bg-emerald-100 text-[#006750] font-mono px-2 py-0.5 rounded-full font-bold">
+                  @developermypos SDK v1.4
+                </span>
+              </div>
+              <p className="text-xs text-slate-500 mt-1">
+                Aceite pagamentos com cartões de crédito e débito internacionais (Visa, Mastercard, Maestro, AMEX), Apple Pay, Google Pay e Multibanco com licença bancária EMI europeia.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold text-slate-700">Status do Gateway:</span>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={settings.mypos?.enabled !== false}
+                  onChange={(e) =>
+                    updateSettings({
+                      mypos: {
+                        ...(settings.mypos || {
+                          enabled: true,
+                          mode: 'production',
+                          sid: '000000000000001',
+                          walletNumber: '61938166666',
+                          keyIndex: 1,
+                          payLink: 'https://pay.mypos.com/metaslimpro',
+                        }),
+                        enabled: e.target.checked,
+                      },
+                    })
+                  }
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#006750]"></div>
+              </label>
+            </div>
+          </div>
+
+          {/* Credentials Form */}
+          <div className="flex flex-col gap-4">
+            <h3 className="text-xs font-mono uppercase font-bold text-slate-400 tracking-wider">
+              Credenciais da Conta Comerciante myPOS
+            </h3>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-bold text-slate-700">Ambiente de Execução</label>
+                <select
+                  value={settings.mypos?.mode || 'production'}
+                  onChange={(e) =>
+                    updateSettings({
+                      mypos: {
+                        ...(settings.mypos || {
+                          enabled: true,
+                          mode: 'production',
+                          sid: '000000000000001',
+                          walletNumber: '61938166666',
+                          keyIndex: 1,
+                          payLink: 'https://pay.mypos.com/metaslimpro',
+                        }),
+                        mode: e.target.value as 'production' | 'sandbox',
+                      },
+                    })
+                  }
+                  className="h-10 px-3 rounded-xl bg-slate-50 border border-slate-200 text-xs font-semibold text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#006750]"
+                >
+                  <option value="production">Produção (Live / Oficial)</option>
+                  <option value="sandbox">Sandbox (Testes myPOS)</option>
+                </select>
+                <span className="text-[10px] text-slate-400">
+                  {settings.mypos?.mode === 'sandbox' ? 'Endpoint: checkout-test' : 'Endpoint: checkout (Live)'}
+                </span>
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-bold text-slate-700">Store ID (SID)</label>
+                <input
+                  type="text"
+                  placeholder="ex: 000000000000001"
+                  value={settings.mypos?.sid || ''}
+                  onChange={(e) =>
+                    updateSettings({
+                      mypos: {
+                        ...(settings.mypos || {
+                          enabled: true,
+                          mode: 'production',
+                          sid: '',
+                          walletNumber: '',
+                          keyIndex: 1,
+                          payLink: '',
+                        }),
+                        sid: e.target.value,
+                      },
+                    })
+                  }
+                  className="h-10 px-3 rounded-xl bg-slate-50 border border-slate-200 text-xs font-mono text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#006750]"
+                />
+                <span className="text-[10px] text-slate-400">Identificador da loja na myPOS</span>
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-bold text-slate-700">Client / Wallet Number</label>
+                <input
+                  type="text"
+                  placeholder="ex: 61938166666"
+                  value={settings.mypos?.walletNumber || ''}
+                  onChange={(e) =>
+                    updateSettings({
+                      mypos: {
+                        ...(settings.mypos || {
+                          enabled: true,
+                          mode: 'production',
+                          sid: '',
+                          walletNumber: '',
+                          keyIndex: 1,
+                          payLink: '',
+                        }),
+                        walletNumber: e.target.value,
+                      },
+                    })
+                  }
+                  className="h-10 px-3 rounded-xl bg-slate-50 border border-slate-200 text-xs font-mono text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#006750]"
+                />
+                <span className="text-[10px] text-slate-400">Número da conta carteira comerciante</span>
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-bold text-slate-700">Key Index</label>
+                <input
+                  type="number"
+                  value={settings.mypos?.keyIndex || 1}
+                  onChange={(e) =>
+                    updateSettings({
+                      mypos: {
+                        ...(settings.mypos || {
+                          enabled: true,
+                          mode: 'production',
+                          sid: '',
+                          walletNumber: '',
+                          keyIndex: 1,
+                          payLink: '',
+                        }),
+                        keyIndex: parseInt(e.target.value) || 1,
+                      },
+                    })
+                  }
+                  className="h-10 px-3 rounded-xl bg-slate-50 border border-slate-200 text-xs font-mono text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#006750]"
+                />
+                <span className="text-[10px] text-slate-400">Índice do par de chaves (padrão: 1)</span>
+              </div>
+            </div>
+
+            {/* Direct PayLink */}
+            <div className="flex flex-col gap-1.5 mt-1">
+              <label className="text-xs font-bold text-slate-700 flex items-center justify-between">
+                <span>Link Direto myPOS PayLink / PayButton</span>
+                <span className="text-[10px] text-slate-400 font-normal">
+                  (Criado em mypos.com &rarr; Loja Online &rarr; PayLink)
+                </span>
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type="url"
+                  placeholder="https://pay.mypos.com/metaslimpro"
+                  value={settings.mypos?.payLink || ''}
+                  onChange={(e) =>
+                    updateSettings({
+                      mypos: {
+                        ...(settings.mypos || {
+                          enabled: true,
+                          mode: 'production',
+                          sid: '',
+                          walletNumber: '',
+                          keyIndex: 1,
+                          payLink: '',
+                        }),
+                        payLink: e.target.value,
+                      },
+                    })
+                  }
+                  className="flex-1 h-10 px-3 rounded-xl bg-slate-50 border border-slate-200 text-xs font-mono text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#006750]"
+                />
+                <button
+                  type="button"
+                  onClick={() => testGatewayUrl(settings.mypos?.payLink || 'https://pay.mypos.com/')}
+                  className="h-10 px-4 rounded-xl bg-slate-100 text-slate-800 text-xs font-semibold hover:bg-slate-200 flex items-center gap-1.5 transition-all"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" />
+                  <span>Testar Link</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Technical Specs & Official Repositories Reference */}
+          <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200/80 flex flex-col gap-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Terminal className="w-4 h-4 text-[#006750]" />
+                <h4 className="text-xs font-bold text-slate-900">
+                  Especificações Técnicas @developermypos
+                </h4>
+              </div>
+              <a
+                href="https://github.com/developermypos"
+                target="_blank"
+                rel="noreferrer"
+                className="text-xs text-[#006750] font-bold hover:underline flex items-center gap-1"
+              >
+                <span>github.com/developermypos</span>
+                <ExternalLink className="w-3 h-3" />
+              </a>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+              <div className="p-3 bg-white rounded-xl border border-slate-200/60 flex flex-col gap-1">
+                <span className="font-bold text-slate-800 font-mono text-[11px]">mypos-js (NodeJS SDK)</span>
+                <p className="text-[11px] text-slate-500 leading-relaxed">
+                  Implementa os métodos <code>IPCPurchase</code>, <code>IPCGetPaymentStatus</code> e webhook verification para liquidação direta.
+                </p>
+              </div>
+
+              <div className="p-3 bg-white rounded-xl border border-slate-200/60 flex flex-col gap-1">
+                <span className="font-bold text-slate-800 font-mono text-[11px]">myPOS-Checkout-SDK-PHP</span>
+                <p className="text-[11px] text-slate-500 leading-relaxed">
+                  Suporta payload assinado v1.4 com detalhamento de carrinho (<code>Article_N</code>, <code>Price_N</code>, <code>Quantity_N</code>).
+                </p>
+              </div>
+
+              <div className="p-3 bg-white rounded-xl border border-slate-200/60 flex flex-col gap-1">
+                <span className="font-bold text-slate-800 font-mono text-[11px]">3D Secure 2.0 &amp; PCI-DSS</span>
+                <p className="text-[11px] text-slate-500 leading-relaxed">
+                  Os dados do titular do cartão não tocam o servidor do cliente; o processamento ocorre inteiramente em ambiente com licença bancária da myPOS.
+                </p>
+              </div>
+            </div>
+
+            {/* Endpoints Table */}
+            <div className="overflow-x-auto">
+              <table className="w-full text-[11px] text-left border-collapse">
+                <thead>
+                  <tr className="border-b border-slate-200 text-slate-500 font-mono font-bold">
+                    <th className="py-2">Parâmetro</th>
+                    <th className="py-2">Valor Configurado</th>
+                    <th className="py-2">Descrição</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-200/60 font-mono">
+                  <tr>
+                    <td className="py-1.5 text-slate-900 font-bold">IPCmethod</td>
+                    <td className="py-1.5 text-[#006750]">IPCPurchase</td>
+                    <td className="py-1.5 text-slate-500 font-sans">Iniciação de compra e faturamento</td>
+                  </tr>
+                  <tr>
+                    <td className="py-1.5 text-slate-900 font-bold">IPCVersion</td>
+                    <td className="py-1.5 text-[#006750]">1.4</td>
+                    <td className="py-1.5 text-slate-500 font-sans">Versão estável da API Checkout</td>
+                  </tr>
+                  <tr>
+                    <td className="py-1.5 text-slate-900 font-bold">Endpoint Live</td>
+                    <td className="py-1.5 text-slate-700">https://www.mypos.com/vapi/checkout</td>
+                    <td className="py-1.5 text-slate-500 font-sans">Servidor de produção myPOS</td>
+                  </tr>
+                  <tr>
+                    <td className="py-1.5 text-slate-900 font-bold">Endpoint Sandbox</td>
+                    <td className="py-1.5 text-slate-700">https://www.mypos.com/vapi/checkout-test</td>
+                    <td className="py-1.5 text-slate-500 font-sans">Ambiente para testes sem cobrança real</td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
           </div>
         </section>

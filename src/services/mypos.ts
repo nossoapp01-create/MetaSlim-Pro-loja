@@ -1,0 +1,147 @@
+/**
+ * myPOS Checkout Integration Service
+ * Grounded in official @developermypos SDK specifications:
+ * - developermypos/mypos-js (NodeJS SDK)
+ * - developermypos/myPOS-Checkout-SDK-PHP
+ * - developermypos/mypos-embedded-checkout
+ */
+
+export interface MyPOSConfig {
+  enabled: boolean;
+  mode: 'sandbox' | 'production';
+  sid: string; // Store ID (SID) assigned in myPOS Merchant account
+  walletNumber: string; // Client / Wallet number
+  keyIndex: number; // Key index (default: 1)
+  payLink: string; // Direct myPOS PayLink / PayButton URL
+}
+
+export interface MyPOSCartItem {
+  name: string;
+  quantity: number;
+  price: number;
+}
+
+export interface MyPOSCustomer {
+  email?: string;
+  firstName?: string;
+  lastName?: string;
+  phone?: string;
+  country?: string;
+  address?: string;
+}
+
+export interface MyPOSPurchaseParams {
+  orderId: string;
+  amount: number;
+  currency: 'EUR' | 'BRL';
+  cartItems: MyPOSCartItem[];
+  customer?: MyPOSCustomer;
+  deliveryNotes?: string;
+  returnUrlOk?: string;
+  returnUrlCancel?: string;
+  notifyUrl?: string;
+}
+
+// Endpoints from myPOS API documentation
+export const MYPOS_ENDPOINTS = {
+  production: 'https://www.mypos.com/vapi/checkout',
+  sandbox: 'https://www.mypos.com/vapi/checkout-test',
+  payBase: 'https://pay.mypos.com',
+};
+
+/**
+ * Generates the full IPC Purchase payload complying with myPOS Checkout API v1.4
+ */
+export function buildMyPOSPurchasePayload(
+  config: MyPOSConfig,
+  params: MyPOSPurchaseParams
+): Record<string, string> {
+  const currentOrigin = typeof window !== 'undefined' ? window.location.origin : 'https://metaslimpro.vercel.app';
+  const urlOk = params.returnUrlOk || `${currentOrigin}/?status=success&order=${params.orderId}`;
+  const urlCancel = params.returnUrlCancel || `${currentOrigin}/?status=cancelled&order=${params.orderId}`;
+  const urlNotify = params.notifyUrl || `${currentOrigin}/api/mypos-webhook`;
+
+  const payload: Record<string, string> = {
+    IPCmethod: 'IPCPurchase',
+    IPCVersion: '1.4',
+    IPCLanguage: 'PT',
+    SID: config.sid || '000000000000001',
+    WalletNumber: config.walletNumber || '61938166666',
+    KeyIndex: String(config.keyIndex || 1),
+    Amount: params.amount.toFixed(2),
+    Currency: params.currency === 'BRL' ? 'EUR' : 'EUR', // myPOS standard settles in EUR/GBP/USD
+    OrderID: params.orderId,
+    URL_OK: urlOk,
+    URL_Cancel: urlCancel,
+    URL_Notify: urlNotify,
+    PaymentParametersRequired: '2', // Standard checkout page
+    CardTokenRequest: '0',
+    PaymentMethod: '1', // 1: Cards (Visa, Mastercard, Maestro, AMEX) + Apple Pay / Google Pay
+    CartItems: String(params.cartItems.length),
+  };
+
+  // Populate individual cart item fields (Article_1, Quantity_1, Price_1, Amount_1)
+  params.cartItems.forEach((item, index) => {
+    const idx = index + 1;
+    payload[`Article_${idx}`] = item.name.slice(0, 50);
+    payload[`Quantity_${idx}`] = String(item.quantity);
+    payload[`Price_${idx}`] = item.price.toFixed(2);
+    payload[`Amount_${idx}`] = (item.price * item.quantity).toFixed(2);
+  });
+
+  if (params.customer?.email) {
+    payload['CustomerEmail'] = params.customer.email;
+  }
+  if (params.deliveryNotes) {
+    payload['Note'] = params.deliveryNotes.slice(0, 100);
+  }
+
+  return payload;
+}
+
+/**
+ * Initiates the checkout via myPOS.
+ * If merchant provided a custom PayLink (e.g. from myPOS portal), uses query params.
+ * Otherwise, generates an IPC POST form submission to the myPOS Checkout gateway.
+ */
+export function processMyPOSCheckout(
+  config: MyPOSConfig,
+  params: MyPOSPurchaseParams
+): void {
+  // If merchant has a dedicated myPOS PayLink or PayButton URL
+  if (config.payLink && config.payLink.startsWith('http')) {
+    const separator = config.payLink.includes('?') ? '&' : '?';
+    const checkoutUrl = `${config.payLink}${separator}order_id=${encodeURIComponent(
+      params.orderId
+    )}&amount=${params.amount.toFixed(2)}&currency=${params.currency}&desc=${encodeURIComponent(
+      'MetaSlim Pro Peptides - Pedido ' + params.orderId
+    )}`;
+    window.open(checkoutUrl, '_blank');
+    return;
+  }
+
+  // Otherwise, perform standardized IPC Purchase Form submission
+  const endpoint =
+    config.mode === 'sandbox' ? MYPOS_ENDPOINTS.sandbox : MYPOS_ENDPOINTS.production;
+
+  const payload = buildMyPOSPurchasePayload(config, params);
+
+  // Dynamically create and submit POST form
+  const form = document.createElement('form');
+  form.method = 'POST';
+  form.action = endpoint;
+  form.target = '_blank';
+  form.style.display = 'none';
+
+  Object.entries(payload).forEach(([key, value]) => {
+    const input = document.createElement('input');
+    input.type = 'hidden';
+    input.name = key;
+    input.value = value;
+    form.appendChild(input);
+  });
+
+  document.body.appendChild(form);
+  form.submit();
+  document.body.removeChild(form);
+}

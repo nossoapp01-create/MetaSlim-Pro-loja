@@ -9,6 +9,14 @@ export const initialStoreSettings: StoreSettings = {
   defaultPaymentLink: 'https://buy.stripe.com/live_metaslimpro_checkout',
   whatsappNumber: '+351912345678',
   freeShippingThreshold: 100,
+  mypos: {
+    enabled: true,
+    mode: 'production',
+    sid: '000000000000001',
+    walletNumber: '61938166666',
+    keyIndex: 1,
+    payLink: 'https://pay.mypos.com/metaslimpro',
+  },
 };
 
 export const initialProducts: Product[] = [
