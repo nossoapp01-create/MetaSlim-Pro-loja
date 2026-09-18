@@ -3,6 +3,8 @@ import {
   getAuth,
   GoogleAuthProvider,
   signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   signOut as firebaseSignOut,
   onAuthStateChanged,
   User as FirebaseUser,
@@ -35,6 +37,64 @@ export const db = firebaseConfig.firestoreDatabaseId && firebaseConfig.firestore
 
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
+googleProvider.setCustomParameters({
+  prompt: 'select_account',
+});
+
+export interface AuthErrorInfo {
+  code: string;
+  title: string;
+  message: string;
+  domainToAuthorize?: string;
+  isUnauthorizedDomain?: boolean;
+  isPopupBlocked?: boolean;
+}
+
+export function parseAuthError(error: any): AuthErrorInfo {
+  const code = error?.code || 'auth/unknown';
+  const currentDomain = typeof window !== 'undefined' ? window.location.hostname : '';
+
+  if (code === 'auth/unauthorized-domain' || error?.message?.includes('unauthorized-domain')) {
+    return {
+      code,
+      title: 'Domínio Não Autorizado no Firebase',
+      message: `O domínio atual "${currentDomain}" ainda não foi adicionado à lista de Domínios Autorizados no Firebase Authentication.`,
+      domainToAuthorize: currentDomain,
+      isUnauthorizedDomain: true,
+    };
+  }
+
+  if (code === 'auth/popup-blocked' || error?.message?.includes('popup-blocked')) {
+    return {
+      code,
+      title: 'Janela Pop-up Bloqueada',
+      message: 'O navegador bloqueou a janela pop-up de login do Google. Por favor, permita pop-ups para este site ou utilize o modo de redirecionamento.',
+      isPopupBlocked: true,
+    };
+  }
+
+  if (code === 'auth/popup-closed-by-user') {
+    return {
+      code,
+      title: 'Login Cancelado',
+      message: 'A janela de login do Google foi fechada antes da confirmação.',
+    };
+  }
+
+  if (code === 'auth/operation-not-allowed') {
+    return {
+      code,
+      title: 'Provedor Google Desativado',
+      message: 'O provedor Google precisa estar ativado no Firebase Console (Authentication > Sign-in method > Google).',
+    };
+  }
+
+  return {
+    code,
+    title: 'Falha no Login com Google',
+    message: error?.message || 'Não foi possível autenticar com o Google neste momento.',
+  };
+}
 
 export enum OperationType {
   CREATE = 'create',
@@ -100,13 +160,36 @@ export async function testFirestoreConnection(): Promise<boolean> {
 }
 
 // Authentication helpers
-export async function signInWithGoogle(): Promise<FirebaseUser | null> {
+export async function signInWithGoogle(useRedirectFallback = false): Promise<FirebaseUser | null> {
   try {
+    if (useRedirectFallback) {
+      await signInWithRedirect(auth, googleProvider);
+      return null;
+    }
     const result = await signInWithPopup(auth, googleProvider);
     return result.user;
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error signing in with Google:', error);
+    // If popup is blocked by browser, try redirecting if on a mobile or restricted browser
+    if (error?.code === 'auth/popup-blocked') {
+      try {
+        await signInWithRedirect(auth, googleProvider);
+        return null;
+      } catch (redirectErr) {
+        throw redirectErr;
+      }
+    }
     throw error;
+  }
+}
+
+export async function checkRedirectResult(): Promise<FirebaseUser | null> {
+  try {
+    const result = await getRedirectResult(auth);
+    return result?.user || null;
+  } catch (err) {
+    console.warn('Redirect auth result check:', err);
+    return null;
   }
 }
 

@@ -17,6 +17,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenCalculator }) => {
     searchQuery,
     setSearchQuery,
     firebaseUser,
+    localAdminUser,
     loginWithGoogle,
     logout,
     isFirebaseConnected,
@@ -143,15 +144,15 @@ export const Header: React.FC<HeaderProps> = ({ onOpenCalculator }) => {
           </button>
 
           {/* Firebase Google Auth Button */}
-          {firebaseUser ? (
+          {(firebaseUser || localAdminUser) ? (
             <div className="relative">
               <button
                 onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
                 className="flex items-center gap-1.5 p-1 rounded-full hover:bg-slate-100 transition-colors border border-slate-200"
-                title={firebaseUser.email || 'Conta'}
+                title={firebaseUser?.email || localAdminUser?.email || 'Conta'}
                 id="header-user-btn"
               >
-                {firebaseUser.photoURL ? (
+                {firebaseUser?.photoURL ? (
                   <img
                     src={firebaseUser.photoURL}
                     alt={firebaseUser.displayName || 'Avatar'}
@@ -159,7 +160,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenCalculator }) => {
                   />
                 ) : (
                   <div className="w-7 h-7 rounded-full bg-[#006750] text-white text-[11px] font-bold flex items-center justify-center">
-                    {(firebaseUser.email?.[0] || 'U').toUpperCase()}
+                    {((firebaseUser?.email || localAdminUser?.email)?.[0] || 'A').toUpperCase()}
                   </div>
                 )}
               </button>
@@ -168,14 +169,14 @@ export const Header: React.FC<HeaderProps> = ({ onOpenCalculator }) => {
                 <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-xl border border-slate-200 p-2 z-50 animate-in fade-in slide-in-from-top-2">
                   <div className="px-3 py-2 border-b border-slate-100 mb-1">
                     <p className="text-xs font-bold text-slate-800 truncate">
-                      {firebaseUser.displayName || 'Usuário Conectado'}
+                      {firebaseUser?.displayName || localAdminUser?.displayName || 'Super Administrador'}
                     </p>
                     <p className="text-[11px] text-slate-500 font-mono truncate">
-                      {firebaseUser.email}
+                      {firebaseUser?.email || localAdminUser?.email}
                     </p>
                     <div className="mt-1 flex items-center gap-1 text-[10px] text-emerald-700 font-medium">
                       <CloudCheck className="w-3 h-3 text-[#006750]" />
-                      <span>Firebase Conectado</span>
+                      <span>{firebaseUser ? 'Google Conectado' : 'Admin Conectado'}</span>
                     </div>
                   </div>
                   <button

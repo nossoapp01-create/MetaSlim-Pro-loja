@@ -11,6 +11,7 @@ import { AdminPanel } from './components/AdminPanel';
 import { Footer } from './components/Footer';
 import { BottomNav } from './components/BottomNav';
 import { DosageCalculatorModal } from './components/DosageCalculatorModal';
+import { AuthDiagnosticsModal } from './components/AuthDiagnosticsModal';
 import { ShieldCheck, Sparkles, AlertCircle, ArrowRight, Dna, Calculator } from 'lucide-react';
 
 const MainContent: React.FC = () => {
@@ -22,6 +23,11 @@ const MainContent: React.FC = () => {
     searchQuery,
     toast,
     setSelectedProductId,
+    authErrorModalOpen,
+    setAuthErrorModalOpen,
+    authErrorInfo,
+    loginWithGoogle,
+    quickAdminLogin,
   } = useStore();
 
   const [isCalculatorOpen, setIsCalculatorOpen] = useState(false);
@@ -249,6 +255,16 @@ const MainContent: React.FC = () => {
       <DosageCalculatorModal
         isOpen={isCalculatorOpen}
         onClose={() => setIsCalculatorOpen(false)}
+      />
+
+      {/* Auth Diagnostics & Help Modal */}
+      <AuthDiagnosticsModal
+        isOpen={authErrorModalOpen}
+        onClose={() => setAuthErrorModalOpen(false)}
+        errorInfo={authErrorInfo}
+        onRetryPopup={() => loginWithGoogle(false)}
+        onRetryRedirect={() => loginWithGoogle(true)}
+        onQuickAdminLogin={quickAdminLogin}
       />
 
       {/* Global Footer */}

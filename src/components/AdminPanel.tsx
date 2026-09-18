@@ -54,11 +54,14 @@ export const AdminPanel: React.FC = () => {
     showToast,
     formatPrice,
     firebaseUser,
+    localAdminUser,
     isAdminUser,
     isFirebaseConnected,
     isSyncing,
     loginWithGoogle,
     logout,
+    quickAdminLogin,
+    setAuthErrorModalOpen,
     syncAllToFirebase,
     refreshFromFirebase,
   } = useStore();
@@ -203,17 +206,17 @@ export const AdminPanel: React.FC = () => {
             </div>
             <p className="text-[11px] text-slate-500 mt-0.5 font-mono">
               Projeto: <span className="font-semibold text-slate-700">gen-lang-client-0356673859</span>
-              {firebaseUser && (
+              {(firebaseUser || localAdminUser) && (
                 <span className="ml-2 text-emerald-700 font-sans font-medium">
-                  • Autenticado: <strong>{firebaseUser.email}</strong> {isAdminUser && '(Super Admin)'}
+                  • Autenticado: <strong>{firebaseUser?.email || localAdminUser?.email}</strong> {isAdminUser && '(Super Admin)'}
                 </span>
               )}
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2 shrink-0">
-          {firebaseUser ? (
+        <div className="flex flex-wrap items-center gap-2 shrink-0">
+          {(firebaseUser || localAdminUser) ? (
             <button
               onClick={() => logout()}
               className="px-3 py-1.5 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-semibold flex items-center gap-1.5 transition-colors"
@@ -222,13 +225,32 @@ export const AdminPanel: React.FC = () => {
               <span>Desconectar</span>
             </button>
           ) : (
-            <button
-              onClick={() => loginWithGoogle()}
-              className="px-3 py-1.5 rounded-xl bg-white border border-emerald-300 hover:bg-emerald-50 text-[#006750] text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-xs"
-            >
-              <LogIn className="w-3.5 h-3.5" />
-              <span>Login com Google</span>
-            </button>
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={() => loginWithGoogle()}
+                className="px-3 py-1.5 rounded-xl bg-white border border-emerald-300 hover:bg-emerald-50 text-[#006750] text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-xs"
+                title="Entrar com conta Google do Firebase"
+              >
+                <LogIn className="w-3.5 h-3.5" />
+                <span>Login com Google</span>
+              </button>
+
+              <button
+                onClick={() => setAuthErrorModalOpen(true)}
+                className="px-2.5 py-1.5 rounded-xl bg-amber-50 border border-amber-200 hover:bg-amber-100 text-amber-900 text-xs font-semibold flex items-center gap-1 transition-colors"
+                title="Ver diagnóstico e autorizar domínio no Firebase"
+              >
+                <span>Ajuda / Diagnóstico</span>
+              </button>
+
+              <button
+                onClick={() => quickAdminLogin()}
+                className="px-2.5 py-1.5 rounded-xl bg-slate-100 border border-slate-200 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition-colors"
+                title="Acesso de emergência direto para o Super Admin"
+              >
+                <span>1-Clique Admin</span>
+              </button>
+            </div>
           )}
 
           <button

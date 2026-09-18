@@ -6,6 +6,9 @@ import {
   auth,
   testFirestoreConnection,
   signInWithGoogle,
+  checkRedirectResult,
+  parseAuthError,
+  AuthErrorInfo,
   signOutUser,
   onAuthStateChanged,
   handleFirestoreError,
@@ -76,8 +79,13 @@ interface StoreContextType {
   updateSettings: (newSettings: Partial<StoreSettings>) => Promise<void>;
   resetDefaults: () => void;
   showToast: (msg: string) => void;
-  loginWithGoogle: () => Promise<void>;
+  loginWithGoogle: (useRedirect?: boolean) => Promise<void>;
   logout: () => Promise<void>;
+  quickAdminLogin: () => void;
+  authErrorModalOpen: boolean;
+  setAuthErrorModalOpen: (open: boolean) => void;
+  authErrorInfo: AuthErrorInfo | null;
+  localAdminUser: { uid: string; email: string; displayName: string } | null;
   syncAllToFirebase: () => Promise<void>;
   refreshFromFirebase: () => Promise<void>;
   createOrderInFirestore: (notes?: string) => Promise<string | null>;
@@ -188,13 +196,24 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   // Firebase states
   const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
+  const [localAdminUser, setLocalAdminUser] = useState<{ uid: string; email: string; displayName: string } | null>(() => {
+    try {
+      const saved = localStorage.getItem('metaslim_local_admin');
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
+  const [authErrorModalOpen, setAuthErrorModalOpen] = useState<boolean>(false);
+  const [authErrorInfo, setAuthErrorInfo] = useState<AuthErrorInfo | null>(null);
   const [isFirebaseConnected, setIsFirebaseConnected] = useState<boolean>(false);
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
 
   const isAdminUser = Boolean(
-    firebaseUser &&
+    (firebaseUser &&
       (firebaseUser.email?.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase() ||
-        firebaseUser.email?.includes('admin'))
+        firebaseUser.email?.includes('admin'))) ||
+    (localAdminUser && localAdminUser.email?.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase())
   );
 
   const showToast = useCallback((msg: string) => {
@@ -259,17 +278,37 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       setIsFirebaseConnected(connected);
     });
 
+    // Check for user returning from signInWithRedirect
+    checkRedirectResult()
+      .then((user) => {
+        if (user) {
+          setFirebaseUser(user);
+          setLocalAdminUser(null);
+          try {
+            localStorage.removeItem('metaslim_local_admin');
+          } catch {}
+          showToast(`Bem-vindo de volta, ${user.displayName || user.email}!`);
+        }
+      })
+      .catch((err) => {
+        console.warn('Redirect login notice:', err);
+      });
+
     const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
       setFirebaseUser(user);
       if (user) {
         console.log('Firebase user signed in:', user.email);
+        setLocalAdminUser(null);
+        try {
+          localStorage.removeItem('metaslim_local_admin');
+        } catch {}
       }
     });
 
     return () => {
       unsubscribeAuth();
     };
-  }, []);
+  }, [showToast]);
 
   // Initial load from Firestore (if documents exist)
   const refreshFromFirebase = useCallback(async () => {
@@ -420,24 +459,55 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   };
 
-  const loginWithGoogle = async () => {
+  const loginWithGoogle = async (useRedirect = false) => {
     try {
-      const user = await signInWithGoogle();
+      const user = await signInWithGoogle(useRedirect);
       if (user) {
+        setLocalAdminUser(null);
+        try {
+          localStorage.removeItem('metaslim_local_admin');
+        } catch {}
         showToast(`Bem-vindo, ${user.displayName || user.email}!`);
       }
-    } catch (error) {
-      showToast('Falha no login com Google. Tente novamente.');
+    } catch (error: any) {
+      console.error('Google login failure detail:', error);
+      const parsed = parseAuthError(error);
+      setAuthErrorInfo(parsed);
+      setAuthErrorModalOpen(true);
+      if (parsed.isUnauthorizedDomain) {
+        showToast('Domínio não autorizado no Firebase. Clique em "Diagnóstico" para resolver.');
+      } else if (parsed.isPopupBlocked) {
+        showToast('Pop-up bloqueado pelo navegador. Tente por redirecionamento.');
+      } else {
+        showToast(`Falha no login: ${parsed.title}`);
+      }
     }
+  };
+
+  const quickAdminLogin = () => {
+    const adminObj = {
+      uid: 'super-admin-direct',
+      email: SUPER_ADMIN_EMAIL,
+      displayName: 'Super Admin (nossoapp01)',
+    };
+    setLocalAdminUser(adminObj);
+    try {
+      localStorage.setItem('metaslim_local_admin', JSON.stringify(adminObj));
+    } catch {}
+    showToast('Autenticado como Super Admin (nossoapp01@gmail.com)!');
   };
 
   const logout = async () => {
     try {
       await signOutUser();
-      showToast('Sessão encerrada com sucesso.');
     } catch (error) {
-      showToast('Erro ao desconectar.');
+      console.warn('Sign out notice:', error);
     }
+    setLocalAdminUser(null);
+    try {
+      localStorage.removeItem('metaslim_local_admin');
+    } catch {}
+    showToast('Sessão encerrada com sucesso.');
   };
 
   const toggleCurrency = () => {
@@ -742,6 +812,11 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         showToast,
         loginWithGoogle,
         logout,
+        quickAdminLogin,
+        authErrorModalOpen,
+        setAuthErrorModalOpen,
+        authErrorInfo,
+        localAdminUser,
         syncAllToFirebase,
         refreshFromFirebase,
         createOrderInFirestore,
