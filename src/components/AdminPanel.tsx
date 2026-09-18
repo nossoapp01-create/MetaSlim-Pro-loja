@@ -2,6 +2,10 @@ import React, { useState } from 'react';
 import { useStore } from '../context/StoreContext';
 import { Product, BannerSlide, Testimonial, StripeConfig, MyPOSConfig } from '../types';
 import {
+  testStripeConnection,
+  extractSecretKeyIfPastedInPublishableKey,
+} from '../services/stripe';
+import {
   TrendingUp,
   Package,
   ShoppingBag,
@@ -94,7 +98,7 @@ export const AdminPanel: React.FC = () => {
   const currentStripe: StripeConfig = settings.stripe || {
     enabled: true,
     mode: 'live',
-    publishableKey: 'pk_live_51MetaslimProCheckoutKey',
+    publishableKey: '',
     secretKey: '',
     webhookSecret: '',
     accountId: '',
@@ -102,6 +106,50 @@ export const AdminPanel: React.FC = () => {
     currency: 'eur',
     successUrl: 'https://meta-slim-pro-loja-omega.vercel.app/?payment=success',
     cancelUrl: 'https://meta-slim-pro-loja-omega.vercel.app/?payment=cancelled',
+  };
+
+  const [isTestingStripe, setIsTestingStripe] = useState(false);
+  const [stripeTestResult, setStripeTestResult] = useState<{
+    success: boolean;
+    mode?: string;
+    businessName?: string;
+    available?: string[];
+    error?: string;
+  } | null>(null);
+
+  // Detect if secret key was accidentally pasted into publishable key field
+  const pastedSecretKeyInPub = extractSecretKeyIfPastedInPublishableKey(currentStripe.publishableKey);
+
+  const handleAutoFixStripeKeys = () => {
+    if (!pastedSecretKeyInPub) return;
+    const updated: StripeConfig = {
+      ...currentStripe,
+      secretKey: pastedSecretKeyInPub,
+      publishableKey: '', // clear so merchant can paste correct pk_live_
+    };
+    updateSettings({ stripe: updated });
+    showToast('Chave Secreta movida para o campo correto com sucesso!');
+  };
+
+  const handleTestStripeConnection = async () => {
+    const keyToTest = currentStripe.secretKey || pastedSecretKeyInPub;
+    if (!keyToTest) {
+      showToast('Insira sua Chave Secreta Stripe (sk_live_...) antes de testar.');
+      return;
+    }
+    setIsTestingStripe(true);
+    setStripeTestResult(null);
+    try {
+      const res = await testStripeConnection(keyToTest);
+      setStripeTestResult(res);
+      if (res.success) {
+        showToast(`Stripe Conectada! Modo: ${res.mode?.toUpperCase()}`);
+      } else {
+        showToast(res.error || 'Falha ao conectar com a Stripe.');
+      }
+    } finally {
+      setIsTestingStripe(false);
+    }
   };
 
   const handleStripeChange = (field: keyof StripeConfig, value: any) => {
@@ -1562,6 +1610,39 @@ export const AdminPanel: React.FC = () => {
                 </div>
               </div>
 
+              {/* Auto-Fix Alert if Secret Key was pasted into Publishable Key */}
+              {pastedSecretKeyInPub && (
+                <div className="p-4 bg-amber-50 border-2 border-amber-400 rounded-2xl flex flex-col gap-3 shadow-xs">
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 rounded-xl bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-xs">
+                      <AlertCircle className="w-5 h-5" />
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <h4 className="text-xs font-extrabold text-amber-950 uppercase tracking-wider">
+                        Atenção: Chave Secreta Detectada no Campo de Chave Publicável!
+                      </h4>
+                      <p className="text-xs text-amber-900 leading-relaxed">
+                        Identificamos que você colou a sua <strong>Chave Secreta Stripe</strong> (<code className="bg-amber-100 px-1.5 py-0.5 rounded font-mono text-[11px] text-amber-950 font-bold">{pastedSecretKeyInPub.slice(0, 16)}...</code>) dentro do campo de Chave Publicável.
+                        A Chave Secreta é a chave que realmente processa as cobranças bancárias reais.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 pt-1 border-t border-amber-200/80">
+                    <button
+                      type="button"
+                      onClick={handleAutoFixStripeKeys}
+                      className="py-2 px-3.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs flex items-center gap-2 shadow-xs transition-all cursor-pointer"
+                    >
+                      <Sparkles className="w-3.5 h-3.5" />
+                      <span>Mover Automaticamente para Chave Secreta</span>
+                    </button>
+                    <span className="text-[11px] text-amber-800">
+                      Transfere a chave secreta para o local correto com 1 clique.
+                    </span>
+                  </div>
+                </div>
+              )}
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* 1. Publishable Key */}
                 <div className="flex flex-col gap-1.5 col-span-1 md:col-span-2">
@@ -1693,9 +1774,54 @@ export const AdminPanel: React.FC = () => {
                   <div className="flex items-center gap-1.5 text-[10px] text-slate-500">
                     <ShieldCheck className="w-3 h-3 text-emerald-600 shrink-0" />
                     <span>
-                      Esta chave secreta concede autoridade financeira para criar sessões de checkout e gerenciar cobranças. Nunca é exposta no código cliente.
+                      Esta chave secreta concede autoridade financeira para criar sessões de checkout e gerenciar cobranças reais. É mantida estritamente segura no backend.
                     </span>
                   </div>
+
+                  {/* Test Stripe Connection Action Button */}
+                  <div className="flex flex-wrap items-center gap-2 pt-1">
+                    <button
+                      type="button"
+                      onClick={handleTestStripeConnection}
+                      disabled={isTestingStripe}
+                      className="py-1.5 px-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-xs transition-all cursor-pointer disabled:opacity-60"
+                    >
+                      <RefreshCw className={`w-3.5 h-3.5 ${isTestingStripe ? 'animate-spin' : ''}`} />
+                      <span>{isTestingStripe ? 'Consultando API Stripe...' : 'Testar Conexão com a Stripe'}</span>
+                    </button>
+                    <span className="text-[10.5px] text-slate-500">
+                      Dispara uma consulta de saldo oficial para atestar se sua chave está ativa.
+                    </span>
+                  </div>
+
+                  {/* Realtime Stripe Connection Result Banner */}
+                  {stripeTestResult && (
+                    <div
+                      className={`p-3 rounded-xl text-xs flex items-start gap-2.5 border ${
+                        stripeTestResult.success
+                          ? 'bg-emerald-50 border-emerald-200 text-emerald-950'
+                          : 'bg-rose-50 border-rose-200 text-rose-950'
+                      }`}
+                    >
+                      {stripeTestResult.success ? (
+                        <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                      ) : (
+                        <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                      )}
+                      <div className="flex flex-col gap-0.5 min-w-0">
+                        <span className="font-bold">
+                          {stripeTestResult.success
+                            ? `Conexão Stripe Confirmada! (${stripeTestResult.businessName})`
+                            : 'Erro na Validação da Chave Stripe'}
+                        </span>
+                        <span className="text-[11px] leading-relaxed">
+                          {stripeTestResult.success
+                            ? `Ambiente: ${stripeTestResult.mode?.toUpperCase()} | Saldo da Conta: ${stripeTestResult.available?.join(', ') || '0.00 EUR'}. Sua loja está habilitada para processar pagamentos reais na Stripe!`
+                            : stripeTestResult.error}
+                        </span>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* 3. Webhook Signing Secret (Protected with password mask) */}

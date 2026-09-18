@@ -98,45 +98,142 @@ export function buildStripeCheckoutUrl(
   }
 }
 
-export interface StripeCheckoutResult {
-  success: boolean;
-  action: 'redirected' | 'fallback_required';
-  url?: string;
-  orderId: string;
-  reason?: string;
+/**
+ * Extracts a secret key if it was accidentally pasted into the publishable key field
+ * (e.g., 'pk_live_51Msk_live_51T9lOSCdMOMI4BWDy4vDERItIxNNHErRD58gDwcfJpzK99lc1YBLHVfyCmYgr1DYCJmJloxkMDsU7lv42YI')
+ */
+export function extractSecretKeyIfPastedInPublishableKey(key?: string): string | null {
+  if (!key) return null;
+  const match = key.match(/(sk_live_[a-zA-Z0-9]+|sk_test_[a-zA-Z0-9]+|rk_live_[a-zA-Z0-9]+|rk_test_[a-zA-Z0-9]+)/);
+  return match ? match[1] : null;
 }
 
 /**
- * Processes checkout using Stripe.
- * If a valid real buy.stripe.com link is provided, opens it safely in a new tab
- * without closing the store or crashing with AccessDenied.
- * If no valid link is present, signals fallback to in-app payment modal.
+ * Sanitizes publishable key by removing accidental secret keys
  */
-export function processStripeCheckout(
+export function sanitizeStripePublishableKey(key?: string): string {
+  if (!key) return '';
+  const trimmed = key.trim();
+  // If it starts with pk_live_51Msk_live_..., remove the secret key part
+  if (trimmed.includes('sk_live_') || trimmed.includes('sk_test_')) {
+    return '';
+  }
+  return trimmed;
+}
+
+/**
+ * Creates a real Stripe Checkout Session via the backend server.
+ * This redirects the customer to the official checkout.stripe.com where
+ * real credit cards are processed, charged, and deposited in the merchant's account.
+ */
+export async function createRealStripeCheckoutSession(
   config: StripeConfig,
   payload: StripeCheckoutPayload
-): StripeCheckoutResult {
-  const checkoutUrl = buildStripeCheckoutUrl(config, payload);
+): Promise<{ success: boolean; url?: string; sessionId?: string; error?: string }> {
+  try {
+    // Check if secret key was in config or accidentally in publishable key
+    const secretKey =
+      config.secretKey?.trim() ||
+      extractSecretKeyIfPastedInPublishableKey(config.publishableKey) ||
+      undefined;
 
-  if (checkoutUrl) {
-    // Open in new tab so user never loses their active cart or store state
-    if (typeof window !== 'undefined') {
-      window.open(checkoutUrl, '_blank', 'noopener,noreferrer');
+    const res = await fetch('/api/stripe/create-checkout-session', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        items: payload.cartItems,
+        amount: payload.amount,
+        currency: (config.currency || payload.currency || 'eur').toLowerCase(),
+        orderId: payload.orderId,
+        customerEmail: payload.customer?.email,
+        secretKey,
+      }),
+    });
+
+    const data = await res.json();
+    if (!res.ok || !data.success) {
+      return {
+        success: false,
+        error: data.error || 'Não foi possível gerar a sessão de pagamento na Stripe.',
+      };
     }
+
     return {
       success: true,
-      action: 'redirected',
-      url: checkoutUrl,
-      orderId: payload.orderId,
+      url: data.url,
+      sessionId: data.sessionId,
+    };
+  } catch (err: any) {
+    console.error('Error creating Stripe session:', err);
+    return {
+      success: false,
+      error: err.message || 'Erro de rede ao conectar com o gateway Stripe.',
     };
   }
-
-  // Fallback: Link not yet configured with a live Stripe Payment Link
-  return {
-    success: false,
-    action: 'fallback_required',
-    orderId: payload.orderId,
-    reason: 'missing_or_placeholder_link',
-  };
 }
+
+/**
+ * Tests connection to Stripe using the provided Secret Key.
+ */
+export async function testStripeConnection(
+  secretKey: string
+): Promise<{ success: boolean; mode?: 'live' | 'test'; businessName?: string; available?: string[]; error?: string }> {
+  try {
+    const res = await fetch('/api/stripe/test-connection', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ secretKey }),
+    });
+
+    const data = await res.json();
+    if (!res.ok || !data.success) {
+      return {
+        success: false,
+        error: data.error || 'Falha ao validar chave secreta na Stripe.',
+      };
+    }
+
+    return {
+      success: true,
+      mode: data.mode,
+      businessName: data.businessName,
+      available: data.available,
+    };
+  } catch (err: any) {
+    return {
+      success: false,
+      error: err.message || 'Erro ao conectar ao servidor para teste.',
+    };
+  }
+}
+
+/**
+ * Verifies a Stripe Checkout Session status
+ */
+export async function verifyStripeSession(
+  sessionId: string,
+  secretKey?: string
+): Promise<{ success: boolean; paymentStatus?: string; amountTotal?: number; orderId?: string; error?: string }> {
+  try {
+    const params = new URLSearchParams({ sessionId });
+    if (secretKey) params.append('secretKey', secretKey);
+
+    const res = await fetch(`/api/stripe/verify-session?${params.toString()}`);
+    const data = await res.json();
+
+    if (!res.ok || !data.success) {
+      return { success: false, error: data.error || 'Falha ao verificar status do pagamento.' };
+    }
+
+    return {
+      success: true,
+      paymentStatus: data.paymentStatus,
+      amountTotal: data.amountTotal,
+      orderId: data.orderId,
+    };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Erro ao verificar sessão.' };
+  }
+}
+
 

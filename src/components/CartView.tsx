@@ -1,7 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useStore } from '../context/StoreContext';
 import { processMyPOSCheckout, buildMyPOSPurchasePayload, MyPOSConfig } from '../services/mypos';
-import { processStripeCheckout, buildStripeCheckoutUrl, isValidStripePaymentLink } from '../services/stripe';
+import {
+  createRealStripeCheckoutSession,
+  isValidStripePaymentLink,
+  extractSecretKeyIfPastedInPublishableKey,
+} from '../services/stripe';
 import { StripeConfig } from '../types';
 import {
   Trash2,
@@ -63,15 +67,10 @@ export const CartView: React.FC = () => {
   const [paymentMethod, setPaymentMethod] = useState<'stripe' | 'mypos' | 'direct' | 'mbway_pix' | 'crypto'>('stripe');
   const [showMyPOSModal, setShowMyPOSModal] = useState(false);
   const [showStripeModal, setShowStripeModal] = useState(false);
+  const [isStripeLoading, setIsStripeLoading] = useState(false);
+  const [stripeErrorModal, setStripeErrorModal] = useState<{ open: boolean; message: string } | null>(null);
   const [pendingOrderId, setPendingOrderId] = useState<string | null>(null);
 
-  // Card Checkout in-app State
-  const [cardNumber, setCardNumber] = useState('');
-  const [cardHolder, setCardHolder] = useState('');
-  const [cardExpiry, setCardExpiry] = useState('');
-  const [cardCvc, setCardCvc] = useState('');
-  const [cardInstallments, setCardInstallments] = useState('1');
-  const [isCardProcessing, setIsCardProcessing] = useState(false);
   const [cardPaymentSuccess, setCardPaymentSuccess] = useState(false);
   const [copiedReceipt, setCopiedReceipt] = useState(false);
   const [cardReceipt, setCardReceipt] = useState<{
@@ -83,6 +82,40 @@ export const CartView: React.FC = () => {
     brand: string;
     installments: string;
   } | null>(null);
+
+  // Check for returning from real Stripe Checkout session (?payment=success&session_id=...)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const urlParams = new URLSearchParams(window.location.search);
+    const paymentStatus = urlParams.get('payment');
+    const sessionId = urlParams.get('session_id');
+    const orderIdParam = urlParams.get('order_id');
+
+    if (paymentStatus === 'success') {
+      const orderNum = orderIdParam || 'ORD-' + Math.floor(100000 + Math.random() * 900000);
+      setCardReceipt({
+        orderId: orderNum,
+        authCode: sessionId ? `STRIPE-${sessionId.slice(-8).toUpperCase()}` : 'STRIPE-OFFICIAL-PAID',
+        date: new Date().toLocaleString('pt-PT'),
+        amount: cartTotal > 0 ? cartTotal : 0.90,
+        last4: 'OK',
+        brand: 'Stripe Checkout Oficial',
+        installments: '1',
+      });
+      setCardPaymentSuccess(true);
+      clearCart();
+      showToast('Pagamento confirmado com sucesso pela Stripe Oficial!');
+
+      try {
+        window.history.replaceState({}, document.title, window.location.pathname);
+      } catch {}
+    } else if (paymentStatus === 'cancelled') {
+      showToast('Pagamento cancelado na Stripe. Seus produtos continuam no carrinho.');
+      try {
+        window.history.replaceState({}, document.title, window.location.pathname);
+      } catch {}
+    }
+  }, []);
 
   // Reservation Countdown timer
   useEffect(() => {
@@ -121,89 +154,26 @@ export const CartView: React.FC = () => {
     payLink: 'https://pay.mypos.com/metaslimpro',
   };
 
-  const effectiveStripeConfig: StripeConfig = settings.stripe || {
+  const rawStripeConfig: StripeConfig = settings.stripe || {
     enabled: true,
     mode: 'live',
-    publishableKey: 'pk_live_51MetaslimProCheckoutKey',
+    publishableKey: '',
+    secretKey: '',
     paymentLink: primaryProduct?.paymentLink || '',
     currency: 'eur',
-    successUrl: 'https://meta-slim-pro-loja-omega.vercel.app/?payment=success',
-    cancelUrl: 'https://meta-slim-pro-loja-omega.vercel.app/?payment=cancelled',
+    successUrl: typeof window !== 'undefined' ? `${window.location.origin}/?payment=success` : '',
+    cancelUrl: typeof window !== 'undefined' ? `${window.location.origin}/?payment=cancelled` : '',
   };
 
-  // Card formatting helpers
-  const handleCardNumberChange = (raw: string) => {
-    const digits = raw.replace(/\D/g, '').slice(0, 16);
-    const parts = digits.match(/.{1,4}/g);
-    setCardNumber(parts ? parts.join(' ') : digits);
-  };
+  // Auto-recover Secret Key even if user accidentally pasted it in Publishable Key field
+  const recoveredSecretKey =
+    rawStripeConfig.secretKey ||
+    extractSecretKeyIfPastedInPublishableKey(rawStripeConfig.publishableKey) ||
+    '';
 
-  const handleExpiryChange = (raw: string) => {
-    const digits = raw.replace(/\D/g, '').slice(0, 4);
-    if (digits.length >= 3) {
-      setCardExpiry(`${digits.slice(0, 2)}/${digits.slice(2)}`);
-    } else {
-      setCardExpiry(digits);
-    }
-  };
-
-  const detectCardBrand = (num: string): string => {
-    const clean = num.replace(/\D/g, '');
-    if (clean.startsWith('4')) return 'Visa';
-    if (/^(5[1-5]|2[2-7])/.test(clean)) return 'Mastercard';
-    if (/^3[47]/.test(clean)) return 'American Express';
-    if (/^(6011|65)/.test(clean)) return 'Discover';
-    return 'Cartão de Crédito';
-  };
-
-  const handleDirectCardSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const cleanNum = cardNumber.replace(/\D/g, '');
-    if (cleanNum.length < 15) {
-      showToast('Por favor insira um número de cartão válido.');
-      return;
-    }
-    if (!cardHolder.trim() || cardHolder.trim().length < 3) {
-      showToast('Por favor insira o nome completo impresso no cartão.');
-      return;
-    }
-    if (cardExpiry.length < 5) {
-      showToast('Insira a data de validade no formato MM/AA.');
-      return;
-    }
-    if (cardCvc.replace(/\D/g, '').length < 3) {
-      showToast('Insira o código CVC de 3 ou 4 dígitos.');
-      return;
-    }
-
-    setIsCardProcessing(true);
-    try {
-      // Simulate cryptographic tokenization & authorization with PCI DSS security
-      await new Promise((resolve) => setTimeout(resolve, 1400));
-      const effectiveOrderId = pendingOrderId || 'ORD-' + Math.floor(100000 + Math.random() * 900000);
-      const authCode = 'STRIPE-AUTH-' + Math.floor(100000 + Math.random() * 900000);
-      const brand = detectCardBrand(cleanNum);
-      const last4 = cleanNum.slice(-4);
-
-      setCardReceipt({
-        orderId: effectiveOrderId,
-        authCode,
-        date: new Date().toLocaleString('pt-PT'),
-        amount: cartTotal,
-        last4,
-        brand,
-        installments: cardInstallments,
-      });
-
-      setCardPaymentSuccess(true);
-      setShowStripeModal(false);
-      clearCart();
-      showToast(`Pagamento aprovado via Stripe! Pedido #${effectiveOrderId}`);
-    } catch {
-      showToast('Falha na autorização do cartão. Verifique os dados e tente novamente.');
-    } finally {
-      setIsCardProcessing(false);
-    }
+  const effectiveStripeConfig: StripeConfig = {
+    ...rawStripeConfig,
+    secretKey: recoveredSecretKey,
   };
 
   const handleProceedToPayment = async () => {
@@ -227,32 +197,54 @@ export const CartView: React.FC = () => {
     const effectiveOrderId = orderId || 'ORD-' + Math.floor(100000 + Math.random() * 900000);
     setPendingOrderId(effectiveOrderId);
 
-    // 1. Stripe Checkout flow
+    // 1. Stripe Checkout flow (REAL Stripe Checkout via secure backend)
     if (paymentMethod === 'stripe') {
-      const cartItemsForStripe = cart.map((item) => ({
-        name: `${item.product.name} (${item.vialsCount} vials)`,
-        quantity: item.quantity,
-        price: item.unitPrice,
-      }));
+      // If merchant configured a valid direct buy.stripe.com link, open it
+      if (isValidStripePaymentLink(effectiveStripeConfig.paymentLink)) {
+        showToast('Abrindo link oficial da Stripe...');
+        window.open(effectiveStripeConfig.paymentLink, '_blank', 'noopener,noreferrer');
+        return;
+      }
 
-      // Validate if we have a real Stripe link or if we should open the in-app secure checkout
-      const stripeResult = processStripeCheckout(effectiveStripeConfig, {
-        orderId: effectiveOrderId,
-        amount: cartTotal,
-        currency: 'EUR',
-        cartItems: cartItemsForStripe,
-        customer: {
-          email: firebaseUser?.email || undefined,
-        },
-        deliveryNotes,
-      });
+      // Start real Stripe Checkout Session creation via our backend
+      setIsStripeLoading(true);
+      try {
+        const cartItemsForStripe = cart.map((item) => ({
+          name: `${item.product.name} (${item.vialsCount} vials)`,
+          quantity: item.quantity,
+          price: item.unitPrice,
+        }));
 
-      if (stripeResult.success) {
-        showToast('Abrindo Stripe Checkout oficial em nova aba...');
-      } else {
-        // Fallback: Opens safe in-app Stripe direct card checkout modal
-        // This completely eliminates any AWS S3 AccessDenied XML errors!
-        setShowStripeModal(true);
+        const stripeResult = await createRealStripeCheckoutSession(effectiveStripeConfig, {
+          orderId: effectiveOrderId,
+          amount: cartTotal,
+          currency: 'EUR',
+          cartItems: cartItemsForStripe,
+          customer: {
+            email: firebaseUser?.email || undefined,
+          },
+          deliveryNotes,
+        });
+
+        if (stripeResult.success && stripeResult.url) {
+          showToast('Redirecionando para o Stripe Checkout oficial...');
+          // Redirect browser directly to official Stripe Checkout page
+          window.location.href = stripeResult.url;
+        } else {
+          setStripeErrorModal({
+            open: true,
+            message:
+              stripeResult.error ||
+              'Não foi possível gerar a sessão na Stripe. Verifique se a Chave Secreta (sk_live_...) está configurada no Painel Admin.',
+          });
+        }
+      } catch (err: any) {
+        setStripeErrorModal({
+          open: true,
+          message: err?.message || 'Erro de conexão com o gateway Stripe.',
+        });
+      } finally {
+        setIsStripeLoading(false);
       }
       return;
     }
@@ -976,218 +968,89 @@ export const CartView: React.FC = () => {
         </div>
       )}
 
-      {/* Stripe Direct Card Checkout & Payment Gateway Modal */}
-      {showStripeModal && (
-        <div className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-200">
-          <div className="bg-white w-full max-w-lg rounded-3xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[92vh]">
-            {/* Stripe Brand Header */}
-            <div className="bg-gradient-to-r from-[#635BFF] to-[#5349e4] text-white p-4 sm:p-5 flex items-center justify-between shrink-0">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-white text-[#635BFF] flex items-center justify-center font-black text-sm shadow-md">
-                  S
-                </div>
-                <div>
-                  <h3 className="text-sm sm:text-base font-extrabold flex items-center gap-1.5">
-                    <span>Stripe Checkout Seguro</span>
-                    <span className="text-[9px] font-mono bg-white/20 text-white px-2 py-0.5 rounded-full font-bold">
-                      PCI-DSS
-                    </span>
-                  </h3>
-                  <span className="text-[10.5px] text-indigo-100 flex items-center gap-1">
-                    <ShieldCheck className="w-3 h-3 text-emerald-300" />
-                    Criptografia Bancária 256-bit &bull; Pagamento Protegido
-                  </span>
-                </div>
+      {/* Stripe Loading Modal */}
+      {isStripeLoading && (
+        <div className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-white w-full max-w-md rounded-3xl p-6 sm:p-8 shadow-2xl border border-slate-200 flex flex-col items-center text-center">
+            <div className="w-14 h-14 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center mb-4">
+              <div className="w-8 h-8 border-3 border-[#635BFF] border-t-transparent rounded-full animate-spin" />
+            </div>
+            <span className="text-[10px] font-mono font-bold tracking-wider text-[#635BFF] uppercase bg-indigo-50 px-2.5 py-0.5 rounded-full mb-2">
+              Stripe Official Checkout
+            </span>
+            <h3 className="text-lg font-bold text-slate-900">
+              Conectando com a Stripe...
+            </h3>
+            <p className="text-xs text-slate-500 mt-1 max-w-xs">
+              Gerando sua sessão oficial e segura para o pedido #{pendingOrderId || 'ORD-NOVO'} no valor de {formatPrice(cartTotal)}. Você será redirecionado em instantes...
+            </p>
+            <div className="mt-4 flex items-center gap-1.5 text-[11px] text-slate-400">
+              <Lock className="w-3.5 h-3.5 text-emerald-600" />
+              <span>Ambiente Criptografado PCI-DSS Nível 1</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Stripe Configuration or Gateway Error Modal */}
+      {stripeErrorModal?.open && (
+        <div className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-white w-full max-w-md rounded-3xl p-6 sm:p-7 shadow-2xl border border-rose-200 flex flex-col">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center shrink-0">
+                <AlertTriangle className="w-5 h-5" />
               </div>
-              <button
-                type="button"
-                onClick={() => setShowStripeModal(false)}
-                className="w-8 h-8 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors cursor-pointer"
-              >
-                <X className="w-4 h-4" />
-              </button>
+              <div>
+                <h3 className="text-base font-bold text-slate-900">
+                  Atenção: Gateway Stripe
+                </h3>
+                <span className="text-[11px] text-slate-500">
+                  Não foi possível iniciar a cobrança oficial
+                </span>
+              </div>
             </div>
 
-            {/* Scrollable Modal Content */}
-            <div className="p-4 sm:p-5 overflow-y-auto flex flex-col gap-4 text-xs text-slate-700">
-              {/* Order & Amount Quick Summary Bar */}
-              <div className="p-3 bg-indigo-50/70 rounded-2xl border border-indigo-100 flex items-center justify-between">
-                <div>
-                  <span className="text-[10px] text-indigo-900/70 font-mono block">PEDIDO EM ABERTO</span>
-                  <span className="font-mono font-bold text-slate-900 text-xs">#{pendingOrderId || 'ORD-METASLIM'}</span>
-                </div>
-                <div className="text-right">
-                  <span className="text-[10px] text-indigo-900/70 font-mono block">TOTAL DO PROTOCOLO</span>
-                  <span className="font-mono text-lg font-black text-[#635BFF]">{formatPrice(cartTotal)}</span>
-                </div>
-              </div>
+            <div className="p-3 bg-rose-50/70 rounded-2xl border border-rose-100 text-xs text-rose-800 leading-relaxed mb-4">
+              <strong>Motivo:</strong> {stripeErrorModal.message}
+            </div>
 
-              {/* Direct Card Payment Form */}
-              <form onSubmit={handleDirectCardSubmit} className="flex flex-col gap-3">
-                <div className="flex items-center justify-between">
-                  <span className="font-bold text-slate-900 text-xs flex items-center gap-1.5">
-                    <CreditCard className="w-4 h-4 text-[#635BFF]" />
-                    <span>Cartão de Crédito ou Débito</span>
-                  </span>
-                  <span className="text-[10px] font-mono font-bold text-[#635BFF] bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-100">
-                    {cardNumber ? detectCardBrand(cardNumber) : 'VISA / MASTERCARD / AMEX'}
-                  </span>
-                </div>
+            <p className="text-xs text-slate-600 mb-4 leading-relaxed">
+              Para processar pagamentos reais no Stripe e receber os valores em sua conta bancária, configure sua <strong>Chave Secreta (sk_live_...)</strong> no Painel Admin ou finalize sua compra via WhatsApp / MB WAY.
+            </p>
 
-                {/* Card Number Field */}
-                <div className="flex flex-col gap-1">
-                  <label className="text-[11px] font-semibold text-slate-600 flex items-center justify-between">
-                    <span>Número do Cartão</span>
-                    <span className="text-[10px] text-slate-400 font-mono">16 dígitos</span>
-                  </label>
-                  <div className="relative flex items-center">
-                    <input
-                      type="text"
-                      value={cardNumber}
-                      onChange={(e) => handleCardNumberChange(e.target.value)}
-                      placeholder="0000 0000 0000 0000"
-                      maxLength={19}
-                      required
-                      className="w-full h-11 pl-3.5 pr-10 rounded-xl bg-slate-50 border border-slate-200 text-xs font-mono font-medium tracking-wider focus:bg-white focus:ring-2 focus:ring-[#635BFF]/30 focus:border-[#635BFF] focus:outline-none transition-all"
-                    />
-                    <CreditCard className="w-4 h-4 text-slate-400 absolute right-3 pointer-events-none" />
-                  </div>
-                </div>
+            <div className="flex flex-col gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setStripeErrorModal(null);
+                  setActiveTab('admin');
+                }}
+                className="w-full py-3 px-4 rounded-xl bg-[#635BFF] hover:bg-[#5349e4] text-white font-bold text-xs flex items-center justify-center gap-2 shadow-sm"
+              >
+                <span>Abrir Painel Admin e Ajustar Chaves</span>
+                <ArrowRight className="w-4 h-4" />
+              </button>
 
-                {/* Cardholder Name Field */}
-                <div className="flex flex-col gap-1">
-                  <label className="text-[11px] font-semibold text-slate-600">
-                    Nome Completo (como impresso no cartão)
-                  </label>
-                  <input
-                    type="text"
-                    value={cardHolder}
-                    onChange={(e) => setCardHolder(e.target.value.toUpperCase())}
-                    placeholder="EX: CARLOS M SILVA"
-                    required
-                    className="w-full h-11 px-3.5 rounded-xl bg-slate-50 border border-slate-200 text-xs font-mono uppercase focus:bg-white focus:ring-2 focus:ring-[#635BFF]/30 focus:border-[#635BFF] focus:outline-none transition-all"
-                  />
-                </div>
+              <a
+                href={`https://wa.me/${settings.whatsappNumber.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(
+                  `Olá MetaSlim Pro! Tentei pagar o pedido #${pendingOrderId || 'ORD-NOVO'} no valor de ${formatPrice(cartTotal)} mas preciso de assistência para pagar via MB WAY ou Cartão.`
+                )}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => setStripeErrorModal(null)}
+                className="w-full py-2.5 px-4 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-[#006750] font-bold text-xs flex items-center justify-center gap-2 border border-emerald-200"
+              >
+                <MessageSquare className="w-4 h-4" />
+                <span>Pagar via WhatsApp / MB WAY</span>
+              </a>
 
-                {/* Expiry and CVC Grid */}
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="flex flex-col gap-1">
-                    <label className="text-[11px] font-semibold text-slate-600">
-                      Validade (MM/AA)
-                    </label>
-                    <input
-                      type="text"
-                      value={cardExpiry}
-                      onChange={(e) => handleExpiryChange(e.target.value)}
-                      placeholder="MM/AA"
-                      maxLength={5}
-                      required
-                      className="w-full h-11 px-3.5 rounded-xl bg-slate-50 border border-slate-200 text-xs font-mono text-center focus:bg-white focus:ring-2 focus:ring-[#635BFF]/30 focus:border-[#635BFF] focus:outline-none transition-all"
-                    />
-                  </div>
-                  <div className="flex flex-col gap-1">
-                    <label className="text-[11px] font-semibold text-slate-600 flex items-center justify-between">
-                      <span>Código CVC</span>
-                      <Lock className="w-3 h-3 text-slate-400" />
-                    </label>
-                    <input
-                      type="password"
-                      value={cardCvc}
-                      onChange={(e) => setCardCvc(e.target.value.replace(/\D/g, '').slice(0, 4))}
-                      placeholder="123"
-                      maxLength={4}
-                      required
-                      className="w-full h-11 px-3.5 rounded-xl bg-slate-50 border border-slate-200 text-xs font-mono text-center focus:bg-white focus:ring-2 focus:ring-[#635BFF]/30 focus:border-[#635BFF] focus:outline-none transition-all"
-                    />
-                  </div>
-                </div>
-
-                {/* Installments Option */}
-                <div className="flex flex-col gap-1">
-                  <label className="text-[11px] font-semibold text-slate-600">
-                    Opções de Parcelamento
-                  </label>
-                  <select
-                    value={cardInstallments}
-                    onChange={(e) => setCardInstallments(e.target.value)}
-                    className="w-full h-10 px-3 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-800 font-medium focus:bg-white focus:ring-2 focus:ring-[#635BFF]/30 focus:border-[#635BFF] focus:outline-none transition-all cursor-pointer"
-                  >
-                    <option value="1">1x de {formatPrice(cartTotal)} (À vista sem juros)</option>
-                    <option value="2">2x de {formatPrice(cartTotal / 2)} sem juros</option>
-                    <option value="3">3x de {formatPrice(cartTotal / 3)} sem juros</option>
-                    <option value="6">6x de {formatPrice((cartTotal * 1.05) / 6)} (Com juros operacionais)</option>
-                    <option value="12">12x de {formatPrice((cartTotal * 1.1) / 12)} (Com juros operacionais)</option>
-                  </select>
-                </div>
-
-                {/* Direct Pay Action Button */}
-                <button
-                  type="submit"
-                  disabled={isCardProcessing}
-                  className="w-full mt-2 py-3.5 px-5 rounded-xl bg-[#635BFF] hover:bg-[#5349e4] text-white font-extrabold text-sm flex items-center justify-center gap-2 shadow-lg shadow-indigo-950/20 active:scale-[0.98] transition-all cursor-pointer disabled:opacity-60"
-                >
-                  <Lock className="w-4 h-4" />
-                  <span>
-                    {isCardProcessing
-                      ? 'Processando com Criptografia Stripe...'
-                      : `Pagar ${formatPrice(cartTotal)} com Cartão Seguro`}
-                  </span>
-                </button>
-              </form>
-
-              {/* Official Stripe External Link (if merchant configured real link) */}
-              {isValidStripePaymentLink(effectiveStripeConfig.paymentLink) && (
-                <div className="pt-3 border-t border-slate-100 flex flex-col gap-2">
-                  <span className="text-[11px] font-bold text-slate-800">
-                    Ou acesse a página Stripe oficial em nova aba:
-                  </span>
-                  <a
-                    href={effectiveStripeConfig.paymentLink}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="py-2.5 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors"
-                  >
-                    <span>Abrir buy.stripe.com Oficial</span>
-                    <ExternalLink className="w-3.5 h-3.5 text-slate-500" />
-                  </a>
-                </div>
-              )}
-
-              {/* WhatsApp Fast Assistance */}
-              <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px]">
-                <span className="text-slate-500">Prefere pagar via PIX, MB WAY ou Transferência?</span>
-                <a
-                  href={`https://wa.me/${settings.whatsappNumber.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(
-                    `Olá MetaSlim Pro! Gostaria de finalizar o pagamento do meu pedido #${pendingOrderId || 'NOVO'} no valor de ${formatPrice(cartTotal)}.`
-                  )}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-[#006750] hover:underline font-bold flex items-center gap-1 shrink-0"
-                >
-                  <MessageSquare className="w-3.5 h-3.5" />
-                  <span>Atendimento WhatsApp</span>
-                </a>
-              </div>
-
-              {/* Admin configuration shortcut notice */}
-              {isAdminUser && (
-                <div className="p-2.5 bg-amber-50/70 border border-amber-200/80 rounded-xl flex items-center justify-between text-[10.5px] text-amber-900">
-                  <span className="flex items-center gap-1">
-                    <Info className="w-3.5 h-3.5 text-amber-700 shrink-0" />
-                    <span>Lojista: Deseja atualizar o Link buy.stripe.com?</span>
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowStripeModal(false);
-                      setActiveTab('admin');
-                    }}
-                    className="font-bold underline text-amber-800 hover:text-amber-950 ml-2"
-                  >
-                    Abrir Painel Admin
-                  </button>
-                </div>
-              )}
+              <button
+                type="button"
+                onClick={() => setStripeErrorModal(null)}
+                className="w-full py-2 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 font-semibold text-xs"
+              >
+                Fechar
+              </button>
             </div>
           </div>
         </div>
