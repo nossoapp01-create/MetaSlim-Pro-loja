@@ -1,6 +1,6 @@
 {
   "name": "MetaSlim-Pro-loja",
-  "description": "Loja oficial de peptídeos MetaSlim-Pro com fichas clínicas didáticas visuais, laudos HPLC, gateway myPOS, antes e depois, carrinho e painel administrativo.",
+  "description": "Loja oficial de peptídeos MetaSlim-Pro com fichas clínicas didáticas visuais, laudos HPLC, gateways Stripe e myPOS, antes e depois, carrinho e painel administrativo.",
   "requestFramePermissions": [],
   "majorCapabilities": [
     "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"

@@ -65,6 +65,16 @@ export interface MyPOSConfig {
   payLink: string;
 }
 
+export interface StripeConfig {
+  enabled: boolean;
+  mode: 'test' | 'live';
+  publishableKey: string;
+  paymentLink: string;
+  currency: 'eur' | 'brl' | 'usd';
+  successUrl?: string;
+  cancelUrl?: string;
+}
+
 export interface StoreSettings {
   storeName: string;
   storeSubtitle: string;
@@ -75,4 +85,5 @@ export interface StoreSettings {
   whatsappNumber: string;
   freeShippingThreshold: number;
   mypos?: MyPOSConfig;
+  stripe?: StripeConfig;
 }

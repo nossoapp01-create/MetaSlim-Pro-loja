@@ -18,6 +18,15 @@ export const initialStoreSettings: StoreSettings = {
     keyIndex: 1,
     payLink: 'https://pay.mypos.com/metaslimpro',
   },
+  stripe: {
+    enabled: true,
+    mode: 'live',
+    publishableKey: 'pk_live_51MetaslimProCheckoutKey',
+    paymentLink: 'https://buy.stripe.com/live_metaslimpro_checkout',
+    currency: 'eur',
+    successUrl: 'https://meta-slim-pro-loja-omega.vercel.app/?payment=success',
+    cancelUrl: 'https://meta-slim-pro-loja-omega.vercel.app/?payment=cancelled',
+  },
 };
 
 export const initialProducts: Product[] = [

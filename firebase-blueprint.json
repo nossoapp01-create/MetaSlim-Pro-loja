@@ -86,6 +86,18 @@
             "keyIndex": { "type": "number" },
             "payLink": { "type": "string", "maxLength": 1000 }
           }
+        },
+        "stripe": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "mode": { "type": "string", "enum": ["test", "live"] },
+            "publishableKey": { "type": "string", "maxLength": 200 },
+            "paymentLink": { "type": "string", "maxLength": 1000 },
+            "currency": { "type": "string", "enum": ["eur", "brl", "usd"] },
+            "successUrl": { "type": "string", "maxLength": 500 },
+            "cancelUrl": { "type": "string", "maxLength": 500 }
+          }
         }
       },
       "required": ["storeName", "currencySymbol"]

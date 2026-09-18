@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useStore } from '../context/StoreContext';
-import { Product, BannerSlide, Testimonial } from '../types';
+import { Product, BannerSlide, Testimonial, StripeConfig, MyPOSConfig } from '../types';
 import {
   TrendingUp,
   Package,
@@ -66,13 +66,28 @@ export const AdminPanel: React.FC = () => {
     refreshFromFirebase,
   } = useStore();
 
-  const [activeAdminTab, setActiveAdminTab] = useState<'produtos' | 'banners' | 'depoimentos' | 'configuracoes' | 'mypos' | 'vercel'>('produtos');
+  const [activeAdminTab, setActiveAdminTab] = useState<'produtos' | 'banners' | 'depoimentos' | 'configuracoes' | 'mypos' | 'stripe' | 'vercel'>('produtos');
   const [selectedProdId, setSelectedProdId] = useState<string>(products[0]?.id || 'retatrutide-10mg');
   const [expandedBannerId, setExpandedBannerId] = useState<number | null>(1);
   const [isSaving, setIsSaving] = useState(false);
   const [copiedEnv, setCopiedEnv] = useState(false);
 
   const selectedProduct = products.find((p) => p.id === selectedProdId) || products[0];
+
+  const currentStripe: StripeConfig = settings.stripe || {
+    enabled: true,
+    mode: 'live',
+    publishableKey: 'pk_live_51MetaslimProCheckoutKey',
+    paymentLink: 'https://buy.stripe.com/live_metaslimpro_checkout',
+    currency: 'eur',
+    successUrl: 'https://meta-slim-pro-loja-omega.vercel.app/?payment=success',
+    cancelUrl: 'https://meta-slim-pro-loja-omega.vercel.app/?payment=cancelled',
+  };
+
+  const handleStripeChange = (field: keyof StripeConfig, value: any) => {
+    const updated = { ...currentStripe, [field]: value };
+    updateSettings({ stripe: updated });
+  };
 
   const handleProductFieldChange = (field: keyof Product, value: any) => {
     if (!selectedProduct) return;
@@ -387,7 +402,21 @@ export const AdminPanel: React.FC = () => {
           <CreditCard className="w-3.5 h-3.5 text-[#71face]" />
           <span>Gateway myPOS</span>
           <span className="bg-emerald-100 text-[#006750] text-[9px] px-1.5 py-0.2 rounded font-mono font-bold">
-            OFICIAL
+            OFICIAL UE
+          </span>
+        </button>
+        <button
+          onClick={() => setActiveAdminTab('stripe')}
+          className={`px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5 ${
+            activeAdminTab === 'stripe'
+              ? 'bg-[#635BFF] text-white shadow-md'
+              : 'bg-white text-slate-700 hover:bg-indigo-50 border border-slate-200'
+          }`}
+        >
+          <CreditCard className="w-3.5 h-3.5 text-[#635BFF]" />
+          <span>Gateway Stripe</span>
+          <span className="bg-indigo-100 text-[#635BFF] text-[9px] px-1.5 py-0.2 rounded font-mono font-bold">
+            GLOBAL
           </span>
         </button>
         <button
@@ -1390,6 +1419,236 @@ export const AdminPanel: React.FC = () => {
                 </tbody>
               </table>
             </div>
+          </div>
+        </section>
+      )}
+
+      {/* TAB 6: Stripe Gateway Configuration */}
+      {activeAdminTab === 'stripe' && (
+        <section className="bg-white rounded-2xl p-5 sm:p-7 shadow-sm border border-slate-200/70 flex flex-col gap-6">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-4">
+            <div>
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-lg bg-[#635BFF] flex items-center justify-center text-white font-black text-xs">
+                  S
+                </div>
+                <h2 className="text-lg font-bold text-slate-900">
+                  Configurações do Gateway Stripe
+                </h2>
+              </div>
+              <p className="text-xs text-slate-500 mt-1">
+                Integração oficial com a Stripe para aceitar cartões globais, Apple Pay, Google Pay e Links de Pagamento.
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <span
+                className={`px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 ${
+                  currentStripe.enabled
+                    ? 'bg-indigo-100 text-[#635BFF]'
+                    : 'bg-slate-100 text-slate-500'
+                }`}
+              >
+                <ShieldCheck className="w-3.5 h-3.5" />
+                <span>{currentStripe.enabled ? 'Stripe Habilitado' : 'Stripe Desativado'}</span>
+              </span>
+              <span className="px-2.5 py-1 rounded-full text-[11px] font-mono font-bold bg-slate-100 text-slate-700">
+                Modo: {currentStripe.mode.toUpperCase()}
+              </span>
+            </div>
+          </div>
+
+          {/* Configuration Form */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            {/* Enable Toggle */}
+            <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/60 flex items-center justify-between col-span-1 md:col-span-2">
+              <div>
+                <span className="text-xs font-bold text-slate-900 block">Ativar Stripe no Checkout</span>
+                <span className="text-[11px] text-slate-500">
+                  Exibe o Stripe Checkout como opção de pagamento prioritária para os clientes.
+                </span>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={currentStripe.enabled}
+                  onChange={(e) => handleStripeChange('enabled', e.target.checked)}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#635BFF]"></div>
+              </label>
+            </div>
+
+            {/* Mode: Live vs Test */}
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-bold text-slate-800 flex items-center justify-between">
+                <span>Ambiente de Execução (Modo)</span>
+                <span className="text-[10px] text-slate-400 font-mono">mode</span>
+              </label>
+              <select
+                value={currentStripe.mode}
+                onChange={(e) => handleStripeChange('mode', e.target.value as 'live' | 'test')}
+                className="h-10 px-3 rounded-xl bg-slate-50 border border-slate-200 text-xs font-semibold focus:ring-1 focus:ring-[#635BFF] focus:outline-none"
+              >
+                <option value="live">Produção Real (Live - Cobrança Real)</option>
+                <option value="test">Ambiente de Testes (Test / Sandbox)</option>
+              </select>
+              <span className="text-[10px] text-slate-500">
+                Alterne para <strong>Produção Real</strong> para processar transações financeiras reais de clientes.
+              </span>
+            </div>
+
+            {/* Currency */}
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-bold text-slate-800 flex items-center justify-between">
+                <span>Moeda de Faturamento Principal</span>
+                <span className="text-[10px] text-slate-400 font-mono">currency</span>
+              </label>
+              <select
+                value={currentStripe.currency}
+                onChange={(e) => handleStripeChange('currency', e.target.value as 'eur' | 'brl' | 'usd')}
+                className="h-10 px-3 rounded-xl bg-slate-50 border border-slate-200 text-xs font-semibold focus:ring-1 focus:ring-[#635BFF] focus:outline-none"
+              >
+                <option value="eur">EUR (€) - Euro (União Europeia / Portugal)</option>
+                <option value="brl">BRL (R$) - Real Brasileiro (Brasil / PIX)</option>
+                <option value="usd">USD ($) - Dólar Americano</option>
+              </select>
+              <span className="text-[10px] text-slate-500">
+                A Stripe converte automaticamente para a moeda do cartão de crédito do comprador.
+              </span>
+            </div>
+
+            {/* Publishable Key */}
+            <div className="flex flex-col gap-1.5 col-span-1 md:col-span-2">
+              <label className="text-xs font-bold text-slate-800 flex items-center justify-between">
+                <span>Chave Publicável Stripe (Publishable Key)</span>
+                <span className="text-[10px] text-indigo-700 font-mono font-bold">pk_live_... ou pk_test_...</span>
+              </label>
+              <input
+                type="text"
+                value={currentStripe.publishableKey}
+                onChange={(e) => handleStripeChange('publishableKey', e.target.value.trim())}
+                placeholder="Ex: pk_live_51M..."
+                className="h-10 px-3 rounded-xl bg-slate-50 border border-slate-200 text-xs font-mono focus:ring-1 focus:ring-[#635BFF] focus:outline-none"
+              />
+              <span className="text-[10px] text-slate-500">
+                Esta chave pública identifica sua conta Stripe com segurança para inicializar os pagamentos.
+              </span>
+            </div>
+
+            {/* Stripe Payment Link (Buy Link) */}
+            <div className="flex flex-col gap-1.5 col-span-1 md:col-span-2">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold text-slate-800">
+                  Link de Pagamento Padrão Stripe (Stripe Payment Link URL)
+                </label>
+                {currentStripe.paymentLink && (
+                  <a
+                    href={currentStripe.paymentLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[11px] text-[#635BFF] hover:underline font-bold flex items-center gap-1"
+                  >
+                    <span>Testar Link</span>
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
+                )}
+              </div>
+              <input
+                type="url"
+                value={currentStripe.paymentLink}
+                onChange={(e) => handleStripeChange('paymentLink', e.target.value.trim())}
+                placeholder="https://buy.stripe.com/..."
+                className="h-10 px-3 rounded-xl bg-slate-50 border border-slate-200 text-xs font-mono focus:ring-1 focus:ring-[#635BFF] focus:outline-none"
+              />
+              <span className="text-[10px] text-slate-500">
+                Cole aqui o link criado no painel da Stripe (Menu <strong>Payment Links</strong>). O sistema anexa automaticamente o ID do pedido e e-mail do cliente.
+              </span>
+            </div>
+
+            {/* Success URL */}
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-bold text-slate-800 flex items-center justify-between">
+                <span>URL de Redirecionamento após Sucesso</span>
+                <span className="text-[10px] text-slate-400 font-mono">success_url</span>
+              </label>
+              <input
+                type="text"
+                value={currentStripe.successUrl || ''}
+                onChange={(e) => handleStripeChange('successUrl', e.target.value.trim())}
+                placeholder="https://meta-slim-pro-loja-omega.vercel.app/?payment=success"
+                className="h-10 px-3 rounded-xl bg-slate-50 border border-slate-200 text-xs font-mono focus:ring-1 focus:ring-[#635BFF] focus:outline-none"
+              />
+            </div>
+
+            {/* Cancel URL */}
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-bold text-slate-800 flex items-center justify-between">
+                <span>URL se o Cliente Cancelar</span>
+                <span className="text-[10px] text-slate-400 font-mono">cancel_url</span>
+              </label>
+              <input
+                type="text"
+                value={currentStripe.cancelUrl || ''}
+                onChange={(e) => handleStripeChange('cancelUrl', e.target.value.trim())}
+                placeholder="https://meta-slim-pro-loja-omega.vercel.app/?payment=cancelled"
+                className="h-10 px-3 rounded-xl bg-slate-50 border border-slate-200 text-xs font-mono focus:ring-1 focus:ring-[#635BFF] focus:outline-none"
+              />
+            </div>
+          </div>
+
+          {/* Step-by-Step Stripe Guide Card */}
+          <div className="p-4 rounded-xl border border-indigo-100 bg-indigo-50/40 flex flex-col gap-3 text-xs text-slate-700">
+            <span className="font-bold text-[#635BFF] flex items-center gap-1.5">
+              <Info className="w-4 h-4" />
+              <span>Passo a Passo: Como Obter suas Informações na Stripe</span>
+            </span>
+            <ol className="list-decimal pl-4 space-y-1.5 text-[11px] text-slate-600 leading-relaxed">
+              <li>
+                Acesse o dashboard oficial da Stripe em{' '}
+                <a
+                  href="https://dashboard.stripe.com"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-[#635BFF] font-bold underline"
+                >
+                  dashboard.stripe.com
+                </a>{' '}
+                com sua conta aprovada.
+              </li>
+              <li>
+                Para a <strong>Chave Publicável</strong>: Vá no menu <strong>Desenvolvedores (Developers) &gt; Chaves de API (API Keys)</strong> e copie o valor de <strong>Publishable key</strong> (<code className="font-mono bg-white px-1 py-0.5 rounded">pk_live_...</code>).
+              </li>
+              <li>
+                Para o <strong>Link de Pagamento (Payment Link)</strong>: No menu lateral, clique em <strong>Payment Links &gt; Criar link de pagamento</strong>. Defina o produto ou valor aberto, ative Apple Pay / Google Pay, e copie a URL gerada (<code className="font-mono bg-white px-1 py-0.5 rounded">https://buy.stripe.com/...</code>).
+              </li>
+              <li>
+                Cole os dados nos campos acima e clique em <strong>Salvar Configurações Stripe</strong>. O carrinho atualizará imediatamente!
+              </li>
+            </ol>
+          </div>
+
+          {/* Save Button */}
+          <div className="flex items-center justify-between pt-3 border-t border-slate-100">
+            <span className="text-[11px] text-slate-500">
+              As alterações são sincronizadas automaticamente com o Firestore e refletem na loja online.
+            </span>
+            <button
+              type="button"
+              onClick={async () => {
+                setIsSaving(true);
+                try {
+                  await syncAllToFirebase();
+                  showToast('Configurações Stripe salvas com sucesso no Firebase!');
+                } finally {
+                  setIsSaving(false);
+                }
+              }}
+              disabled={isSaving}
+              className="px-6 py-2.5 rounded-xl bg-[#635BFF] hover:bg-[#5349e4] text-white font-bold text-xs flex items-center gap-2 shadow-md shadow-indigo-950/20 active:scale-95 transition-all cursor-pointer disabled:opacity-60"
+            >
+              <Save className="w-4 h-4" />
+              <span>{isSaving ? 'Salvando...' : 'Salvar Configurações Stripe'}</span>
+            </button>
           </div>
         </section>
       )}
