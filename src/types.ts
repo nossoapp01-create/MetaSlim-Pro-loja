@@ -103,6 +103,16 @@ export interface CustomerShippingInfo {
   notes?: string;
 }
 
+export interface CustomerUser {
+  uid: string;
+  name: string;
+  email: string;
+  phone?: string;
+  photoURL?: string;
+  role?: 'customer' | 'admin';
+  createdAt?: string;
+}
+
 export interface OrderItemDetail {
   productId: string;
   productName: string;

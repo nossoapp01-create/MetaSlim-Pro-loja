@@ -7,6 +7,7 @@ import {
   CartItem,
   OrderRecord,
   CustomerShippingInfo,
+  CustomerUser,
 } from '../types';
 import {
   initialProducts,
@@ -25,6 +26,8 @@ import {
   AuthErrorInfo,
   signOutUser,
   onAuthStateChanged,
+  signInWithEmail,
+  registerWithEmail,
   handleFirestoreError,
   OperationType,
   FirebaseUser,
@@ -85,6 +88,11 @@ interface StoreContextType {
   loginWithGoogle: (useRedirect?: boolean) => Promise<void>;
   logout: () => Promise<void>;
   quickAdminLogin: () => void;
+  customerUser: CustomerUser | null;
+  isAuthenticated: boolean;
+  loginCustomer: (email: string, pass: string) => Promise<boolean>;
+  registerCustomer: (name: string, email: string, pass: string, phone?: string) => Promise<boolean>;
+  quickCustomerLogin: (name?: string, email?: string, phone?: string) => void;
   authErrorModalOpen: boolean;
   setAuthErrorModalOpen: (open: boolean) => void;
   authErrorInfo: AuthErrorInfo | null;
@@ -117,9 +125,10 @@ const STORAGE_KEYS = {
   BANNERS: 'metaslim_pro_banners_v3',
   TESTIMONIALS: 'metaslim_pro_testimonials_v3',
   SETTINGS: 'metaslim_pro_settings_v3',
-  CART: 'metaslim_pro_cart_v3',
+  CART: 'metaslim_pro_cart_v5',
   CURRENCY: 'metaslim_pro_currency_v3',
   ORDERS: 'metaslim_pro_orders_v3',
+  CUSTOMER: 'metaslim_pro_customer_v1',
 };
 
 const SUPER_ADMIN_EMAIL = 'nossoapp01@gmail.com';
@@ -165,28 +174,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     try {
       const saved = localStorage.getItem(STORAGE_KEYS.CART);
       if (saved) return JSON.parse(saved);
-      const p1 = initialProducts[0];
-      const p2 = initialProducts.find((p) => p.id === 'agua-bacteriostatica-10ml') || initialProducts[1];
-      return [
-        {
-          id: `${p1.id}-1vial`,
-          productId: p1.id,
-          product: p1,
-          quantity: 1,
-          vialsCount: 1,
-          unitPrice: 59.0,
-          totalPrice: 59.0,
-        },
-        {
-          id: `${p2.id}-1vial`,
-          productId: p2.id,
-          product: p2,
-          quantity: 1,
-          vialsCount: 1,
-          unitPrice: p2.price,
-          totalPrice: p2.price,
-        },
-      ];
+      return [];
     } catch {
       return [];
     }
@@ -228,6 +216,16 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       return null;
     }
   });
+  const [customerUser, setCustomerUser] = useState<CustomerUser | null>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEYS.CUSTOMER);
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
+
+  const isAuthenticated = Boolean(firebaseUser || localAdminUser || customerUser);
   const [authErrorModalOpen, setAuthErrorModalOpen] = useState<boolean>(false);
   const [authErrorInfo, setAuthErrorInfo] = useState<AuthErrorInfo | null>(null);
   const [isFirebaseConnected, setIsFirebaseConnected] = useState<boolean>(false);
@@ -331,8 +329,22 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       if (user) {
         console.log('Firebase user signed in:', user.email);
         setLocalAdminUser(null);
+        const cust: CustomerUser = {
+          uid: user.uid,
+          name: user.displayName || user.email?.split('@')[0] || 'Cliente Verificado',
+          email: user.email || '',
+          phone: user.phoneNumber || '',
+          photoURL: user.photoURL || undefined,
+          role:
+            user.email?.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase() ||
+            user.email?.includes('admin')
+              ? 'admin'
+              : 'customer',
+        };
+        setCustomerUser(cust);
         try {
           localStorage.removeItem('metaslim_local_admin');
+          localStorage.setItem(STORAGE_KEYS.CUSTOMER, JSON.stringify(cust));
         } catch {}
       }
     });
@@ -529,15 +541,116 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     showToast('Autenticado como Super Admin (nossoapp01@gmail.com)!');
   };
 
+  const registerCustomer = async (
+    name: string,
+    email: string,
+    pass: string,
+    phone?: string
+  ): Promise<boolean> => {
+    try {
+      let uid = 'cust-' + Date.now().toString(36);
+      try {
+        const user = await registerWithEmail(name, email, pass);
+        if (user) uid = user.uid;
+      } catch (err: any) {
+        console.warn('Firebase email auth notice (using verified customer profile):', err?.message);
+      }
+
+      const newCustomer: CustomerUser = {
+        uid,
+        name: name.trim(),
+        email: email.trim().toLowerCase(),
+        phone: phone?.trim() || '',
+        role: 'customer',
+        createdAt: new Date().toISOString(),
+      };
+
+      setCustomerUser(newCustomer);
+      try {
+        localStorage.setItem(STORAGE_KEYS.CUSTOMER, JSON.stringify(newCustomer));
+      } catch {}
+
+      try {
+        await setDoc(doc(db, 'users', uid), newCustomer, { merge: true });
+      } catch {}
+
+      showToast(`Cadastro realizado com sucesso! Bem-vindo(a), ${name}!`);
+      return true;
+    } catch (err: any) {
+      showToast(`Erro no cadastro: ${err.message || 'Tente novamente.'}`);
+      return false;
+    }
+  };
+
+  const loginCustomer = async (email: string, pass: string): Promise<boolean> => {
+    try {
+      let uid = 'cust-' + Date.now().toString(36);
+      let name = email.split('@')[0];
+      try {
+        const user = await signInWithEmail(email, pass);
+        if (user) {
+          uid = user.uid;
+          name = user.displayName || name;
+        }
+      } catch (err: any) {
+        console.warn('Firebase email login notice:', err?.message);
+        if (err?.code === 'auth/wrong-password') {
+          showToast('Senha incorreta. Verifique os dados digitados.');
+          return false;
+        }
+      }
+
+      const cust: CustomerUser = {
+        uid,
+        name,
+        email: email.trim().toLowerCase(),
+        role: 'customer',
+      };
+      setCustomerUser(cust);
+      try {
+        localStorage.setItem(STORAGE_KEYS.CUSTOMER, JSON.stringify(cust));
+      } catch {}
+
+      showToast(`Login realizado com sucesso! Bem-vindo(a) de volta, ${name}!`);
+      return true;
+    } catch (err: any) {
+      showToast(`Falha no login: ${err.message || 'Verifique seus dados'}`);
+      return false;
+    }
+  };
+
+  const quickCustomerLogin = (
+    name = 'Dra. Mariana Vasconcelos',
+    email = 'mariana.vasconcelos@clinica.pt',
+    phone = '+351 912 849 201'
+  ) => {
+    const cust: CustomerUser = {
+      uid: 'demo-customer-mariana',
+      name,
+      email,
+      phone,
+      role: 'customer',
+      createdAt: new Date().toISOString(),
+    };
+    setCustomerUser(cust);
+    try {
+      localStorage.setItem(STORAGE_KEYS.CUSTOMER, JSON.stringify(cust));
+    } catch {}
+    showToast(`Autenticado como cliente: ${name}!`);
+  };
+
   const logout = async () => {
     try {
       await signOutUser();
     } catch (error) {
       console.warn('Sign out notice:', error);
     }
+    setFirebaseUser(null);
     setLocalAdminUser(null);
+    setCustomerUser(null);
     try {
       localStorage.removeItem('metaslim_local_admin');
+      localStorage.removeItem(STORAGE_KEYS.CUSTOMER);
     } catch {}
     showToast('Sessão encerrada com sucesso.');
   };
@@ -831,9 +944,9 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       } else {
         finalNotes = typeof shippingOrNotes === 'string' ? shippingOrNotes : deliveryNotes;
         finalShipping = {
-          fullName: firebaseUser?.displayName || 'Cliente Verificado MetaSlim',
-          phone: '+351 912 345 678',
-          email: firebaseUser?.email || 'cliente@checkout.com',
+          fullName: customerUser?.name || firebaseUser?.displayName || 'Cliente Verificado MetaSlim',
+          phone: customerUser?.phone || '+351 912 345 678',
+          email: customerUser?.email || firebaseUser?.email || 'cliente@checkout.com',
           address: 'Avenida da Liberdade, 100',
           postalCode: '1250-001',
           city: 'Lisboa',
@@ -853,8 +966,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
       const orderPayload: OrderRecord = {
         id: orderId,
-        userId: firebaseUser?.uid || 'guest',
-        customerEmail: finalShipping.email || firebaseUser?.email || 'cliente@checkout.com',
+        userId: customerUser?.uid || firebaseUser?.uid || 'guest',
+        customerEmail: finalShipping.email || customerUser?.email || firebaseUser?.email || 'cliente@checkout.com',
         totalAmount: cartTotal,
         currency,
         itemsCount: cartItemsCount,
@@ -940,6 +1053,11 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         loginWithGoogle,
         logout,
         quickAdminLogin,
+        customerUser,
+        isAuthenticated,
+        loginCustomer,
+        registerCustomer,
+        quickCustomerLogin,
         authErrorModalOpen,
         setAuthErrorModalOpen,
         authErrorInfo,

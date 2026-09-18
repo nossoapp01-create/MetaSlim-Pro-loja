@@ -40,6 +40,11 @@ import {
   Phone,
   Mail,
   Printer,
+  UserCheck,
+  KeyRound,
+  LogIn,
+  UserPlus,
+  LogOut,
 } from 'lucide-react';
 
 export const CartView: React.FC = () => {
@@ -66,6 +71,13 @@ export const CartView: React.FC = () => {
     createOrderInFirestore,
     firebaseUser,
     isAdminUser,
+    customerUser,
+    isAuthenticated,
+    loginCustomer,
+    registerCustomer,
+    quickCustomerLogin,
+    loginWithGoogle,
+    logout,
   } = useStore();
 
   const [inputCoupon, setInputCoupon] = useState('');
@@ -79,6 +91,15 @@ export const CartView: React.FC = () => {
   const [stripeErrorModal, setStripeErrorModal] = useState<{ open: boolean; message: string } | null>(null);
   const [pendingOrderId, setPendingOrderId] = useState<string | null>(null);
 
+  // Customer Auth state for Checkout
+  const [authTab, setAuthTab] = useState<'register' | 'login'>('register');
+  const [authName, setAuthName] = useState('');
+  const [authEmail, setAuthEmail] = useState('');
+  const [authPassword, setAuthPassword] = useState('');
+  const [authPhone, setAuthPhone] = useState('');
+  const [isSubmittingAuth, setIsSubmittingAuth] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
+
   // Customer Shipping details for logistics & immediate label generation
   const [shippingInfo, setShippingInfo] = useState<CustomerShippingInfo>({
     fullName: 'Dra. Mariana Vasconcelos',
@@ -91,6 +112,77 @@ export const CartView: React.FC = () => {
     country: 'Portugal',
     notes: 'Manter estritamente refrigerado 2°C a 8°C. Deixar na recepção.',
   });
+
+  // Sync shipping info with logged in customer or Google user
+  useEffect(() => {
+    if (customerUser) {
+      setShippingInfo((prev) => ({
+        ...prev,
+        fullName: customerUser.name || prev.fullName,
+        email: customerUser.email || prev.email,
+        phone: customerUser.phone || prev.phone,
+      }));
+    } else if (firebaseUser) {
+      setShippingInfo((prev) => ({
+        ...prev,
+        fullName: firebaseUser.displayName || prev.fullName,
+        email: firebaseUser.email || prev.email,
+        phone: firebaseUser.phoneNumber || prev.phone,
+      }));
+    }
+  }, [customerUser, firebaseUser]);
+
+  const handleAuthSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAuthError(null);
+    setIsSubmittingAuth(true);
+
+    try {
+      if (authTab === 'register') {
+        if (!authName.trim()) {
+          setAuthError('Por favor, informe seu nome completo.');
+          setIsSubmittingAuth(false);
+          return;
+        }
+        if (!authEmail.trim() || !authEmail.includes('@')) {
+          setAuthError('Por favor, informe um e-mail válido.');
+          setIsSubmittingAuth(false);
+          return;
+        }
+        if (authPassword.length < 6) {
+          setAuthError('A senha deve conter no mínimo 6 caracteres.');
+          setIsSubmittingAuth(false);
+          return;
+        }
+
+        const success = await registerCustomer(authName, authEmail, authPassword, authPhone);
+        if (success) {
+          setAuthPassword('');
+          setAuthError(null);
+        } else {
+          setAuthError('Não foi possível concluir o cadastro. Verifique os dados e tente novamente.');
+        }
+      } else {
+        if (!authEmail.trim() || !authPassword) {
+          setAuthError('Por favor, preencha o e-mail e a senha.');
+          setIsSubmittingAuth(false);
+          return;
+        }
+
+        const success = await loginCustomer(authEmail, authPassword);
+        if (success) {
+          setAuthPassword('');
+          setAuthError(null);
+        } else {
+          setAuthError('Credenciais incorretas ou conta não encontrada.');
+        }
+      }
+    } catch (err: any) {
+      setAuthError(err?.message || 'Erro ao processar autenticação.');
+    } finally {
+      setIsSubmittingAuth(false);
+    }
+  };
 
   const [selectedOrderForLabel, setSelectedOrderForLabel] = useState<OrderRecord | null>(null);
 
@@ -202,6 +294,16 @@ export const CartView: React.FC = () => {
   const handleProceedToPayment = async () => {
     if (cart.length === 0) {
       showToast('Seu carrinho está vazio.');
+      return;
+    }
+
+    // MANDATORY AUTHENTICATION CHECK: Cadastro ou Login obrigatório para comprar
+    if (!isAuthenticated) {
+      showToast('⚠️ Cadastro ou Login Obrigatório: Identifique-se no Passo 2 para continuar.');
+      const authElem = document.getElementById('checkout-auth-section');
+      if (authElem) {
+        authElem.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
       return;
     }
 
@@ -452,14 +554,25 @@ export const CartView: React.FC = () => {
         </div>
         <h2 className="text-xl font-bold text-slate-800">Seu Carrinho está Vazio</h2>
         <p className="text-sm text-slate-500 mt-1 max-w-xs leading-relaxed">
-          Selecione os peptídeos liofilizados com laudo HPLC para iniciar o seu protocolo clínico.
+          O carrinho inicia vazio conforme o padrão clínico. Navegue pelo catálogo oficial e adicione os peptídeos desejados.
         </p>
-        <button
-          onClick={() => setActiveTab('produtos')}
-          className="mt-6 px-6 py-2.5 rounded-xl bg-gradient-to-r from-[#006750] to-[#0d8267] text-white font-bold text-sm shadow-md active:scale-95 transition-all"
-        >
-          Explorar Peptídeos
-        </button>
+        <div className="mt-6 flex flex-col sm:flex-row items-center gap-2.5 w-full justify-center">
+          <button
+            onClick={() => setActiveTab('produtos')}
+            className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-gradient-to-r from-[#006750] to-[#0d8267] text-white font-bold text-sm shadow-md active:scale-95 transition-all cursor-pointer"
+          >
+            Explorar Peptídeos
+          </button>
+          {!isAuthenticated && (
+            <button
+              onClick={() => loginWithGoogle()}
+              className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+            >
+              <LogIn className="w-3.5 h-3.5 text-[#006750]" />
+              <span>Entrar / Cadastrar com Google</span>
+            </button>
+          )}
+        </div>
       </div>
     );
   }
@@ -707,6 +820,247 @@ export const CartView: React.FC = () => {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Passo 2: Identificação do Cliente (Login ou Cadastro Obrigatório) */}
+      <div id="checkout-auth-section" className="transition-all">
+        {!isAuthenticated ? (
+          <div className="bg-white rounded-2xl p-5 sm:p-6 shadow-sm border-2 border-emerald-600/30 flex flex-col gap-4 relative overflow-hidden">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-[#006750] to-[#0d8267] text-white flex items-center justify-center shadow-xs">
+                  <Lock className="w-5 h-5 text-[#93f5d4]" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-sm sm:text-base font-extrabold text-slate-900">
+                      Passo 2: Identificação Obrigatória do Cliente
+                    </h3>
+                    <span className="text-[10px] font-mono font-bold bg-amber-100 text-amber-900 px-2 py-0.5 rounded-full border border-amber-200">
+                      OBRIGATÓRIO
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 mt-0.5">
+                    Para comprar é obrigatório o cadastro e login. Seus dados garantem a rastreabilidade farmacêutica e emissão da etiqueta de envio.
+                  </p>
+                </div>
+              </div>
+
+              {/* Quick 1-click test button */}
+              <button
+                type="button"
+                onClick={() => {
+                  quickCustomerLogin();
+                  showToast('✅ Login rápido de cliente efetuado com sucesso!');
+                }}
+                className="text-[11px] font-bold text-[#006750] hover:text-[#00503e] bg-emerald-50 hover:bg-emerald-100 px-3 py-1.5 rounded-xl border border-emerald-200 transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
+                title="Acesso de teste em 1 clique"
+              >
+                <Zap className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
+                <span>1-Clique Demo: Dra. Mariana</span>
+              </button>
+            </div>
+
+            {/* Auth Tab Switcher */}
+            <div className="flex rounded-xl bg-slate-100 p-1">
+              <button
+                type="button"
+                onClick={() => {
+                  setAuthTab('register');
+                  setAuthError(null);
+                }}
+                className={`flex-1 py-2.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                  authTab === 'register'
+                    ? 'bg-white text-[#006750] shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <UserPlus className="w-4 h-4" />
+                <span>Criar Nova Conta (Cadastro)</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setAuthTab('login');
+                  setAuthError(null);
+                }}
+                className={`flex-1 py-2.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                  authTab === 'login'
+                    ? 'bg-white text-[#006750] shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <LogIn className="w-4 h-4" />
+                <span>Já Tenho Cadastro (Entrar)</span>
+              </button>
+            </div>
+
+            {/* Error banner if any */}
+            {authError && (
+              <div className="bg-rose-50 border border-rose-200 text-rose-800 text-xs p-3 rounded-xl flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+                <span>{authError}</span>
+              </div>
+            )}
+
+            {/* Form */}
+            <form onSubmit={handleAuthSubmit} className="flex flex-col gap-3">
+              {authTab === 'register' && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-semibold text-slate-700 flex items-center gap-1">
+                      <User className="w-3.5 h-3.5 text-slate-400" />
+                      <span>Nome Completo *</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={authName}
+                      onChange={(e) => setAuthName(e.target.value)}
+                      placeholder="Ex: Dra. Mariana Vasconcelos"
+                      className="h-10 px-3 rounded-xl bg-slate-50 border border-slate-200 text-xs font-medium text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#006750]"
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-semibold text-slate-700 flex items-center gap-1">
+                      <Phone className="w-3.5 h-3.5 text-slate-400" />
+                      <span>Telefone / WhatsApp</span>
+                    </label>
+                    <input
+                      type="tel"
+                      value={authPhone}
+                      onChange={(e) => setAuthPhone(e.target.value)}
+                      placeholder="Ex: +351 912 345 678"
+                      className="h-10 px-3 rounded-xl bg-slate-50 border border-slate-200 text-xs font-medium text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#006750]"
+                    />
+                  </div>
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-semibold text-slate-700 flex items-center gap-1">
+                    <Mail className="w-3.5 h-3.5 text-slate-400" />
+                    <span>E-mail do Cliente *</span>
+                  </label>
+                  <input
+                    type="email"
+                    required
+                    value={authEmail}
+                    onChange={(e) => setAuthEmail(e.target.value)}
+                    placeholder="seu.email@exemplo.com"
+                    className="h-10 px-3 rounded-xl bg-slate-50 border border-slate-200 text-xs font-medium text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#006750]"
+                  />
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-semibold text-slate-700 flex items-center gap-1">
+                    <KeyRound className="w-3.5 h-3.5 text-slate-400" />
+                    <span>Senha de Acesso * (mínimo 6 caracteres)</span>
+                  </label>
+                  <input
+                    type="password"
+                    required
+                    minLength={6}
+                    value={authPassword}
+                    onChange={(e) => setAuthPassword(e.target.value)}
+                    placeholder="••••••••"
+                    className="h-10 px-3 rounded-xl bg-slate-50 border border-slate-200 text-xs font-medium text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#006750]"
+                  />
+                </div>
+              </div>
+
+              <div className="flex flex-col sm:flex-row items-center gap-2 pt-1">
+                <button
+                  type="submit"
+                  disabled={isSubmittingAuth}
+                  className="w-full sm:flex-1 h-11 rounded-xl bg-[#006750] hover:bg-[#0d8267] text-white text-xs font-extrabold flex items-center justify-center gap-2 transition-all shadow-md cursor-pointer disabled:opacity-50"
+                >
+                  {isSubmittingAuth ? (
+                    <span>Autenticando...</span>
+                  ) : authTab === 'register' ? (
+                    <>
+                      <UserPlus className="w-4 h-4" />
+                      <span>Concluir Cadastro e Liberar Pagamento</span>
+                    </>
+                  ) : (
+                    <>
+                      <LogIn className="w-4 h-4" />
+                      <span>Acessar Conta e Liberar Pagamento</span>
+                    </>
+                  )}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => loginWithGoogle()}
+                  className="w-full sm:w-auto h-11 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer"
+                >
+                  <svg className="w-4 h-4" viewBox="0 0 24 24">
+                    <path
+                      fill="#4285F4"
+                      d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                    />
+                    <path
+                      fill="#34A853"
+                      d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                    />
+                    <path
+                      fill="#FBBC05"
+                      d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
+                    />
+                    <path
+                      fill="#EA4335"
+                      d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
+                    />
+                  </svg>
+                  <span>Entrar com Google</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        ) : (
+          <div className="bg-gradient-to-r from-emerald-50 via-teal-50/60 to-emerald-50 rounded-2xl p-4 sm:p-5 border-2 border-emerald-300 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-[#006750] text-white flex items-center justify-center shrink-0 shadow-sm">
+                <UserCheck className="w-5 h-5 text-[#93f5d4]" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-extrabold text-[#006750] uppercase tracking-wide flex items-center gap-1">
+                    <CheckCircle className="w-3.5 h-3.5 text-emerald-600" />
+                    Cliente Identificado &amp; Autenticado
+                  </span>
+                  <span className="text-[10px] font-mono bg-emerald-200/80 text-emerald-900 px-2 py-0.2 rounded font-bold">
+                    Compra Liberada
+                  </span>
+                </div>
+                <p className="text-sm font-bold text-slate-900 mt-0.5">
+                  {customerUser?.name || firebaseUser?.displayName || 'Cliente Verificado'}
+                </p>
+                <p className="text-[11px] text-slate-600 font-mono">
+                  {customerUser?.email || firebaseUser?.email}
+                  {customerUser?.phone ? ` • ${customerUser.phone}` : ''}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 self-end sm:self-center">
+              <button
+                type="button"
+                onClick={() => {
+                  logout();
+                  showToast('Você saiu da sua conta.');
+                }}
+                className="text-xs font-bold text-slate-600 hover:text-rose-600 bg-white hover:bg-rose-50 px-3 py-1.5 rounded-xl border border-slate-200 transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                <span>Trocar Conta / Sair</span>
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Dados de Envio para Emissão da Etiqueta de Despacho */}
@@ -1073,11 +1427,34 @@ export const CartView: React.FC = () => {
 
       {/* Main Checkout Button CTA */}
       <div className="flex flex-col gap-2.5">
+        {!isAuthenticated && (
+          <div className="bg-amber-50/90 border border-amber-300 text-amber-900 rounded-xl p-3 text-xs flex items-center justify-between gap-2 shadow-xs">
+            <div className="flex items-center gap-2">
+              <Lock className="w-4 h-4 text-amber-600 shrink-0" />
+              <span className="font-semibold">
+                Cadastro ou Login Obrigatório: Identifique-se no Passo 2 acima para liberar o pagamento.
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                const el = document.getElementById('checkout-auth-section');
+                if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              }}
+              className="px-2.5 py-1 bg-amber-200 hover:bg-amber-300 text-amber-950 font-bold rounded-lg text-[11px] shrink-0 cursor-pointer"
+            >
+              Ir ao Passo 2
+            </button>
+          </div>
+        )}
+
         <button
           onClick={handleProceedToPayment}
           disabled={isProcessingOrder}
           className={`w-full py-4 px-5 rounded-2xl font-extrabold text-base flex items-center justify-center gap-2.5 shadow-xl transition-all cursor-pointer disabled:opacity-60 active:scale-[0.98] ${
-            paymentMethod === 'stripe'
+            !isAuthenticated
+              ? 'bg-slate-700 hover:bg-slate-800 text-white shadow-slate-900/20'
+              : paymentMethod === 'stripe'
               ? 'bg-[#635BFF] hover:bg-[#5349e4] text-white shadow-indigo-950/20'
               : 'bg-gradient-to-r from-[#006750] via-[#0d8267] to-[#006750] hover:opacity-95 text-white shadow-emerald-950/20'
           }`}
@@ -1085,7 +1462,9 @@ export const CartView: React.FC = () => {
         >
           <Lock className="w-5 h-5 text-white/90" />
           <span>
-            {isProcessingOrder
+            {!isAuthenticated
+              ? 'Identifique-se no Passo 2 para Pagar'
+              : isProcessingOrder
               ? 'Processando Pedido...'
               : paymentMethod === 'stripe'
               ? 'Pagar com Stripe Checkout Seguro'
@@ -1106,6 +1485,14 @@ export const CartView: React.FC = () => {
           onClick={async () => {
             if (cart.length === 0) {
               showToast('Adicione ao menos um produto ao carrinho para testar a emissão.');
+              return;
+            }
+            if (!isAuthenticated) {
+              showToast('⚠️ Cadastro ou Login Obrigatório: Identifique-se no Passo 2.');
+              const authElem = document.getElementById('checkout-auth-section');
+              if (authElem) {
+                authElem.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              }
               return;
             }
             if (!shippingInfo.fullName || !shippingInfo.address || !shippingInfo.postalCode) {

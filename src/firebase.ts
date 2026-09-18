@@ -7,6 +7,9 @@ import {
   getRedirectResult,
   signOut as firebaseSignOut,
   onAuthStateChanged,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  updateProfile,
   User as FirebaseUser,
 } from 'firebase/auth';
 import {
@@ -200,6 +203,19 @@ export async function signOutUser(): Promise<void> {
     console.error('Error signing out:', error);
     throw error;
   }
+}
+
+export async function signInWithEmail(email: string, pass: string): Promise<FirebaseUser> {
+  const userCredential = await signInWithEmailAndPassword(auth, email, pass);
+  return userCredential.user;
+}
+
+export async function registerWithEmail(name: string, email: string, pass: string): Promise<FirebaseUser> {
+  const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
+  if (name && auth.currentUser) {
+    await updateProfile(auth.currentUser, { displayName: name });
+  }
+  return userCredential.user;
 }
 
 export { onAuthStateChanged };
