@@ -69,6 +69,9 @@ export interface StripeConfig {
   enabled: boolean;
   mode: 'test' | 'live';
   publishableKey: string;
+  secretKey?: string;
+  webhookSecret?: string;
+  accountId?: string;
   paymentLink: string;
   currency: 'eur' | 'brl' | 'usd';
   successUrl?: string;

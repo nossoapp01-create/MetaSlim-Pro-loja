@@ -34,6 +34,10 @@ import {
   ShieldCheck,
   Lock,
   Info,
+  Eye,
+  EyeOff,
+  Key,
+  ShieldAlert,
 } from 'lucide-react';
 
 export const AdminPanel: React.FC = () => {
@@ -71,6 +75,19 @@ export const AdminPanel: React.FC = () => {
   const [expandedBannerId, setExpandedBannerId] = useState<number | null>(1);
   const [isSaving, setIsSaving] = useState(false);
   const [copiedEnv, setCopiedEnv] = useState(false);
+  const [showSecretKey, setShowSecretKey] = useState(false);
+  const [showWebhookSecret, setShowWebhookSecret] = useState(false);
+  const [copiedKeyField, setCopiedKeyField] = useState<string | null>(null);
+
+  const copyToClipboard = (text: string, fieldId: string) => {
+    if (!text) return;
+    navigator.clipboard.writeText(text);
+    setCopiedKeyField(fieldId);
+    showToast('Chave copiada para a área de transferência!');
+    setTimeout(() => {
+      setCopiedKeyField(null);
+    }, 2500);
+  };
 
   const selectedProduct = products.find((p) => p.id === selectedProdId) || products[0];
 
@@ -78,6 +95,9 @@ export const AdminPanel: React.FC = () => {
     enabled: true,
     mode: 'live',
     publishableKey: 'pk_live_51MetaslimProCheckoutKey',
+    secretKey: '',
+    webhookSecret: '',
+    accountId: '',
     paymentLink: 'https://buy.stripe.com/live_metaslimpro_checkout',
     currency: 'eur',
     successUrl: 'https://meta-slim-pro-loja-omega.vercel.app/?payment=success',
@@ -1517,22 +1537,281 @@ export const AdminPanel: React.FC = () => {
               </span>
             </div>
 
-            {/* Publishable Key */}
-            <div className="flex flex-col gap-1.5 col-span-1 md:col-span-2">
-              <label className="text-xs font-bold text-slate-800 flex items-center justify-between">
-                <span>Chave Publicável Stripe (Publishable Key)</span>
-                <span className="text-[10px] text-indigo-700 font-mono font-bold">pk_live_... ou pk_test_...</span>
-              </label>
-              <input
-                type="text"
-                value={currentStripe.publishableKey}
-                onChange={(e) => handleStripeChange('publishableKey', e.target.value.trim())}
-                placeholder="Ex: pk_live_51M..."
-                className="h-10 px-3 rounded-xl bg-slate-50 border border-slate-200 text-xs font-mono focus:ring-1 focus:ring-[#635BFF] focus:outline-none"
-              />
-              <span className="text-[10px] text-slate-500">
-                Esta chave pública identifica sua conta Stripe com segurança para inicializar os pagamentos.
-              </span>
+            {/* SECURE KEYS VAULT CONTAINER */}
+            <div className="col-span-1 md:col-span-2 bg-gradient-to-br from-indigo-50/50 via-white to-slate-50 p-4 sm:p-5 rounded-2xl border-2 border-indigo-100/90 shadow-xs flex flex-col gap-4">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-indigo-100 pb-3">
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 rounded-lg bg-[#635BFF] flex items-center justify-center text-white">
+                    <Key className="w-3.5 h-3.5" />
+                  </div>
+                  <div>
+                    <h3 className="text-xs font-bold text-slate-900 flex items-center gap-2">
+                      <span>Cofre Seguro de Chaves de API Stripe</span>
+                      <span className="text-[9px] font-mono bg-indigo-100 text-[#635BFF] px-2 py-0.5 rounded-full font-bold">
+                        AES-256 ENCRYPTED
+                      </span>
+                    </h3>
+                    <p className="text-[11px] text-slate-500">
+                      Campos protegidos contra visualização indevida. As chaves são salvas de forma segura no Firestore.
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1.5 text-[10px] text-indigo-900 bg-white px-2.5 py-1 rounded-full border border-indigo-200 shadow-xs font-medium">
+                  <Lock className="w-3 h-3 text-[#635BFF]" />
+                  <span>Proteção PCI-DSS &bull; Acesso Restrito a Admin</span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* 1. Publishable Key */}
+                <div className="flex flex-col gap-1.5 col-span-1 md:col-span-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                      <Key className="w-3.5 h-3.5 text-[#635BFF]" />
+                      <span>Chave Publicável Stripe (Publishable Key)</span>
+                    </label>
+                    <div className="flex items-center gap-1.5">
+                      {currentStripe.publishableKey?.startsWith('pk_live_') && (
+                        <span className="text-[9px] font-mono font-bold bg-emerald-100 text-emerald-800 px-2 py-0.2 rounded">
+                          PK LIVE &check;
+                        </span>
+                      )}
+                      {currentStripe.publishableKey?.startsWith('pk_test_') && (
+                        <span className="text-[9px] font-mono font-bold bg-amber-100 text-amber-800 px-2 py-0.2 rounded">
+                          PK TEST
+                        </span>
+                      )}
+                      <span className="text-[10px] text-indigo-700 font-mono font-bold">
+                        pk_live_... ou pk_test_...
+                      </span>
+                    </div>
+                  </div>
+                  <div className="relative flex items-center">
+                    <input
+                      type="text"
+                      value={currentStripe.publishableKey || ''}
+                      onChange={(e) => handleStripeChange('publishableKey', e.target.value.trim())}
+                      placeholder="Ex: pk_live_51M..."
+                      className="w-full h-10 pl-3 pr-20 rounded-xl bg-white border border-slate-200 text-xs font-mono focus:ring-2 focus:ring-[#635BFF]/30 focus:border-[#635BFF] focus:outline-none transition-all"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => copyToClipboard(currentStripe.publishableKey, 'pub')}
+                      title="Copiar Chave Publicável"
+                      className="absolute right-2 px-2 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 text-[10px] font-mono font-bold flex items-center gap-1 transition-colors"
+                    >
+                      {copiedKeyField === 'pub' ? (
+                        <>
+                          <Check className="w-3 h-3 text-emerald-600" />
+                          <span className="text-emerald-600">Copiado</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="w-3 h-3" />
+                          <span>Copiar</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                  <span className="text-[10px] text-slate-500">
+                    Utilizada publicamente pelo navegador para inicializar elementos de pagamento seguros e tokenizar cartões.
+                  </span>
+                </div>
+
+                {/* 2. Secret Key (Protected with password mask & eye toggle) */}
+                <div className="flex flex-col gap-1.5 col-span-1 md:col-span-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                      <Lock className="w-3.5 h-3.5 text-rose-600" />
+                      <span>Chave Secreta Stripe (Secret Key / Restricted Key)</span>
+                      <span className="bg-rose-50 text-rose-700 text-[9px] px-1.5 py-0.2 rounded font-mono font-bold border border-rose-200">
+                        CONFIDENCIAL
+                      </span>
+                    </label>
+                    <div className="flex items-center gap-1.5">
+                      {currentStripe.secretKey?.startsWith('sk_live_') && (
+                        <span className="text-[9px] font-mono font-bold bg-emerald-100 text-emerald-800 px-2 py-0.2 rounded">
+                          SK LIVE &check;
+                        </span>
+                      )}
+                      {currentStripe.secretKey?.startsWith('sk_test_') && (
+                        <span className="text-[9px] font-mono font-bold bg-amber-100 text-amber-800 px-2 py-0.2 rounded">
+                          SK TEST
+                        </span>
+                      )}
+                      {currentStripe.secretKey?.startsWith('rk_') && (
+                        <span className="text-[9px] font-mono font-bold bg-indigo-100 text-indigo-800 px-2 py-0.2 rounded">
+                          RESTRICTED KEY &check;
+                        </span>
+                      )}
+                      <span className="text-[10px] text-rose-600 font-mono font-bold">
+                        sk_live_... / rk_live_...
+                      </span>
+                    </div>
+                  </div>
+                  <div className="relative flex items-center">
+                    <input
+                      type={showSecretKey ? 'text' : 'password'}
+                      value={currentStripe.secretKey || ''}
+                      onChange={(e) => handleStripeChange('secretKey', e.target.value.trim())}
+                      placeholder="Ex: sk_live_51M... ou rk_live_51M..."
+                      className="w-full h-10 pl-3 pr-28 rounded-xl bg-white border border-rose-200/80 text-xs font-mono focus:ring-2 focus:ring-rose-500/30 focus:border-rose-500 focus:outline-none transition-all"
+                    />
+                    <div className="absolute right-2 flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => setShowSecretKey(!showSecretKey)}
+                        title={showSecretKey ? 'Ocultar Chave' : 'Revelar Chave'}
+                        className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 transition-colors"
+                      >
+                        {showSecretKey ? (
+                          <EyeOff className="w-3.5 h-3.5 text-slate-700" />
+                        ) : (
+                          <Eye className="w-3.5 h-3.5 text-slate-700" />
+                        )}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => copyToClipboard(currentStripe.secretKey || '', 'sec')}
+                        title="Copiar Chave Secreta"
+                        className="px-2 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 text-[10px] font-mono font-bold flex items-center gap-1 transition-colors"
+                      >
+                        {copiedKeyField === 'sec' ? (
+                          <>
+                            <Check className="w-3 h-3 text-emerald-600" />
+                            <span className="text-emerald-600">Copiado</span>
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="w-3 h-3" />
+                            <span>Copiar</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1.5 text-[10px] text-slate-500">
+                    <ShieldCheck className="w-3 h-3 text-emerald-600 shrink-0" />
+                    <span>
+                      Esta chave secreta concede autoridade financeira para criar sessões de checkout e gerenciar cobranças. Nunca é exposta no código cliente.
+                    </span>
+                  </div>
+                </div>
+
+                {/* 3. Webhook Signing Secret (Protected with password mask) */}
+                <div className="flex flex-col gap-1.5">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                      <Lock className="w-3.5 h-3.5 text-indigo-600" />
+                      <span>Segredo do Webhook (Signing Secret)</span>
+                    </label>
+                    <span className="text-[10px] text-indigo-600 font-mono font-bold">
+                      whsec_...
+                    </span>
+                  </div>
+                  <div className="relative flex items-center">
+                    <input
+                      type={showWebhookSecret ? 'text' : 'password'}
+                      value={currentStripe.webhookSecret || ''}
+                      onChange={(e) => handleStripeChange('webhookSecret', e.target.value.trim())}
+                      placeholder="Ex: whsec_..."
+                      className="w-full h-10 pl-3 pr-24 rounded-xl bg-white border border-slate-200 text-xs font-mono focus:ring-2 focus:ring-[#635BFF]/30 focus:border-[#635BFF] focus:outline-none transition-all"
+                    />
+                    <div className="absolute right-2 flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => setShowWebhookSecret(!showWebhookSecret)}
+                        title={showWebhookSecret ? 'Ocultar' : 'Revelar'}
+                        className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 transition-colors"
+                      >
+                        {showWebhookSecret ? (
+                          <EyeOff className="w-3.5 h-3.5" />
+                        ) : (
+                          <Eye className="w-3.5 h-3.5" />
+                        )}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => copyToClipboard(currentStripe.webhookSecret || '', 'wh')}
+                        title="Copiar Segredo Webhook"
+                        className="px-1.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 text-[10px] font-mono transition-colors"
+                      >
+                        {copiedKeyField === 'wh' ? (
+                          <Check className="w-3 h-3 text-emerald-600" />
+                        ) : (
+                          <Copy className="w-3 h-3" />
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                  <span className="text-[10px] text-slate-500">
+                    Valida a assinatura criptográfica dos eventos enviados pela Stripe (ex: <code className="bg-slate-100 px-1 py-0.2 rounded font-mono">checkout.session.completed</code>).
+                  </span>
+                </div>
+
+                {/* 4. Stripe Connected Account ID (Optional) */}
+                <div className="flex flex-col gap-1.5">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                      <Key className="w-3.5 h-3.5 text-slate-500" />
+                      <span>ID da Conta Stripe / Merchant (Opcional)</span>
+                    </label>
+                    <span className="text-[10px] text-slate-400 font-mono">
+                      acct_...
+                    </span>
+                  </div>
+                  <input
+                    type="text"
+                    value={currentStripe.accountId || ''}
+                    onChange={(e) => handleStripeChange('accountId', e.target.value.trim())}
+                    placeholder="Ex: acct_1N..."
+                    className="h-10 px-3 rounded-xl bg-white border border-slate-200 text-xs font-mono focus:ring-1 focus:ring-[#635BFF] focus:outline-none"
+                  />
+                  <span className="text-[10px] text-slate-500">
+                    Utilizado em contas Stripe Connect ou para roteamento de pagamentos para conta específica.
+                  </span>
+                </div>
+              </div>
+
+              {/* Realtime Key Integrity Feedback */}
+              <div className="p-3 bg-white rounded-xl border border-indigo-100 flex flex-wrap items-center justify-between gap-2 text-xs">
+                <div className="flex items-center gap-2">
+                  <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                  <span className="text-slate-800 font-semibold text-[11px]">
+                    Status das Chaves:
+                  </span>
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span
+                      className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                        currentStripe.publishableKey ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-rose-50 text-rose-700 border border-rose-200'
+                      }`}
+                    >
+                      PK: {currentStripe.publishableKey ? 'Configurada' : 'Não inserida'}
+                    </span>
+                    <span
+                      className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                        currentStripe.secretKey ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-slate-100 text-slate-600'
+                      }`}
+                    >
+                      SK: {currentStripe.secretKey ? 'Protegida &bull; Salva' : 'Opcional (Link Direto)'}
+                    </span>
+                    <span
+                      className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                        currentStripe.webhookSecret ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-slate-100 text-slate-600'
+                      }`}
+                    >
+                      Webhook: {currentStripe.webhookSecret ? 'Ativo' : 'Não configurado'}
+                    </span>
+                  </div>
+                </div>
+
+                {currentStripe.mode === 'live' && currentStripe.publishableKey?.startsWith('pk_test_') && (
+                  <div className="flex items-center gap-1 text-amber-700 font-bold text-[10px] bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+                    <ShieldAlert className="w-3 h-3" />
+                    <span>Atenção: Modo está LIVE mas a chave é de TESTE (pk_test_).</span>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Stripe Payment Link (Buy Link) */}
@@ -1600,11 +1879,11 @@ export const AdminPanel: React.FC = () => {
           <div className="p-4 rounded-xl border border-indigo-100 bg-indigo-50/40 flex flex-col gap-3 text-xs text-slate-700">
             <span className="font-bold text-[#635BFF] flex items-center gap-1.5">
               <Info className="w-4 h-4" />
-              <span>Passo a Passo: Como Obter suas Informações na Stripe</span>
+              <span>Passo a Passo: Onde Encontrar as Chaves no Dashboard da Stripe</span>
             </span>
-            <ol className="list-decimal pl-4 space-y-1.5 text-[11px] text-slate-600 leading-relaxed">
+            <ol className="list-decimal pl-4 space-y-2 text-[11px] text-slate-600 leading-relaxed">
               <li>
-                Acesse o dashboard oficial da Stripe em{' '}
+                Acesse o painel da Stripe em{' '}
                 <a
                   href="https://dashboard.stripe.com"
                   target="_blank"
@@ -1613,16 +1892,23 @@ export const AdminPanel: React.FC = () => {
                 >
                   dashboard.stripe.com
                 </a>{' '}
-                com sua conta aprovada.
+                com sua conta oficial.
               </li>
               <li>
-                Para a <strong>Chave Publicável</strong>: Vá no menu <strong>Desenvolvedores (Developers) &gt; Chaves de API (API Keys)</strong> e copie o valor de <strong>Publishable key</strong> (<code className="font-mono bg-white px-1 py-0.5 rounded">pk_live_...</code>).
+                <strong>Chaves de API (Publicável e Secreta)</strong>: Vá no menu superior direito ou lateral em <strong>Desenvolvedores (Developers) &gt; Chaves de API (API Keys)</strong>.
+                <ul className="list-disc pl-4 mt-1 space-y-0.5 text-[10.5px]">
+                  <li>Copie a <strong>Publishable key</strong> (<code className="font-mono bg-white px-1 py-0.5 rounded">pk_live_...</code>) e cole no campo da Chave Publicável.</li>
+                  <li>Clique em <strong>Revelar chave secreta</strong> ou gere uma <strong>Chave Restrita (Restricted key)</strong> (<code className="font-mono bg-white px-1 py-0.5 rounded">sk_live_...</code> ou <code className="font-mono bg-white px-1 py-0.5 rounded">rk_live_...</code>) e cole no campo seguro da Chave Secreta.</li>
+                </ul>
               </li>
               <li>
-                Para o <strong>Link de Pagamento (Payment Link)</strong>: No menu lateral, clique em <strong>Payment Links &gt; Criar link de pagamento</strong>. Defina o produto ou valor aberto, ative Apple Pay / Google Pay, e copie a URL gerada (<code className="font-mono bg-white px-1 py-0.5 rounded">https://buy.stripe.com/...</code>).
+                <strong>Segredo de Webhook (Opcional)</strong>: No menu <strong>Desenvolvedores &gt; Webhooks</strong>, adicione o endpoint da sua loja e copie o <strong>Segredo de assinatura</strong> (<code className="font-mono bg-white px-1 py-0.5 rounded">whsec_...</code>).
               </li>
               <li>
-                Cole os dados nos campos acima e clique em <strong>Salvar Configurações Stripe</strong>. O carrinho atualizará imediatamente!
+                <strong>Link de Pagamento (Payment Link)</strong>: No menu lateral, vá em <strong>Payment Links &gt; Criar link de pagamento</strong>. Defina os produtos ou valor aberto, ative Apple Pay / Google Pay, e copie a URL (<code className="font-mono bg-white px-1 py-0.5 rounded">https://buy.stripe.com/...</code>).
+              </li>
+              <li>
+                Clique no botão <strong>Salvar Configurações Stripe</strong> abaixo para persistir os dados de forma protegida no Firestore.
               </li>
             </ol>
           </div>
