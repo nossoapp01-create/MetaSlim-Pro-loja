@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useStore } from '../context/StoreContext';
+import { ClinicalInfographicSheet } from './ClinicalInfographicSheet';
 import {
   ShieldCheck,
   Check,
@@ -17,6 +18,9 @@ import {
   Layers,
   ArrowRight,
   ZoomIn,
+  BookOpen,
+  FlaskConical,
+  Award,
 } from 'lucide-react';
 
 export const ProductDetail: React.FC = () => {
@@ -32,6 +36,7 @@ export const ProductDetail: React.FC = () => {
 
   const [selectedVials, setSelectedVials] = useState<number>(1);
   const [isZoomed, setIsZoomed] = useState<boolean>(false);
+  const [activeDetailTab, setActiveDetailTab] = useState<'didatico' | 'mecanismo' | 'tecnica'>('didatico');
 
   const product =
     products.find((p) => p.id === selectedProductId) || products[0];
@@ -316,178 +321,245 @@ export const ProductDetail: React.FC = () => {
         </div>
       </section>
 
-      {/* Deep-Dive Science Section: "Para Que Serve" */}
-      <section className="bg-white rounded-2xl p-5 sm:p-7 shadow-sm border border-slate-200/70 flex flex-col gap-5">
-        <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-          <div>
-            <span className="text-xs font-bold text-[#006750] uppercase font-mono tracking-wider">
-              Mecanismo Científico
-            </span>
-            <h2 className="text-xl sm:text-2xl font-bold text-[#131b2e] mt-0.5">
-              Para Que Serve o {product.name}?
-            </h2>
-          </div>
-          <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center text-[#006750]">
-            <Sparkles className="w-5 h-5" />
-          </div>
-        </div>
-
-        <p className="text-slate-700 text-sm sm:text-base leading-relaxed">
-          {product.scientificDescription || product.whatIsItFor}
-        </p>
-
-        {/* Biological Target Cards */}
-        <div className="grid grid-cols-1 gap-3">
-          {/* Target 1 */}
-          <div className="p-3.5 rounded-xl bg-[#f7f9fa] border border-slate-200/60 flex items-start gap-3">
-            <div className="w-7 h-7 rounded-lg bg-[#006750] text-[#93f5d4] flex items-center justify-center font-mono text-xs font-bold shrink-0">
-              01
-            </div>
-            <div className="flex-1">
-              <div className="flex items-center justify-between">
-                <span className="font-bold text-xs sm:text-sm text-slate-900">Receptor GLP-1</span>
-                <span className="text-[10px] text-emerald-800 bg-emerald-100/70 px-2 py-0.5 rounded-full font-semibold">
-                  Saciedade Central
-                </span>
-              </div>
-              <p className="text-xs text-slate-600 mt-1 leading-relaxed">
-                Desacelera suavemente o esvaziamento gástrico e atua diretamente nos neurônios do hipotálamo, suprimindo o apetite basal e episódios de compulsão alimentar.
-              </p>
-            </div>
-          </div>
-
-          {/* Target 2 */}
-          <div className="p-3.5 rounded-xl bg-[#f7f9fa] border border-slate-200/60 flex items-start gap-3">
-            <div className="w-7 h-7 rounded-lg bg-[#006750] text-[#93f5d4] flex items-center justify-center font-mono text-xs font-bold shrink-0">
-              02
-            </div>
-            <div className="flex-1">
-              <div className="flex items-center justify-between">
-                <span className="font-bold text-xs sm:text-sm text-slate-900">Receptor GIP</span>
-                <span className="text-[10px] text-emerald-800 bg-emerald-100/70 px-2 py-0.5 rounded-full font-semibold">
-                  Homeostase Lipídica
-                </span>
-              </div>
-              <p className="text-xs text-slate-600 mt-1 leading-relaxed">
-                Modula a sensibilidade periférica à insulina e otimiza a partição de nutrientes, direcionando substratos energéticos para o tecido muscular e inibindo depósitos adiposos.
-              </p>
-            </div>
-          </div>
-
-          {/* Target 3 */}
-          <div className="p-3.5 rounded-xl bg-[#f7f9fa] border border-slate-200/60 flex items-start gap-3">
-            <div className="w-7 h-7 rounded-lg bg-[#006750] text-[#93f5d4] flex items-center justify-center font-mono text-xs font-bold shrink-0">
-              03
-            </div>
-            <div className="flex-1">
-              <div className="flex items-center justify-between">
-                <span className="font-bold text-xs sm:text-sm text-slate-900">Receptor de Glucagon</span>
-                <span className="text-[10px] text-emerald-800 bg-emerald-100/70 px-2 py-0.5 rounded-full font-semibold">
-                  Gasto Energético Basal
-                </span>
-              </div>
-              <p className="text-xs text-slate-600 mt-1 leading-relaxed">
-                O diferencial exclusivo frente à Semaglutida e Tirzepatida: induz a termogênese hepática e ativação de gordura marrom, elevando o gasto calórico em repouso.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Benefits Checklist */}
-        <div className="pt-2">
-          <h3 className="font-bold text-sm text-[#131b2e] mb-2.5">Principais Benefícios Observados:</h3>
-          <div className="flex flex-col gap-2">
-            <div className="flex items-start gap-2">
-              <div className="w-5 h-5 rounded-full bg-emerald-100 flex items-center justify-center text-[#006750] shrink-0 mt-0.5">
-                <Check className="w-3.5 h-3.5" />
-              </div>
-              <p className="text-xs text-slate-700 leading-normal">
-                <strong className="text-slate-900">Redução Acentuada de Gordura Visceral:</strong> Até 24.2% de redução ponderal média registrada em ensaios clínicos fase II de 48 semanas.
-              </p>
-            </div>
-            <div className="flex items-start gap-2">
-              <div className="w-5 h-5 rounded-full bg-emerald-100 flex items-center justify-center text-[#006750] shrink-0 mt-0.5">
-                <Check className="w-3.5 h-3.5" />
-              </div>
-              <p className="text-xs text-slate-700 leading-normal">
-                <strong className="text-slate-900">Preservação de Tecido Magro:</strong> Menor depleção sarcopênica quando comparado aos agonistas de primeira geração.
-              </p>
-            </div>
-            <div className="flex items-start gap-2">
-              <div className="w-5 h-5 rounded-full bg-emerald-100 flex items-center justify-center text-[#006750] shrink-0 mt-0.5">
-                <Check className="w-3.5 h-3.5" />
-              </div>
-              <p className="text-xs text-slate-700 leading-normal">
-                <strong className="text-slate-900">Otimização de Biomarcadores:</strong> Redução significativa de triglicerídeos, HbA1c e marcadores inflamatórios como PCR ultrassensível.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Technical Lab Specifications Grid */}
-      <section className="bg-white rounded-2xl p-5 sm:p-7 shadow-sm border border-slate-200/70">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg sm:text-xl font-bold text-[#131b2e]">
-            Ficha Técnica &amp; Reconstituição
-          </h2>
-          <span className="font-mono text-[10px] text-slate-400 font-semibold bg-slate-100 px-2 py-0.5 rounded">
-            LAB GRADE RUO
-          </span>
-        </div>
-
-        <div className="grid grid-cols-2 gap-2.5 text-slate-800">
-          <div className="p-3 rounded-xl bg-slate-50 border border-slate-100 flex flex-col justify-center">
-            <span className="font-mono text-[10px] uppercase text-slate-400">CAS Number</span>
-            <span className="font-mono text-xs sm:text-sm font-bold mt-0.5">
-              {product.casNumber || '2381089-83-2'}
-            </span>
-          </div>
-          <div className="p-3 rounded-xl bg-slate-50 border border-slate-100 flex flex-col justify-center">
-            <span className="font-mono text-[10px] uppercase text-slate-400">Massa Molecular</span>
-            <span className="font-mono text-xs sm:text-sm font-bold mt-0.5">
-              {product.molecularWeight || '~4731.4 g/mol'}
-            </span>
-          </div>
-          <div className="p-3 rounded-xl bg-slate-50 border border-slate-100 flex flex-col justify-center">
-            <span className="font-mono text-[10px] uppercase text-slate-400">Fórmula Química</span>
-            <span className="font-mono text-xs sm:text-sm font-bold mt-0.5 truncate">
-              {product.formula || 'C₂₂₁H₃₄₂N₄₆O₆₈'}
-            </span>
-          </div>
-          <div className="p-3 rounded-xl bg-slate-50 border border-slate-100 flex flex-col justify-center">
-            <span className="font-mono text-[10px] uppercase text-slate-400">Grau de Pureza HPLC</span>
-            <span className="font-mono text-xs sm:text-sm font-bold text-emerald-700 mt-0.5">
-              {product.purity}
-            </span>
-          </div>
-        </div>
-
-        {/* Reconstitution Instructions Box */}
-        <div className="mt-4 p-3.5 rounded-xl bg-emerald-50/70 border border-emerald-100 flex items-start gap-3">
-          <Info className="w-5 h-5 text-[#006750] shrink-0 mt-0.5" />
-          <div className="flex flex-col gap-1">
-            <span className="text-xs font-bold text-[#131b2e]">Instruções de Reconstituição</span>
-            <p className="text-xs text-slate-600 leading-relaxed">
-              Reconstituir com 2.0ml de Água Bacteriostática estéril (BAC). Girar o frasco suavemente sem agitação brusca. Cada 0.1ml na seringa graduada corresponderá a 0.5mg da molécula ativa. Conservar entre 2°C e 8°C.
-            </p>
-          </div>
-        </div>
-
-        {/* COA Download button */}
+      {/* Section Navigation Tabs: Ficha Didática Visual (Default) / Alvos Biológicos / Ficha Técnica */}
+      <div className="flex items-center gap-2 p-1.5 bg-slate-100 rounded-2xl border border-slate-200/80 overflow-x-auto scrollbar-none" id="product-detail-tabs">
         <button
-          onClick={() =>
-            showToast(`Download iniciado: Certificado de Análise HPLC (${product.batchNumber || 'RT-10'}).pdf`)
-          }
-          className="mt-4 w-full py-2.5 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-semibold flex items-center justify-between transition-colors"
+          onClick={() => setActiveDetailTab('didatico')}
+          className={`flex-1 min-w-[180px] py-2.5 px-4 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 transition-all cursor-pointer ${
+            activeDetailTab === 'didatico'
+              ? 'bg-[#006750] text-white shadow-sm'
+              : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
+          }`}
         >
-          <span className="flex items-center gap-2">
-            <FileText className="w-4 h-4 text-[#006750]" />
-            <span>Baixar Laudo Cromatográfico (COA.pdf)</span>
+          <BookOpen className="w-4 h-4" />
+          <span>Ficha Didática Visual</span>
+          <span
+            className={`text-[9px] px-1.5 py-0.5 rounded-full font-mono uppercase font-black ${
+              activeDetailTab === 'didatico'
+                ? 'bg-[#71face] text-[#006750]'
+                : 'bg-emerald-100 text-emerald-800'
+            }`}
+          >
+            Auto-Didático
           </span>
-          <Download className="w-4 h-4 text-slate-400" />
         </button>
-      </section>
+
+        <button
+          onClick={() => setActiveDetailTab('mecanismo')}
+          className={`flex-1 min-w-[150px] py-2.5 px-4 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 transition-all cursor-pointer ${
+            activeDetailTab === 'mecanismo'
+              ? 'bg-[#006750] text-white shadow-sm'
+              : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
+          }`}
+        >
+          <Sparkles className="w-4 h-4" />
+          <span>Alvos Biológicos</span>
+        </button>
+
+        <button
+          onClick={() => setActiveDetailTab('tecnica')}
+          className={`flex-1 min-w-[150px] py-2.5 px-4 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 transition-all cursor-pointer ${
+            activeDetailTab === 'tecnica'
+              ? 'bg-[#006750] text-white shadow-sm'
+              : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
+          }`}
+        >
+          <FlaskConical className="w-4 h-4" />
+          <span>Ficha Técnica &amp; COA</span>
+        </button>
+      </div>
+
+      {/* 1. CLINICAL DIDACTIC INFOGRAPHIC SHEET (Matches User WhatsApp Reference Images) */}
+      {activeDetailTab === 'didatico' && (
+        <ClinicalInfographicSheet
+          product={product}
+          selectedVials={selectedVials}
+          onSelectVials={setSelectedVials}
+          onAddToCart={(vials) => addToCart(product, vials, 1)}
+          onDirectBuy={handleDirectBuy}
+          onOpenCalculator={() => {
+            setActiveDetailTab('tecnica');
+            showToast('Exibindo Instruções de Reconstituição e Diluição...');
+          }}
+        />
+      )}
+
+      {/* 2. Deep-Dive Science Section: "Para Que Serve" (Detailed Biological Targets) */}
+      {activeDetailTab === 'mecanismo' && (
+        <section className="bg-white rounded-2xl p-5 sm:p-7 shadow-sm border border-slate-200/70 flex flex-col gap-5">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+            <div>
+              <span className="text-xs font-bold text-[#006750] uppercase font-mono tracking-wider">
+                Mecanismo Científico
+              </span>
+              <h2 className="text-xl sm:text-2xl font-bold text-[#131b2e] mt-0.5">
+                Para Que Serve o {product.name}?
+              </h2>
+            </div>
+            <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center text-[#006750]">
+              <Sparkles className="w-5 h-5" />
+            </div>
+          </div>
+
+          <p className="text-slate-700 text-sm sm:text-base leading-relaxed">
+            {product.scientificDescription || product.whatIsItFor}
+          </p>
+
+          {/* Biological Target Cards */}
+          <div className="grid grid-cols-1 gap-3">
+            {/* Target 1 */}
+            <div className="p-3.5 rounded-xl bg-[#f7f9fa] border border-slate-200/60 flex items-start gap-3">
+              <div className="w-7 h-7 rounded-lg bg-[#006750] text-[#93f5d4] flex items-center justify-center font-mono text-xs font-bold shrink-0">
+                01
+              </div>
+              <div className="flex-1">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-xs sm:text-sm text-slate-900">Receptor GLP-1</span>
+                  <span className="text-[10px] text-emerald-800 bg-emerald-100/70 px-2 py-0.5 rounded-full font-semibold">
+                    Saciedade Central
+                  </span>
+                </div>
+                <p className="text-xs text-slate-600 mt-1 leading-relaxed">
+                  Desacelera suavemente o esvaziamento gástrico e atua diretamente nos neurônios do hipotálamo, suprimindo o apetite basal e episódios de compulsão alimentar.
+                </p>
+              </div>
+            </div>
+
+            {/* Target 2 */}
+            <div className="p-3.5 rounded-xl bg-[#f7f9fa] border border-slate-200/60 flex items-start gap-3">
+              <div className="w-7 h-7 rounded-lg bg-[#006750] text-[#93f5d4] flex items-center justify-center font-mono text-xs font-bold shrink-0">
+                02
+              </div>
+              <div className="flex-1">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-xs sm:text-sm text-slate-900">Receptor GIP</span>
+                  <span className="text-[10px] text-emerald-800 bg-emerald-100/70 px-2 py-0.5 rounded-full font-semibold">
+                    Homeostase Lipídica
+                  </span>
+                </div>
+                <p className="text-xs text-slate-600 mt-1 leading-relaxed">
+                  Modula a sensibilidade periférica à insulina e otimiza a partição de nutrientes, direcionando substratos energéticos para o tecido muscular e inibindo depósitos adiposos.
+                </p>
+              </div>
+            </div>
+
+            {/* Target 3 */}
+            <div className="p-3.5 rounded-xl bg-[#f7f9fa] border border-slate-200/60 flex items-start gap-3">
+              <div className="w-7 h-7 rounded-lg bg-[#006750] text-[#93f5d4] flex items-center justify-center font-mono text-xs font-bold shrink-0">
+                03
+              </div>
+              <div className="flex-1">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-xs sm:text-sm text-slate-900">Receptor de Glucagon</span>
+                  <span className="text-[10px] text-emerald-800 bg-emerald-100/70 px-2 py-0.5 rounded-full font-semibold">
+                    Gasto Energético Basal
+                  </span>
+                </div>
+                <p className="text-xs text-slate-600 mt-1 leading-relaxed">
+                  O diferencial exclusivo frente à Semaglutida e Tirzepatida: induz a termogênese hepática e ativação de gordura marrom, elevando o gasto calórico em repouso.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Benefits Checklist */}
+          <div className="pt-2">
+            <h3 className="font-bold text-sm text-[#131b2e] mb-2.5">Principais Benefícios Observados:</h3>
+            <div className="flex flex-col gap-2">
+              <div className="flex items-start gap-2">
+                <div className="w-5 h-5 rounded-full bg-emerald-100 flex items-center justify-center text-[#006750] shrink-0 mt-0.5">
+                  <Check className="w-3.5 h-3.5" />
+                </div>
+                <p className="text-xs text-slate-700 leading-normal">
+                  <strong className="text-slate-900">Redução Acentuada de Gordura Visceral:</strong> Até 24.2% de redução ponderal média registrada em ensaios clínicos fase II de 48 semanas.
+                </p>
+              </div>
+              <div className="flex items-start gap-2">
+                <div className="w-5 h-5 rounded-full bg-emerald-100 flex items-center justify-center text-[#006750] shrink-0 mt-0.5">
+                  <Check className="w-3.5 h-3.5" />
+                </div>
+                <p className="text-xs text-slate-700 leading-normal">
+                  <strong className="text-slate-900">Preservação de Tecido Magro:</strong> Menor depleção sarcopênica quando comparado aos agonistas de primeira geração.
+                </p>
+              </div>
+              <div className="flex items-start gap-2">
+                <div className="w-5 h-5 rounded-full bg-emerald-100 flex items-center justify-center text-[#006750] shrink-0 mt-0.5">
+                  <Check className="w-3.5 h-3.5" />
+                </div>
+                <p className="text-xs text-slate-700 leading-normal">
+                  <strong className="text-slate-900">Otimização de Biomarcadores:</strong> Redução significativa de triglicerídeos, HbA1c e marcadores inflamatórios como PCR ultrassensível.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* 3. Technical Lab Specifications Grid */}
+      {activeDetailTab === 'tecnica' && (
+        <section className="bg-white rounded-2xl p-5 sm:p-7 shadow-sm border border-slate-200/70">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg sm:text-xl font-bold text-[#131b2e]">
+              Ficha Técnica &amp; Reconstituição
+            </h2>
+            <span className="font-mono text-[10px] text-slate-400 font-semibold bg-slate-100 px-2 py-0.5 rounded">
+              LAB GRADE RUO
+            </span>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2.5 text-slate-800">
+            <div className="p-3 rounded-xl bg-slate-50 border border-slate-100 flex flex-col justify-center">
+              <span className="font-mono text-[10px] uppercase text-slate-400">CAS Number</span>
+              <span className="font-mono text-xs sm:text-sm font-bold mt-0.5">
+                {product.casNumber || '2381089-83-2'}
+              </span>
+            </div>
+            <div className="p-3 rounded-xl bg-slate-50 border border-slate-100 flex flex-col justify-center">
+              <span className="font-mono text-[10px] uppercase text-slate-400">Massa Molecular</span>
+              <span className="font-mono text-xs sm:text-sm font-bold mt-0.5">
+                {product.molecularWeight || '~4731.4 g/mol'}
+              </span>
+            </div>
+            <div className="p-3 rounded-xl bg-slate-50 border border-slate-100 flex flex-col justify-center">
+              <span className="font-mono text-[10px] uppercase text-slate-400">Fórmula Química</span>
+              <span className="font-mono text-xs sm:text-sm font-bold mt-0.5 truncate">
+                {product.formula || 'C₂₂₁H₃₄₂N₄₆O₆₈'}
+              </span>
+            </div>
+            <div className="p-3 rounded-xl bg-slate-50 border border-slate-100 flex flex-col justify-center">
+              <span className="font-mono text-[10px] uppercase text-slate-400">Grau de Pureza HPLC</span>
+              <span className="font-mono text-xs sm:text-sm font-bold text-emerald-700 mt-0.5">
+                {product.purity}
+              </span>
+            </div>
+          </div>
+
+          {/* Reconstitution Instructions Box */}
+          <div className="mt-4 p-3.5 rounded-xl bg-emerald-50/70 border border-emerald-100 flex items-start gap-3">
+            <Info className="w-5 h-5 text-[#006750] shrink-0 mt-0.5" />
+            <div className="flex flex-col gap-1">
+              <span className="text-xs font-bold text-[#131b2e]">Instruções de Reconstituição</span>
+              <p className="text-xs text-slate-600 leading-relaxed">
+                Reconstituir com 2.0ml de Água Bacteriostática estéril (BAC). Girar o frasco suavemente sem agitação brusca. Cada 0.1ml na seringa graduada corresponderá a 0.5mg da molécula ativa. Conservar entre 2°C e 8°C.
+              </p>
+            </div>
+          </div>
+
+          {/* COA Download button */}
+          <button
+            onClick={() =>
+              showToast(`Download iniciado: Certificado de Análise HPLC (${product.batchNumber || 'RT-10'}).pdf`)
+            }
+            className="mt-4 w-full py-2.5 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-semibold flex items-center justify-between transition-colors"
+          >
+            <span className="flex items-center gap-2">
+              <FileText className="w-4 h-4 text-[#006750]" />
+              <span>Baixar Laudo Cromatográfico (COA.pdf)</span>
+            </span>
+            <Download className="w-4 h-4 text-slate-400" />
+          </button>
+        </section>
+      )}
 
       {/* 4-Pillar Clinical Trust Matrix */}
       <section className="bg-white rounded-2xl p-5 sm:p-7 shadow-sm border border-slate-200/70 grid grid-cols-2 gap-4">
