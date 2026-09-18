@@ -84,7 +84,8 @@ interface StoreContextType {
   deleteTestimonial: (id: string) => Promise<void>;
   updateSettings: (newSettings: Partial<StoreSettings>) => Promise<void>;
   resetDefaults: () => void;
-  showToast: (msg: string) => void;
+  showToast: (msg: string, duration?: number) => void;
+  setToast: (toast: string | null) => void;
   loginWithGoogle: (useRedirect?: boolean) => Promise<void>;
   logout: () => Promise<void>;
   quickAdminLogin: () => void;
@@ -238,11 +239,12 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     (localAdminUser && localAdminUser.email?.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase())
   );
 
-  const showToast = useCallback((msg: string) => {
+  const showToast = useCallback((msg: string, duration?: number) => {
     setToast(msg);
+    const time = duration || (msg.length > 50 ? 6000 : 4000);
     setTimeout(() => {
       setToast(null);
-    }, 3200);
+    }, time);
   }, []);
 
   // Persist to localStorage
@@ -515,15 +517,24 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       }
     } catch (error: any) {
       console.error('Google login failure detail:', error);
-      const parsed = parseAuthError(error);
-      setAuthErrorInfo(parsed);
-      setAuthErrorModalOpen(true);
-      if (parsed.isUnauthorizedDomain) {
-        showToast('Domínio não autorizado no Firebase. Clique em "Diagnóstico" para resolver.');
-      } else if (parsed.isPopupBlocked) {
-        showToast('Pop-up bloqueado pelo navegador. Tente por redirecionamento.');
+      const code = error?.code || 'auth/unknown';
+      const currentDomain = typeof window !== 'undefined' ? window.location.hostname : '';
+
+      setAuthErrorModalOpen(false);
+
+      if (code === 'auth/unauthorized-domain' || error?.message?.includes('unauthorized-domain')) {
+        showToast(
+          `Erro no Google (${code}): O domínio "${currentDomain}" não está autorizado no Firebase Authentication. Adicione "${currentDomain}" em Firebase Console > Authentication > Settings > Authorized domains.`,
+          8000
+        );
+      } else if (code === 'auth/popup-blocked' || error?.message?.includes('popup-blocked')) {
+        showToast('Erro no Google (auth/popup-blocked): O navegador bloqueou a janela pop-up de login. Permita pop-ups para este site.', 6000);
+      } else if (code === 'auth/popup-closed-by-user') {
+        showToast('Login cancelado: janela de autenticação fechada antes da confirmação.', 4000);
+      } else if (code === 'auth/operation-not-allowed') {
+        showToast('Erro no Google (auth/operation-not-allowed): O provedor Google não está ativado no Firebase Console (Authentication > Sign-in method).', 7000);
       } else {
-        showToast(`Falha no login: ${parsed.title}`);
+        showToast(`Erro no login com Google (${code}): ${error?.message || 'Falha ao autenticar.'}`, 7000);
       }
     }
   };
@@ -1050,6 +1061,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         updateSettings,
         resetDefaults,
         showToast,
+        setToast,
         loginWithGoogle,
         logout,
         quickAdminLogin,

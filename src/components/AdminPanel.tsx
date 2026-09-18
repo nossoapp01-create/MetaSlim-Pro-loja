@@ -71,7 +71,6 @@ export const AdminPanel: React.FC = () => {
     loginWithGoogle,
     logout,
     quickAdminLogin,
-    setAuthErrorModalOpen,
     syncAllToFirebase,
     refreshFromFirebase,
   } = useStore();
@@ -313,7 +312,7 @@ export const AdminPanel: React.FC = () => {
             <div className="flex items-center gap-1.5">
               <button
                 onClick={() => loginWithGoogle()}
-                className="px-3 py-1.5 rounded-xl bg-white border border-emerald-300 hover:bg-emerald-50 text-[#006750] text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-xs"
+                className="px-3 py-1.5 rounded-xl bg-white border border-emerald-300 hover:bg-emerald-50 text-[#006750] text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-xs cursor-pointer"
                 title="Entrar com conta Google do Firebase"
               >
                 <LogIn className="w-3.5 h-3.5" />
@@ -321,16 +320,8 @@ export const AdminPanel: React.FC = () => {
               </button>
 
               <button
-                onClick={() => setAuthErrorModalOpen(true)}
-                className="px-2.5 py-1.5 rounded-xl bg-amber-50 border border-amber-200 hover:bg-amber-100 text-amber-900 text-xs font-semibold flex items-center gap-1 transition-colors"
-                title="Ver diagnóstico e autorizar domínio no Firebase"
-              >
-                <span>Ajuda / Diagnóstico</span>
-              </button>
-
-              <button
                 onClick={() => quickAdminLogin()}
-                className="px-2.5 py-1.5 rounded-xl bg-slate-100 border border-slate-200 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition-colors"
+                className="px-2.5 py-1.5 rounded-xl bg-slate-100 border border-slate-200 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition-colors cursor-pointer"
                 title="Acesso de emergência direto para o Super Admin"
               >
                 <span>1-Clique Admin</span>

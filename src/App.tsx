@@ -11,8 +11,7 @@ import { AdminPanel } from './components/AdminPanel';
 import { Footer } from './components/Footer';
 import { BottomNav } from './components/BottomNav';
 import { DosageCalculatorModal } from './components/DosageCalculatorModal';
-import { AuthDiagnosticsModal } from './components/AuthDiagnosticsModal';
-import { ShieldCheck, Sparkles, AlertCircle, ArrowRight, Dna, Calculator } from 'lucide-react';
+import { ShieldCheck, Sparkles, AlertCircle, ArrowRight, Dna, Calculator, X } from 'lucide-react';
 
 const MainContent: React.FC = () => {
   const {
@@ -22,12 +21,8 @@ const MainContent: React.FC = () => {
     selectedCategory,
     searchQuery,
     toast,
+    setToast,
     setSelectedProductId,
-    authErrorModalOpen,
-    setAuthErrorModalOpen,
-    authErrorInfo,
-    loginWithGoogle,
-    quickAdminLogin,
   } = useStore();
 
   const [isCalculatorOpen, setIsCalculatorOpen] = useState(false);
@@ -55,9 +50,18 @@ const MainContent: React.FC = () => {
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 pt-20 pb-12">
         {/* Floating Toast Notification */}
         {toast && (
-          <div className="fixed top-20 right-4 z-50 bg-[#131b2e] text-white px-4 py-2.5 rounded-xl shadow-xl border border-slate-700/80 flex items-center gap-2.5 text-xs font-semibold animate-in slide-in-from-top duration-200">
-            <span className="w-2 h-2 rounded-full bg-[#71face] animate-ping" />
-            <span>{toast}</span>
+          <div className="fixed top-20 right-4 left-4 sm:left-auto sm:max-w-lg z-50 bg-[#131b2e] text-white p-3.5 rounded-2xl shadow-2xl border border-slate-700/80 flex items-start gap-3 text-xs font-medium animate-in slide-in-from-top duration-200 backdrop-blur-md">
+            <span className="w-2.5 h-2.5 rounded-full bg-[#71face] shrink-0 mt-1 animate-ping" />
+            <div className="flex-1 leading-relaxed text-slate-100 break-words font-sans">
+              {toast}
+            </div>
+            <button
+              onClick={() => setToast && setToast(null)}
+              className="text-slate-400 hover:text-white p-0.5 ml-1 shrink-0 cursor-pointer"
+              title="Fechar aviso"
+            >
+              <X className="w-4 h-4" />
+            </button>
           </div>
         )}
 
@@ -255,16 +259,6 @@ const MainContent: React.FC = () => {
       <DosageCalculatorModal
         isOpen={isCalculatorOpen}
         onClose={() => setIsCalculatorOpen(false)}
-      />
-
-      {/* Auth Diagnostics & Help Modal */}
-      <AuthDiagnosticsModal
-        isOpen={authErrorModalOpen}
-        onClose={() => setAuthErrorModalOpen(false)}
-        errorInfo={authErrorInfo}
-        onRetryPopup={() => loginWithGoogle(false)}
-        onRetryRedirect={() => loginWithGoogle(true)}
-        onQuickAdminLogin={quickAdminLogin}
       />
 
       {/* Global Footer */}
