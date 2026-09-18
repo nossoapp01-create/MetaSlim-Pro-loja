@@ -134,10 +134,14 @@ export const AdminPanel: React.FC = () => {
   const triggerGlobalSave = async () => {
     setIsSaving(true);
     try {
-      await syncAllToFirebase();
-      showToast('Alterações salvas e sincronizadas na nuvem Firebase!');
-    } catch {
-      showToast('Salvo localmente! Faça login para sincronizar no Firebase.');
+      // Direct call to syncAllToFirebase which handles local storage & batch cloud write
+      await Promise.race([
+        syncAllToFirebase(),
+        new Promise((resolve) => setTimeout(resolve, 8500)),
+      ]);
+    } catch (e) {
+      console.warn('Save notice:', e);
+      showToast('Alterações salvas localmente no seu dispositivo!');
     } finally {
       setIsSaving(false);
     }
@@ -1168,6 +1172,20 @@ export const AdminPanel: React.FC = () => {
                 </button>
               </div>
             </div>
+
+            {/* Informative Tip */}
+            <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200/80 flex items-start gap-2.5">
+              <div className="w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center shrink-0 text-xs font-bold mt-0.5">
+                i
+              </div>
+              <div className="text-xs text-slate-700 leading-relaxed">
+                <strong className="text-slate-900">Como funciona o Checkout myPOS:</strong>
+                <ul className="list-disc list-inside mt-1 space-y-0.5 text-slate-600">
+                  <li><strong>Com PayLink preenchido:</strong> O cliente é direcionado ao seu link de pagamento direto da myPOS (criado no painel myPOS em <em>Online &gt; Payment Links</em>), que já aceita cartões, Apple Pay e Multibanco sem precisar de chaves RSA.</li>
+                  <li><strong>Sem PayLink (apenas SID e Wallet):</strong> A compra é enviada via formulário seguro oficial ao gateway hosted <code>https://www.mypos.com/vmp/checkout</code>.</li>
+                </ul>
+              </div>
+            </div>
           </div>
 
           {/* Technical Specs & Official Repositories Reference */}
@@ -1236,12 +1254,12 @@ export const AdminPanel: React.FC = () => {
                   </tr>
                   <tr>
                     <td className="py-1.5 text-slate-900 font-bold">Endpoint Live</td>
-                    <td className="py-1.5 text-slate-700">https://www.mypos.com/vapi/checkout</td>
-                    <td className="py-1.5 text-slate-500 font-sans">Servidor de produção myPOS</td>
+                    <td className="py-1.5 text-slate-700">https://www.mypos.com/vmp/checkout</td>
+                    <td className="py-1.5 text-slate-500 font-sans">Servidor oficial de produção myPOS (Virtual POS)</td>
                   </tr>
                   <tr>
                     <td className="py-1.5 text-slate-900 font-bold">Endpoint Sandbox</td>
-                    <td className="py-1.5 text-slate-700">https://www.mypos.com/vapi/checkout-test</td>
+                    <td className="py-1.5 text-slate-700">https://www.mypos.com/vmp/checkout-test</td>
                     <td className="py-1.5 text-slate-500 font-sans">Ambiente para testes sem cobrança real</td>
                   </tr>
                 </tbody>

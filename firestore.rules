@@ -98,7 +98,7 @@ service cloud.firestore {
     function isValidSettings(data) {
       return data.storeName is string && data.storeName.size() <= 120 &&
              data.currencySymbol is string && data.currencySymbol.size() <= 5 &&
-             data.defaultPaymentLink is string && data.defaultPaymentLink.size() <= 1000;
+             (!('defaultPaymentLink' in data) || (data.defaultPaymentLink is string && data.defaultPaymentLink.size() <= 1000));
     }
 
     match /settings/{settingId} {

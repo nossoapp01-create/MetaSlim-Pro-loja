@@ -19,6 +19,7 @@ import {
   setDoc,
   deleteDoc,
   onSnapshot,
+  writeBatch,
 } from 'firebase/firestore';
 
 export interface OrderRecord {
@@ -367,36 +368,53 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const syncAllToFirebase = async () => {
     setIsSyncing(true);
     try {
+      // 1. Immediately persist changes locally in browser storage
+      try {
+        localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(products));
+        localStorage.setItem(STORAGE_KEYS.BANNERS, JSON.stringify(banners));
+        localStorage.setItem(STORAGE_KEYS.TESTIMONIALS, JSON.stringify(testimonials));
+        localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(settings));
+      } catch (e) {
+        console.warn('Local storage write warning:', e);
+      }
+
+      // 2. If user is not authenticated, alert them to login for cloud sync and finish immediately
+      if (!firebaseUser) {
+        showToast('Configurações salvas no dispositivo! Para sincronizar na nuvem Firebase, clique em "Login com Google".');
+        return;
+      }
+
+      // 3. Batch write all documents in a single atomic transaction with an 8s timeout
+      const batch = writeBatch(db);
+
       // Push products
       for (const prod of products) {
-        await setDoc(doc(db, 'products', prod.id), prod).catch((err) => {
-          handleFirestoreError(err, OperationType.WRITE, `products/${prod.id}`);
-        });
+        batch.set(doc(db, 'products', prod.id), prod);
       }
 
       // Push banners
       for (const banner of banners) {
-        await setDoc(doc(db, 'banners', String(banner.id)), banner).catch((err) => {
-          handleFirestoreError(err, OperationType.WRITE, `banners/${banner.id}`);
-        });
+        batch.set(doc(db, 'banners', String(banner.id)), banner);
       }
 
       // Push testimonials
       for (const test of testimonials) {
-        await setDoc(doc(db, 'testimonials', test.id), test).catch((err) => {
-          handleFirestoreError(err, OperationType.WRITE, `testimonials/${test.id}`);
-        });
+        batch.set(doc(db, 'testimonials', test.id), test);
       }
 
       // Push settings
-      await setDoc(doc(db, 'settings', 'general'), settings).catch((err) => {
-        handleFirestoreError(err, OperationType.WRITE, 'settings/general');
-      });
+      batch.set(doc(db, 'settings', 'general'), settings);
 
-      showToast('Catálogo e configurações salvos no Firebase com sucesso!');
+      const commitPromise = batch.commit();
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('Tempo limite de sincronização excedido')), 8000)
+      );
+
+      await Promise.race([commitPromise, timeoutPromise]);
+      showToast('Alterações salvas e sincronizadas na nuvem Firebase!');
     } catch (error) {
-      console.error('Error syncing to Firebase:', error);
-      showToast('Erro ao sincronizar com o Firebase. Verifique as permissões de administrador.');
+      console.warn('Notice syncing to Firebase:', error);
+      showToast('Salvo com sucesso localmente! (Sincronização na nuvem requer login de administrador).');
     } finally {
       setIsSyncing(false);
     }

@@ -74,9 +74,20 @@
         "currencyRateEurToBrl": { "type": "number" },
         "defaultPaymentLink": { "type": "string", "maxLength": 1000 },
         "whatsappNumber": { "type": "string", "maxLength": 40 },
-        "freeShippingThreshold": { "type": "number" }
+        "freeShippingThreshold": { "type": "number" },
+        "mypos": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "mode": { "type": "string", "enum": ["sandbox", "production"] },
+            "sid": { "type": "string", "maxLength": 100 },
+            "walletNumber": { "type": "string", "maxLength": 100 },
+            "keyIndex": { "type": "number" },
+            "payLink": { "type": "string", "maxLength": 1000 }
+          }
+        }
       },
-      "required": ["storeName", "currencySymbol", "defaultPaymentLink"]
+      "required": ["storeName", "currencySymbol"]
     },
     "Order": {
       "title": "Order",

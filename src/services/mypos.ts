@@ -42,10 +42,10 @@ export interface MyPOSPurchaseParams {
   notifyUrl?: string;
 }
 
-// Endpoints from myPOS API documentation
+// Endpoints from official myPOS Checkout API documentation
 export const MYPOS_ENDPOINTS = {
-  production: 'https://www.mypos.com/vapi/checkout',
-  sandbox: 'https://www.mypos.com/vapi/checkout-test',
+  production: 'https://www.mypos.com/vmp/checkout',
+  sandbox: 'https://www.mypos.com/vmp/checkout-test',
   payBase: 'https://pay.mypos.com',
 };
 
@@ -69,7 +69,7 @@ export function buildMyPOSPurchasePayload(
     WalletNumber: config.walletNumber || '61938166666',
     KeyIndex: String(config.keyIndex || 1),
     Amount: params.amount.toFixed(2),
-    Currency: params.currency === 'BRL' ? 'EUR' : 'EUR', // myPOS standard settles in EUR/GBP/USD
+    Currency: 'EUR', // myPOS standard settles in EUR
     OrderID: params.orderId,
     URL_OK: urlOk,
     URL_Cancel: urlCancel,
@@ -80,13 +80,14 @@ export function buildMyPOSPurchasePayload(
     CartItems: String(params.cartItems.length),
   };
 
-  // Populate individual cart item fields (Article_1, Quantity_1, Price_1, Amount_1)
+  // Populate individual cart item fields (Article_1, Quantity_1, Price_1, Amount_1, Currency_1)
   params.cartItems.forEach((item, index) => {
     const idx = index + 1;
     payload[`Article_${idx}`] = item.name.slice(0, 50);
     payload[`Quantity_${idx}`] = String(item.quantity);
     payload[`Price_${idx}`] = item.price.toFixed(2);
     payload[`Amount_${idx}`] = (item.price * item.quantity).toFixed(2);
+    payload[`Currency_${idx}`] = 'EUR';
   });
 
   if (params.customer?.email) {
@@ -102,31 +103,34 @@ export function buildMyPOSPurchasePayload(
 /**
  * Initiates the checkout via myPOS.
  * If merchant provided a custom PayLink (e.g. from myPOS portal), uses query params.
- * Otherwise, generates an IPC POST form submission to the myPOS Checkout gateway.
+ * Otherwise, generates an IPC POST form submission to the official myPOS Checkout gateway (vmp/checkout).
  */
 export function processMyPOSCheckout(
   config: MyPOSConfig,
   params: MyPOSPurchaseParams
 ): void {
-  // If merchant has a dedicated myPOS PayLink or PayButton URL
-  if (config.payLink && config.payLink.startsWith('http')) {
-    const separator = config.payLink.includes('?') ? '&' : '?';
-    const checkoutUrl = `${config.payLink}${separator}order_id=${encodeURIComponent(
+  const trimmedPayLink = config.payLink?.trim() || '';
+
+  // If merchant has a dedicated active myPOS PayLink or PayButton URL and no SID provided,
+  // or explicitly provided a custom PayLink URL:
+  if (trimmedPayLink.startsWith('http') && (!config.sid || !config.walletNumber)) {
+    const separator = trimmedPayLink.includes('?') ? '&' : '?';
+    const checkoutUrl = `${trimmedPayLink}${separator}order_id=${encodeURIComponent(
       params.orderId
-    )}&amount=${params.amount.toFixed(2)}&currency=${params.currency}&desc=${encodeURIComponent(
+    )}&amount=${params.amount.toFixed(2)}&currency=EUR&desc=${encodeURIComponent(
       'MetaSlim Pro Peptides - Pedido ' + params.orderId
     )}`;
     window.open(checkoutUrl, '_blank');
     return;
   }
 
-  // Otherwise, perform standardized IPC Purchase Form submission
+  // Otherwise, perform standardized IPC Purchase Form submission to official hosted checkout
   const endpoint =
     config.mode === 'sandbox' ? MYPOS_ENDPOINTS.sandbox : MYPOS_ENDPOINTS.production;
 
   const payload = buildMyPOSPurchasePayload(config, params);
 
-  // Dynamically create and submit POST form
+  // Dynamically create and submit POST form to official vmp/checkout
   const form = document.createElement('form');
   form.method = 'POST';
   form.action = endpoint;
@@ -143,5 +147,9 @@ export function processMyPOSCheckout(
 
   document.body.appendChild(form);
   form.submit();
-  document.body.removeChild(form);
+  setTimeout(() => {
+    if (document.body.contains(form)) {
+      document.body.removeChild(form);
+    }
+  }, 1000);
 }
