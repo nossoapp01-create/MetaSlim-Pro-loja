@@ -80,6 +80,7 @@
           "properties": {
             "enabled": { "type": "boolean" },
             "mode": { "type": "string", "enum": ["sandbox", "production"] },
+            "integrationType": { "type": "string", "enum": ["paylink", "hosted_checkout"] },
             "sid": { "type": "string", "maxLength": 100 },
             "walletNumber": { "type": "string", "maxLength": 100 },
             "keyIndex": { "type": "number" },

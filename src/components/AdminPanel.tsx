@@ -1020,130 +1020,108 @@ export const AdminPanel: React.FC = () => {
 
           {/* Credentials Form */}
           <div className="flex flex-col gap-4">
-            <h3 className="text-xs font-mono uppercase font-bold text-slate-400 tracking-wider">
-              Credenciais da Conta Comerciante myPOS
-            </h3>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-bold text-slate-700">Ambiente de Execução</label>
-                <select
-                  value={settings.mypos?.mode || 'production'}
-                  onChange={(e) =>
-                    updateSettings({
-                      mypos: {
-                        ...(settings.mypos || {
-                          enabled: true,
-                          mode: 'production',
-                          sid: '000000000000001',
-                          walletNumber: '61938166666',
-                          keyIndex: 1,
-                          payLink: 'https://pay.mypos.com/metaslimpro',
-                        }),
-                        mode: e.target.value as 'production' | 'sandbox',
-                      },
-                    })
-                  }
-                  className="h-10 px-3 rounded-xl bg-slate-50 border border-slate-200 text-xs font-semibold text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#006750]"
+            {/* Integration Method Selector */}
+            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 flex flex-col gap-2">
+              <label className="text-xs font-bold text-slate-800 uppercase tracking-wider font-mono">
+                Método de Integração com a myPOS
+              </label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-1">
+                <label
+                  className={`p-3 rounded-xl border flex items-start gap-3 cursor-pointer transition-all ${
+                    (settings.mypos?.integrationType || 'paylink') === 'paylink'
+                      ? 'bg-white border-[#006750] shadow-sm ring-1 ring-[#006750]'
+                      : 'bg-slate-100/60 border-slate-200 hover:bg-white'
+                  }`}
                 >
-                  <option value="production">Produção (Live / Oficial)</option>
-                  <option value="sandbox">Sandbox (Testes myPOS)</option>
-                </select>
-                <span className="text-[10px] text-slate-400">
-                  {settings.mypos?.mode === 'sandbox' ? 'Endpoint: checkout-test' : 'Endpoint: checkout (Live)'}
-                </span>
-              </div>
+                  <input
+                    type="radio"
+                    name="mypos_integration_type"
+                    value="paylink"
+                    checked={(settings.mypos?.integrationType || 'paylink') === 'paylink'}
+                    onChange={() =>
+                      updateSettings({
+                        mypos: {
+                          ...(settings.mypos || {
+                            enabled: true,
+                            mode: 'production',
+                            sid: '',
+                            walletNumber: '',
+                            keyIndex: 1,
+                            payLink: '',
+                          }),
+                          integrationType: 'paylink',
+                        },
+                      })
+                    }
+                    className="mt-0.5 text-[#006750] focus:ring-[#006750]"
+                  />
+                  <div className="flex flex-col">
+                    <span className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
+                      myPOS PayLink Oficial
+                      <span className="text-[9px] bg-emerald-100 text-[#006750] px-1.5 py-0.2 rounded font-bold">Recomendado</span>
+                    </span>
+                    <span className="text-[11px] text-slate-500 mt-0.5 leading-relaxed">
+                      Zero erros técnicos. Não precisa de chaves RSA. O cliente paga diretamente no checkout oficial da myPOS com Cartão, Apple Pay e Multibanco.
+                    </span>
+                  </div>
+                </label>
 
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-bold text-slate-700">Store ID (SID)</label>
-                <input
-                  type="text"
-                  placeholder="ex: 000000000000001"
-                  value={settings.mypos?.sid || ''}
-                  onChange={(e) =>
-                    updateSettings({
-                      mypos: {
-                        ...(settings.mypos || {
-                          enabled: true,
-                          mode: 'production',
-                          sid: '',
-                          walletNumber: '',
-                          keyIndex: 1,
-                          payLink: '',
-                        }),
-                        sid: e.target.value,
-                      },
-                    })
-                  }
-                  className="h-10 px-3 rounded-xl bg-slate-50 border border-slate-200 text-xs font-mono text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#006750]"
-                />
-                <span className="text-[10px] text-slate-400">Identificador da loja na myPOS</span>
-              </div>
-
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-bold text-slate-700">Client / Wallet Number</label>
-                <input
-                  type="text"
-                  placeholder="ex: 61938166666"
-                  value={settings.mypos?.walletNumber || ''}
-                  onChange={(e) =>
-                    updateSettings({
-                      mypos: {
-                        ...(settings.mypos || {
-                          enabled: true,
-                          mode: 'production',
-                          sid: '',
-                          walletNumber: '',
-                          keyIndex: 1,
-                          payLink: '',
-                        }),
-                        walletNumber: e.target.value,
-                      },
-                    })
-                  }
-                  className="h-10 px-3 rounded-xl bg-slate-50 border border-slate-200 text-xs font-mono text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#006750]"
-                />
-                <span className="text-[10px] text-slate-400">Número da conta carteira comerciante</span>
-              </div>
-
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-bold text-slate-700">Key Index</label>
-                <input
-                  type="number"
-                  value={settings.mypos?.keyIndex || 1}
-                  onChange={(e) =>
-                    updateSettings({
-                      mypos: {
-                        ...(settings.mypos || {
-                          enabled: true,
-                          mode: 'production',
-                          sid: '',
-                          walletNumber: '',
-                          keyIndex: 1,
-                          payLink: '',
-                        }),
-                        keyIndex: parseInt(e.target.value) || 1,
-                      },
-                    })
-                  }
-                  className="h-10 px-3 rounded-xl bg-slate-50 border border-slate-200 text-xs font-mono text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#006750]"
-                />
-                <span className="text-[10px] text-slate-400">Índice do par de chaves (padrão: 1)</span>
+                <label
+                  className={`p-3 rounded-xl border flex items-start gap-3 cursor-pointer transition-all ${
+                    settings.mypos?.integrationType === 'hosted_checkout'
+                      ? 'bg-white border-[#006750] shadow-sm ring-1 ring-[#006750]'
+                      : 'bg-slate-100/60 border-slate-200 hover:bg-white'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="mypos_integration_type"
+                    value="hosted_checkout"
+                    checked={settings.mypos?.integrationType === 'hosted_checkout'}
+                    onChange={() =>
+                      updateSettings({
+                        mypos: {
+                          ...(settings.mypos || {
+                            enabled: true,
+                            mode: 'production',
+                            sid: '',
+                            walletNumber: '',
+                            keyIndex: 1,
+                            payLink: '',
+                          }),
+                          integrationType: 'hosted_checkout',
+                        },
+                      })
+                    }
+                    className="mt-0.5 text-[#006750] focus:ring-[#006750]"
+                  />
+                  <div className="flex flex-col">
+                    <span className="text-xs font-bold text-slate-900">
+                      API Hosted Checkout (vmp/checkout)
+                    </span>
+                    <span className="text-[11px] text-slate-500 mt-0.5 leading-relaxed">
+                      Requer Store ID numérico válido e Certificado de Assinatura RSA SHA-256 no myPOS.
+                    </span>
+                  </div>
+                </label>
               </div>
             </div>
 
-            {/* Direct PayLink */}
-            <div className="flex flex-col gap-1.5 mt-1">
-              <label className="text-xs font-bold text-slate-700 flex items-center justify-between">
-                <span>Link Direto myPOS PayLink / PayButton</span>
-                <span className="text-[10px] text-slate-400 font-normal">
-                  (Criado em mypos.com &rarr; Loja Online &rarr; PayLink)
+            {/* Direct PayLink Input (Prominent) */}
+            <div className="flex flex-col gap-1.5 p-4 rounded-xl bg-emerald-50/50 border border-emerald-200">
+              <label className="text-xs font-bold text-slate-900 flex items-center justify-between">
+                <span className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                  Link Direto myPOS PayLink da sua loja
+                </span>
+                <span className="text-[10px] text-slate-500 font-normal">
+                  (Criado em mypos.com &rarr; Lojas online &rarr; PayLinks)
                 </span>
               </label>
               <div className="flex gap-2">
                 <input
                   type="url"
-                  placeholder="https://pay.mypos.com/metaslimpro"
+                  placeholder="https://pay.mypos.com/seunome"
                   value={settings.mypos?.payLink || ''}
                   onChange={(e) =>
                     updateSettings({
@@ -1160,30 +1138,155 @@ export const AdminPanel: React.FC = () => {
                       },
                     })
                   }
-                  className="flex-1 h-10 px-3 rounded-xl bg-slate-50 border border-slate-200 text-xs font-mono text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#006750]"
+                  className="flex-1 h-11 px-3.5 rounded-xl bg-white border border-slate-300 text-xs font-mono text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#006750]"
                 />
                 <button
                   type="button"
                   onClick={() => testGatewayUrl(settings.mypos?.payLink || 'https://pay.mypos.com/')}
-                  className="h-10 px-4 rounded-xl bg-slate-100 text-slate-800 text-xs font-semibold hover:bg-slate-200 flex items-center gap-1.5 transition-all"
+                  className="h-11 px-4 rounded-xl bg-[#006750] text-white text-xs font-semibold hover:bg-[#005240] flex items-center gap-1.5 transition-all shadow-sm"
                 >
                   <ExternalLink className="w-3.5 h-3.5" />
                   <span>Testar Link</span>
                 </button>
               </div>
+              <p className="text-[11px] text-slate-600 mt-1 leading-relaxed">
+                Insira o link de pagamento público da sua loja myPOS (ex: <code className="bg-emerald-100 text-emerald-900 px-1 py-0.5 rounded text-[10px] font-mono">https://pay.mypos.com/...</code>). O cliente é redirecionado para a página oficial do myPOS sem qualquer erro de assinatura ou código 3!
+              </p>
+            </div>
+
+            {/* API Parameters (Optional for Hosted Checkout) */}
+            <div className={`flex flex-col gap-3 transition-opacity ${
+              settings.mypos?.integrationType === 'hosted_checkout' ? 'opacity-100' : 'opacity-80'
+            }`}>
+              <h3 className="text-xs font-mono uppercase font-bold text-slate-400 tracking-wider flex items-center justify-between">
+                <span>Parâmetros Técnicos myPOS (Opcional se usar PayLink)</span>
+                {settings.mypos?.integrationType !== 'hosted_checkout' && (
+                  <span className="text-[10px] text-emerald-700 font-sans font-medium">Usando modo PayLink</span>
+                )}
+              </h3>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-bold text-slate-700">Ambiente de Execução</label>
+                  <select
+                    value={settings.mypos?.mode || 'production'}
+                    onChange={(e) =>
+                      updateSettings({
+                        mypos: {
+                          ...(settings.mypos || {
+                            enabled: true,
+                            mode: 'production',
+                            sid: '',
+                            walletNumber: '',
+                            keyIndex: 1,
+                            payLink: '',
+                          }),
+                          mode: e.target.value as 'production' | 'sandbox',
+                        },
+                      })
+                    }
+                    className="h-10 px-3 rounded-xl bg-slate-50 border border-slate-200 text-xs font-semibold text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#006750]"
+                  >
+                    <option value="production">Produção (Live / Oficial)</option>
+                    <option value="sandbox">Sandbox (Testes myPOS)</option>
+                  </select>
+                  <span className="text-[10px] text-slate-400">
+                    {settings.mypos?.mode === 'sandbox' ? 'Endpoint: checkout-test' : 'Endpoint: checkout (Live)'}
+                  </span>
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-bold text-slate-700">Store ID (SID)</label>
+                  <input
+                    type="text"
+                    placeholder="ex: 000000000000001"
+                    value={settings.mypos?.sid || ''}
+                    onChange={(e) =>
+                      updateSettings({
+                        mypos: {
+                          ...(settings.mypos || {
+                            enabled: true,
+                            mode: 'production',
+                            sid: '',
+                            walletNumber: '',
+                            keyIndex: 1,
+                            payLink: '',
+                          }),
+                          sid: e.target.value,
+                        },
+                      })
+                    }
+                    className="h-10 px-3 rounded-xl bg-slate-50 border border-slate-200 text-xs font-mono text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#006750]"
+                  />
+                  <span className="text-[10px] text-slate-400">ID numérico da loja</span>
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-bold text-slate-700">Client / Wallet Number</label>
+                  <input
+                    type="text"
+                    placeholder="ex: 61938166666"
+                    value={settings.mypos?.walletNumber || ''}
+                    onChange={(e) =>
+                      updateSettings({
+                        mypos: {
+                          ...(settings.mypos || {
+                            enabled: true,
+                            mode: 'production',
+                            sid: '',
+                            walletNumber: '',
+                            keyIndex: 1,
+                            payLink: '',
+                          }),
+                          walletNumber: e.target.value,
+                        },
+                      })
+                    }
+                    className="h-10 px-3 rounded-xl bg-slate-50 border border-slate-200 text-xs font-mono text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#006750]"
+                  />
+                  <span className="text-[10px] text-slate-400">Número da carteira comerciante</span>
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-bold text-slate-700">Key Index</label>
+                  <input
+                    type="number"
+                    value={settings.mypos?.keyIndex || 1}
+                    onChange={(e) =>
+                      updateSettings({
+                        mypos: {
+                          ...(settings.mypos || {
+                            enabled: true,
+                            mode: 'production',
+                            sid: '',
+                            walletNumber: '',
+                            keyIndex: 1,
+                            payLink: '',
+                          }),
+                          keyIndex: parseInt(e.target.value) || 1,
+                        },
+                      })
+                    }
+                    className="h-10 px-3 rounded-xl bg-slate-50 border border-slate-200 text-xs font-mono text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#006750]"
+                  />
+                  <span className="text-[10px] text-slate-400">Índice do par de chaves (1)</span>
+                </div>
+              </div>
             </div>
 
             {/* Informative Tip */}
-            <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200/80 flex items-start gap-2.5">
-              <div className="w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center shrink-0 text-xs font-bold mt-0.5">
-                i
+            <div className="p-4 rounded-xl bg-amber-50 border border-amber-200 flex items-start gap-3">
+              <div className="w-5 h-5 rounded-full bg-amber-600 text-white flex items-center justify-center shrink-0 text-xs font-bold mt-0.5">
+                !
               </div>
               <div className="text-xs text-slate-700 leading-relaxed">
-                <strong className="text-slate-900">Como funciona o Checkout myPOS:</strong>
-                <ul className="list-disc list-inside mt-1 space-y-0.5 text-slate-600">
-                  <li><strong>Com PayLink preenchido:</strong> O cliente é direcionado ao seu link de pagamento direto da myPOS (criado no painel myPOS em <em>Online &gt; Payment Links</em>), que já aceita cartões, Apple Pay e Multibanco sem precisar de chaves RSA.</li>
-                  <li><strong>Sem PayLink (apenas SID e Wallet):</strong> A compra é enviada via formulário seguro oficial ao gateway hosted <code>https://www.mypos.com/vmp/checkout</code>.</li>
-                </ul>
+                <strong className="text-slate-900">Por que o myPOS exibe "Error Code: 3"?</strong>
+                <p className="mt-1 text-slate-600">
+                  O <strong>Error Code: 3 (E_IPC_ERROR)</strong> da myPOS ocorre quando o envio direto de dados para a API (<em>vmp/checkout</em>) não contém a assinatura digital RSA (<em>Signature</em> com chave privada) ou quando o SID numérico não confere com a assinatura.
+                </p>
+                <p className="mt-1.5 text-slate-700 font-medium">
+                  <strong>Solução mais rápida:</strong> Use a opção <strong>myPOS PayLink</strong> acima! Crie um link em <span className="font-mono text-[11px] bg-amber-100 px-1 py-0.5 rounded">mypos.com &gt; Lojas Online &gt; PayLinks</span> e cole aqui. Funciona imediatamente sem exigir chaves RSA!
+                </p>
               </div>
             </div>
           </div>

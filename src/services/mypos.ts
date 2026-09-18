@@ -9,6 +9,7 @@
 export interface MyPOSConfig {
   enabled: boolean;
   mode: 'sandbox' | 'production';
+  integrationType?: 'paylink' | 'hosted_checkout';
   sid: string; // Store ID (SID) assigned in myPOS Merchant account
   walletNumber: string; // Client / Wallet number
   keyIndex: number; // Key index (default: 1)
@@ -110,21 +111,25 @@ export function processMyPOSCheckout(
   params: MyPOSPurchaseParams
 ): void {
   const trimmedPayLink = config.payLink?.trim() || '';
+  const integrationType = config.integrationType || (trimmedPayLink.startsWith('http') ? 'paylink' : 'hosted_checkout');
 
-  // If merchant has a dedicated active myPOS PayLink or PayButton URL and no SID provided,
-  // or explicitly provided a custom PayLink URL:
-  if (trimmedPayLink.startsWith('http') && (!config.sid || !config.walletNumber)) {
+  // Priority 1: Official myPOS PayLink / Payment Tag / Button (Zero RSA error risk)
+  if (integrationType === 'paylink' && trimmedPayLink.startsWith('http')) {
     const separator = trimmedPayLink.includes('?') ? '&' : '?';
     const checkoutUrl = `${trimmedPayLink}${separator}order_id=${encodeURIComponent(
       params.orderId
     )}&amount=${params.amount.toFixed(2)}&currency=EUR&desc=${encodeURIComponent(
       'MetaSlim Pro Peptides - Pedido ' + params.orderId
     )}`;
-    window.open(checkoutUrl, '_blank');
+    
+    const win = window.open(checkoutUrl, '_blank');
+    if (!win || win.closed || typeof win.closed === 'undefined') {
+      window.location.href = checkoutUrl;
+    }
     return;
   }
 
-  // Otherwise, perform standardized IPC Purchase Form submission to official hosted checkout
+  // Priority 2: Standardized IPC Purchase Form submission to official hosted checkout (vmp/checkout)
   const endpoint =
     config.mode === 'sandbox' ? MYPOS_ENDPOINTS.sandbox : MYPOS_ENDPOINTS.production;
 

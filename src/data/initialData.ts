@@ -12,6 +12,7 @@ export const initialStoreSettings: StoreSettings = {
   mypos: {
     enabled: true,
     mode: 'production',
+    integrationType: 'paylink',
     sid: '000000000000001',
     walletNumber: '61938166666',
     keyIndex: 1,

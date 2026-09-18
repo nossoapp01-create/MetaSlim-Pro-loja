@@ -58,6 +58,7 @@ export interface Testimonial {
 export interface MyPOSConfig {
   enabled: boolean;
   mode: 'sandbox' | 'production';
+  integrationType?: 'paylink' | 'hosted_checkout';
   sid: string;
   walletNumber: string;
   keyIndex: number;
