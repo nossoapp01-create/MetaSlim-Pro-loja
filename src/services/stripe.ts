@@ -150,11 +150,24 @@ export async function createRealStripeCheckoutSession(
       }),
     });
 
-    const data = await res.json();
-    if (!res.ok || !data.success) {
+    const text = await res.text();
+    let data: any = null;
+    try {
+      data = text ? JSON.parse(text) : null;
+    } catch {
+      // The endpoint returned HTML (e.g. 404/500 from proxy or Vercel before deployment)
+      console.warn('Stripe endpoint did not return JSON. Raw text:', text?.slice(0, 200));
+    }
+
+    if (!res.ok || !data || !data.success) {
+      const errorMsg =
+        data?.error ||
+        (res.status === 404
+          ? 'Endpoint de pagamento não encontrado (/api/stripe/create-checkout-session). Por favor, certifique-se de implantar a versão atualizada com as Serverless Functions.'
+          : `Erro de resposta do servidor (HTTP ${res.status}).`);
       return {
         success: false,
-        error: data.error || 'Não foi possível gerar a sessão de pagamento na Stripe.',
+        error: errorMsg,
       };
     }
 
@@ -185,11 +198,18 @@ export async function testStripeConnection(
       body: JSON.stringify({ secretKey }),
     });
 
-    const data = await res.json();
-    if (!res.ok || !data.success) {
+    const text = await res.text();
+    let data: any = null;
+    try {
+      data = text ? JSON.parse(text) : null;
+    } catch {
+      console.warn('Stripe test endpoint did not return JSON:', text?.slice(0, 200));
+    }
+
+    if (!res.ok || !data || !data.success) {
       return {
         success: false,
-        error: data.error || 'Falha ao validar chave secreta na Stripe.',
+        error: data?.error || `Falha de conexão com a API da Stripe (HTTP ${res.status}).`,
       };
     }
 
@@ -219,10 +239,16 @@ export async function verifyStripeSession(
     if (secretKey) params.append('secretKey', secretKey);
 
     const res = await fetch(`/api/stripe/verify-session?${params.toString()}`);
-    const data = await res.json();
+    const text = await res.text();
+    let data: any = null;
+    try {
+      data = text ? JSON.parse(text) : null;
+    } catch {
+      console.warn('Stripe verify endpoint did not return JSON:', text?.slice(0, 200));
+    }
 
-    if (!res.ok || !data.success) {
-      return { success: false, error: data.error || 'Falha ao verificar status do pagamento.' };
+    if (!res.ok || !data || !data.success) {
+      return { success: false, error: data?.error || 'Falha ao verificar status do pagamento.' };
     }
 
     return {
