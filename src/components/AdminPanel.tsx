@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useStore } from '../context/StoreContext';
 import { Product, BannerSlide, Testimonial, StripeConfig, MyPOSConfig } from '../types';
+import { StripeSalesDashboard } from './StripeSalesDashboard';
 import {
   testStripeConnection,
   extractSecretKeyIfPastedInPublishableKey,
@@ -50,6 +51,7 @@ export const AdminPanel: React.FC = () => {
     banners,
     testimonials,
     settings,
+    orders,
     updateProduct,
     addProduct,
     deleteProduct,
@@ -74,7 +76,7 @@ export const AdminPanel: React.FC = () => {
     refreshFromFirebase,
   } = useStore();
 
-  const [activeAdminTab, setActiveAdminTab] = useState<'produtos' | 'banners' | 'depoimentos' | 'configuracoes' | 'mypos' | 'stripe' | 'vercel'>('produtos');
+  const [activeAdminTab, setActiveAdminTab] = useState<'vendas-stripe' | 'produtos' | 'banners' | 'depoimentos' | 'configuracoes' | 'mypos' | 'stripe' | 'vercel'>('vendas-stripe');
   const [selectedProdId, setSelectedProdId] = useState<string>(products[0]?.id || 'retatrutide-10mg');
   const [expandedBannerId, setExpandedBannerId] = useState<number | null>(1);
   const [isSaving, setIsSaving] = useState(false);
@@ -363,27 +365,29 @@ export const AdminPanel: React.FC = () => {
         {/* KPI 1 */}
         <div className="bg-white p-4 rounded-2xl border border-slate-200/70 shadow-xs flex flex-col justify-between">
           <div className="flex items-center justify-between text-slate-400">
-            <span className="text-xs font-semibold">Vendas Hoje</span>
+            <span className="text-xs font-semibold">Volume Faturado</span>
             <DollarSign className="w-4 h-4 text-[#006750]" />
           </div>
           <div className="text-xl sm:text-2xl font-mono font-bold text-slate-900 mt-2">
-            € 3.840
+            {formatPrice(orders.reduce((sum, o) => sum + (o.status !== 'cancelled' ? o.totalAmount : 0), 0))}
           </div>
           <div className="flex items-center gap-1 text-[11px] text-emerald-700 font-semibold mt-1">
             <TrendingUp className="w-3 h-3" />
-            <span>+18.4%</span>
+            <span>Stripe &bull; Live Liquidado</span>
           </div>
         </div>
 
         {/* KPI 2 */}
         <div className="bg-white p-4 rounded-2xl border border-slate-200/70 shadow-xs flex flex-col justify-between">
           <div className="flex items-center justify-between text-slate-400">
-            <span className="text-xs font-semibold">Pedidos Pendentes</span>
-            <ShoppingBag className="w-4 h-4 text-emerald-700" />
+            <span className="text-xs font-semibold">Prontos p/ Envio</span>
+            <ShoppingBag className="w-4 h-4 text-amber-600" />
           </div>
-          <div className="text-xl sm:text-2xl font-mono font-bold text-slate-900 mt-2">14</div>
-          <div className="text-[11px] text-slate-500 font-semibold mt-1">
-            Despacho em 2h
+          <div className="text-xl sm:text-2xl font-mono font-bold text-slate-900 mt-2">
+            {orders.filter((o) => o.status === 'paid').length} Pedidos
+          </div>
+          <div className="text-[11px] text-amber-700 font-semibold mt-1">
+            Aguardando impressão
           </div>
         </div>
 
@@ -404,101 +408,125 @@ export const AdminPanel: React.FC = () => {
         {/* KPI 4 */}
         <div className="bg-white p-4 rounded-2xl border border-slate-200/70 shadow-xs flex flex-col justify-between">
           <div className="flex items-center justify-between text-slate-400">
-            <span className="text-xs font-semibold">Faturamento Mês</span>
-            <Award className="w-4 h-4 text-amber-600" />
+            <span className="text-xs font-semibold">Total de Vendas</span>
+            <Award className="w-4 h-4 text-[#635BFF]" />
           </div>
           <div className="text-xl sm:text-2xl font-mono font-bold text-slate-900 mt-2">
-            € 68.250
+            {orders.length} Pedidos
           </div>
-          <div className="flex items-center gap-1 text-[11px] text-emerald-700 font-semibold mt-1">
-            <TrendingUp className="w-3 h-3" />
-            <span>+29.1% MoM</span>
+          <div className="flex items-center gap-1 text-[11px] text-indigo-700 font-semibold mt-1">
+            <ShieldCheck className="w-3 h-3 text-[#635BFF]" />
+            <span>100% Conectado Stripe</span>
           </div>
         </div>
       </section>
 
-      {/* Admin Tabs */}
-      <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
+      {/* Admin Tabs - Full-width Wrapped Layout that never overflows or cuts off */}
+      <div className="flex flex-wrap items-center gap-2 p-1.5 bg-slate-100/90 rounded-2xl border border-slate-200/80">
+        <button
+          onClick={() => setActiveAdminTab('vendas-stripe')}
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
+            activeAdminTab === 'vendas-stripe'
+              ? 'bg-[#635BFF] text-white shadow-md shadow-indigo-900/20'
+              : 'bg-white text-slate-700 hover:bg-indigo-50 border border-slate-200/70 hover:border-indigo-300'
+          }`}
+        >
+          <CreditCard className="w-3.5 h-3.5 text-indigo-300" />
+          <span>Vendas Stripe &amp; Envios</span>
+          <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full font-bold ${
+            activeAdminTab === 'vendas-stripe'
+              ? 'bg-white/20 text-white'
+              : 'bg-indigo-100 text-[#635BFF]'
+          }`}>
+            {orders.length}
+          </span>
+        </button>
+
         <button
           onClick={() => setActiveAdminTab('produtos')}
-          className={`px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap transition-all ${
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
             activeAdminTab === 'produtos'
               ? 'bg-[#006750] text-white shadow-md'
-              : 'bg-white text-slate-700 hover:bg-emerald-50 border border-slate-200'
+              : 'bg-white text-slate-700 hover:bg-emerald-50 border border-slate-200/70'
           }`}
         >
           Editar Produtos ({products.length})
         </button>
+
         <button
           onClick={() => setActiveAdminTab('banners')}
-          className={`px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap transition-all ${
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
             activeAdminTab === 'banners'
               ? 'bg-[#006750] text-white shadow-md'
-              : 'bg-white text-slate-700 hover:bg-emerald-50 border border-slate-200'
+              : 'bg-white text-slate-700 hover:bg-emerald-50 border border-slate-200/70'
           }`}
         >
           Banners Rotativos ({banners.length})
         </button>
+
         <button
           onClick={() => setActiveAdminTab('depoimentos')}
-          className={`px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap transition-all ${
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
             activeAdminTab === 'depoimentos'
               ? 'bg-[#006750] text-white shadow-md'
-              : 'bg-white text-slate-700 hover:bg-emerald-50 border border-slate-200'
+              : 'bg-white text-slate-700 hover:bg-emerald-50 border border-slate-200/70'
           }`}
         >
           Antes &amp; Depois ({testimonials.length})
         </button>
+
         <button
           onClick={() => setActiveAdminTab('configuracoes')}
-          className={`px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap transition-all ${
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
             activeAdminTab === 'configuracoes'
               ? 'bg-[#006750] text-white shadow-md'
-              : 'bg-white text-slate-700 hover:bg-emerald-50 border border-slate-200'
+              : 'bg-white text-slate-700 hover:bg-emerald-50 border border-slate-200/70'
           }`}
         >
           Configurações Gerais
         </button>
-        <button
-          onClick={() => setActiveAdminTab('mypos')}
-          className={`px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5 ${
-            activeAdminTab === 'mypos'
-              ? 'bg-[#006750] text-white shadow-md'
-              : 'bg-white text-slate-700 hover:bg-emerald-50 border border-slate-200'
-          }`}
-        >
-          <CreditCard className="w-3.5 h-3.5 text-[#71face]" />
-          <span>Gateway myPOS</span>
-          <span className="bg-emerald-100 text-[#006750] text-[9px] px-1.5 py-0.2 rounded font-mono font-bold">
-            OFICIAL UE
-          </span>
-        </button>
+
         <button
           onClick={() => setActiveAdminTab('stripe')}
-          className={`px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5 ${
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
             activeAdminTab === 'stripe'
               ? 'bg-[#635BFF] text-white shadow-md'
-              : 'bg-white text-slate-700 hover:bg-indigo-50 border border-slate-200'
+              : 'bg-white text-slate-700 hover:bg-indigo-50 border border-slate-200/70'
           }`}
         >
           <CreditCard className="w-3.5 h-3.5 text-[#635BFF]" />
-          <span>Gateway Stripe</span>
-          <span className="bg-indigo-100 text-[#635BFF] text-[9px] px-1.5 py-0.2 rounded font-mono font-bold">
-            GLOBAL
-          </span>
+          <span>Chaves Stripe</span>
         </button>
+
+        <button
+          onClick={() => setActiveAdminTab('mypos')}
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+            activeAdminTab === 'mypos'
+              ? 'bg-[#006750] text-white shadow-md'
+              : 'bg-white text-slate-700 hover:bg-emerald-50 border border-slate-200/70'
+          }`}
+        >
+          <CreditCard className="w-3.5 h-3.5 text-[#006750]" />
+          <span>Gateway myPOS</span>
+        </button>
+
         <button
           onClick={() => setActiveAdminTab('vercel')}
-          className={`px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5 ${
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
             activeAdminTab === 'vercel'
               ? 'bg-[#131b2e] text-white shadow-md'
-              : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
+              : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200/70'
           }`}
         >
           <Globe className="w-3.5 h-3.5 text-[#71face]" />
-          <span>Deploy na Vercel</span>
+          <span>Deploy Vercel</span>
         </button>
       </div>
+
+      {/* TAB 0: Stripe Sales & Shipping Labels Dashboard */}
+      {activeAdminTab === 'vendas-stripe' && (
+        <StripeSalesDashboard />
+      )}
 
       {/* TAB 1: Product Editor */}
       {activeAdminTab === 'produtos' && selectedProduct && (

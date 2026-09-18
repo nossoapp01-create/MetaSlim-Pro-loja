@@ -90,3 +90,45 @@ export interface StoreSettings {
   mypos?: MyPOSConfig;
   stripe?: StripeConfig;
 }
+
+export interface CustomerShippingInfo {
+  fullName: string;
+  phone: string;
+  email: string;
+  address: string;
+  complement?: string;
+  postalCode: string;
+  city: string;
+  country: string;
+  notes?: string;
+}
+
+export interface OrderItemDetail {
+  productId: string;
+  productName: string;
+  quantity: number;
+  vialsCount: number;
+  unitPrice: number;
+  totalPrice: number;
+}
+
+export interface OrderRecord {
+  id: string;
+  userId?: string;
+  customerEmail?: string;
+  totalAmount: number;
+  currency: string;
+  itemsCount: number;
+  items?: OrderItemDetail[];
+  shipping: CustomerShippingInfo;
+  deliveryNotes?: string;
+  status: 'pending' | 'paid' | 'shipped' | 'delivered' | 'cancelled';
+  paymentMethod: 'stripe' | 'mypos' | 'mbway_pix' | 'crypto' | 'direct';
+  stripeSessionId?: string;
+  stripePaymentIntentId?: string;
+  trackingCode?: string;
+  carrier?: string;
+  createdAt: string;
+  paidAt?: string;
+  shippedAt?: string;
+}

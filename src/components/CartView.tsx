@@ -6,7 +6,8 @@ import {
   isValidStripePaymentLink,
   extractSecretKeyIfPastedInPublishableKey,
 } from '../services/stripe';
-import { StripeConfig } from '../types';
+import { StripeConfig, OrderRecord, CustomerShippingInfo } from '../types';
+import { ShippingLabelModal } from './ShippingLabelModal';
 import {
   Trash2,
   Plus,
@@ -34,6 +35,11 @@ import {
   Copy,
   AlertTriangle,
   MessageSquare,
+  MapPin,
+  User,
+  Phone,
+  Mail,
+  Printer,
 } from 'lucide-react';
 
 export const CartView: React.FC = () => {
@@ -53,6 +59,8 @@ export const CartView: React.FC = () => {
     deliveryNotes,
     setDeliveryNotes,
     settings,
+    orders,
+    addOrder,
     setActiveTab,
     showToast,
     createOrderInFirestore,
@@ -70,6 +78,21 @@ export const CartView: React.FC = () => {
   const [isStripeLoading, setIsStripeLoading] = useState(false);
   const [stripeErrorModal, setStripeErrorModal] = useState<{ open: boolean; message: string } | null>(null);
   const [pendingOrderId, setPendingOrderId] = useState<string | null>(null);
+
+  // Customer Shipping details for logistics & immediate label generation
+  const [shippingInfo, setShippingInfo] = useState<CustomerShippingInfo>({
+    fullName: 'Dra. Mariana Vasconcelos',
+    phone: '+351 912 849 201',
+    email: 'mariana.vasconcelos@clinica.pt',
+    address: 'Avenida da Liberdade, nº 142, 3º Direito',
+    complement: 'Edifício Liberdade Prime - Clínica Médica',
+    postalCode: '1250-146',
+    city: 'Lisboa',
+    country: 'Portugal',
+    notes: 'Manter estritamente refrigerado 2°C a 8°C. Deixar na recepção.',
+  });
+
+  const [selectedOrderForLabel, setSelectedOrderForLabel] = useState<OrderRecord | null>(null);
 
   const [cardPaymentSuccess, setCardPaymentSuccess] = useState(false);
   const [copiedReceipt, setCopiedReceipt] = useState(false);
@@ -182,13 +205,18 @@ export const CartView: React.FC = () => {
       return;
     }
 
+    if (!shippingInfo.fullName || !shippingInfo.address || !shippingInfo.postalCode) {
+      showToast('Por favor, preencha o Nome, Morada e Código Postal para a etiqueta de envio.');
+      return;
+    }
+
     setIsProcessingOrder(true);
     let orderId: string | null = null;
     try {
-      orderId = await createOrderInFirestore(deliveryNotes);
+      orderId = await createOrderInFirestore(shippingInfo, deliveryNotes, paymentMethod);
       if (orderId) {
         setPendingOrderId(orderId);
-        showToast(`Pedido #${orderId} registrado no Firebase!`);
+        showToast(`Pedido #${orderId} registrado com etiqueta de envio gerada!`);
       }
     } finally {
       setIsProcessingOrder(false);
@@ -360,31 +388,56 @@ export const CartView: React.FC = () => {
           </div>
 
           {/* Actions */}
-          <div className="w-full mt-6 flex flex-col sm:flex-row gap-2.5">
+          <div className="w-full mt-6 flex flex-col gap-2.5">
             <button
               onClick={() => {
-                const text = `Comprovante MetaSlim Pro\nPedido: #${cardReceipt.orderId}\nAutenticação: ${cardReceipt.authCode}\nValor: ${formatPrice(cardReceipt.amount)}\nData: ${cardReceipt.date}`;
-                navigator.clipboard.writeText(text);
-                setCopiedReceipt(true);
-                showToast('Comprovante copiado para a área de transferência!');
-                setTimeout(() => setCopiedReceipt(false), 3000);
+                const found = orders.find((o) => o.id === cardReceipt.orderId) || {
+                  id: cardReceipt.orderId,
+                  totalAmount: cardReceipt.amount,
+                  currency: 'EUR',
+                  itemsCount: 1,
+                  items: [],
+                  shipping: shippingInfo,
+                  status: 'paid',
+                  paymentMethod: 'stripe',
+                  trackingCode: `CTT-PT-${cardReceipt.orderId.replace(/\D/g, '') || '984210'}`,
+                  carrier: 'CTT Expresso Cold Chain 24h',
+                  createdAt: new Date().toISOString(),
+                };
+                setSelectedOrderForLabel(found as any);
               }}
-              className="flex-1 py-3 px-4 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors"
+              className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-[#006750] via-[#0d8267] to-[#006750] hover:opacity-95 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-md shadow-emerald-950/20 cursor-pointer"
             >
-              {copiedReceipt ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
-              <span>{copiedReceipt ? 'Copiado!' : 'Copiar Comprovante'}</span>
+              <Printer className="w-4 h-4 text-[#71face]" />
+              <span>🏷️ Ver &amp; Imprimir Etiqueta Oficial de Envio</span>
             </button>
-            <button
-              onClick={() => {
-                setCardPaymentSuccess(false);
-                setCardReceipt(null);
-                setActiveTab('produtos');
-              }}
-              className="flex-1 py-3 px-4 rounded-xl bg-gradient-to-r from-[#006750] to-[#0d8267] hover:opacity-95 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-md shadow-emerald-950/20"
-            >
-              <span>Continuar Comprando</span>
-              <ArrowRight className="w-4 h-4" />
-            </button>
+
+            <div className="flex flex-col sm:flex-row gap-2.5">
+              <button
+                onClick={() => {
+                  const text = `Comprovante MetaSlim Pro\nPedido: #${cardReceipt.orderId}\nAutenticação: ${cardReceipt.authCode}\nValor: ${formatPrice(cardReceipt.amount)}\nData: ${cardReceipt.date}`;
+                  navigator.clipboard.writeText(text);
+                  setCopiedReceipt(true);
+                  showToast('Comprovante copiado para a área de transferência!');
+                  setTimeout(() => setCopiedReceipt(false), 3000);
+                }}
+                className="flex-1 py-3 px-4 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+              >
+                {copiedReceipt ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
+                <span>{copiedReceipt ? 'Copiado!' : 'Copiar Comprovante'}</span>
+              </button>
+              <button
+                onClick={() => {
+                  setCardPaymentSuccess(false);
+                  setCardReceipt(null);
+                  setActiveTab('produtos');
+                }}
+                className="flex-1 py-3 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-xs cursor-pointer"
+              >
+                <span>Continuar Comprando</span>
+                <ArrowRight className="w-4 h-4" />
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -656,6 +709,196 @@ export const CartView: React.FC = () => {
         </div>
       </div>
 
+      {/* Dados de Envio para Emissão da Etiqueta de Despacho */}
+      <div className="bg-white rounded-2xl p-4 sm:p-6 shadow-sm border border-slate-200/70 flex flex-col gap-4">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-emerald-50 text-[#006750] flex items-center justify-center">
+              <Truck className="w-4 h-4" />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                <span>Dados de Envio &amp; Destinatário</span>
+                <span className="text-[10px] font-mono font-bold bg-emerald-100 text-[#006750] px-2 py-0.5 rounded-full">
+                  Etiqueta Automática CTT/DHL
+                </span>
+              </h3>
+              <p className="text-[11px] text-slate-500">
+                Preencha para emissão imediata da etiqueta de transporte com controle de temperatura 2°C - 8°C.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => {
+                setShippingInfo({
+                  fullName: 'Dra. Mariana Vasconcelos',
+                  phone: '+351 912 849 201',
+                  email: 'mariana.vasconcelos@clinica.pt',
+                  address: 'Avenida da Liberdade, nº 142, 3º Direito',
+                  complement: 'Edifício Liberdade Prime - Recepção Médica',
+                  postalCode: '1250-146',
+                  city: 'Lisboa',
+                  country: 'Portugal',
+                  notes: 'Manter estritamente refrigerado 2°C a 8°C. Deixar na recepção.',
+                });
+                showToast('Dados de envio de exemplo (Lisboa) preenchidos!');
+              }}
+              className="text-[11px] font-bold text-[#006750] hover:text-[#00503e] bg-emerald-50 hover:bg-emerald-100/70 px-2.5 py-1.5 rounded-xl border border-emerald-200/60 transition-all cursor-pointer flex items-center gap-1"
+            >
+              <Sparkles className="w-3 h-3 text-[#006750]" />
+              <span>Exemplo Lisboa</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setShippingInfo({
+                  fullName: 'Dr. Rodrigo Albuquerque',
+                  phone: '+351 934 521 890',
+                  email: 'rodrigo.albuquerque@biolab.pt',
+                  address: 'Rua de Santa Catarina, nº 820, Sala 4B',
+                  complement: 'Complexo Empresarial Porto Central',
+                  postalCode: '4000-444',
+                  city: 'Porto',
+                  country: 'Portugal',
+                  notes: 'Atenção: cadeia fria. Recebimento exclusivo em horário comercial.',
+                });
+                showToast('Dados de envio de exemplo (Porto) preenchidos!');
+              }}
+              className="text-[11px] font-bold text-indigo-700 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100/70 px-2.5 py-1.5 rounded-xl border border-indigo-200/60 transition-all cursor-pointer flex items-center gap-1"
+            >
+              <Sparkles className="w-3 h-3 text-indigo-600" />
+              <span>Exemplo Porto</span>
+            </button>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 text-xs">
+          {/* Nome Completo */}
+          <div className="flex flex-col gap-1.5">
+            <label className="font-semibold text-slate-700 flex items-center gap-1.5">
+              <User className="w-3.5 h-3.5 text-slate-400" />
+              <span>Nome Completo do Destinatário *</span>
+            </label>
+            <input
+              type="text"
+              required
+              value={shippingInfo.fullName}
+              onChange={(e) => setShippingInfo({ ...shippingInfo, fullName: e.target.value })}
+              placeholder="Ex: Dra. Mariana Vasconcelos"
+              className="h-10 px-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 font-medium focus:outline-none focus:ring-1 focus:ring-[#006750]"
+            />
+          </div>
+
+          {/* Contato Telefônico */}
+          <div className="flex flex-col gap-1.5">
+            <label className="font-semibold text-slate-700 flex items-center gap-1.5">
+              <Phone className="w-3.5 h-3.5 text-slate-400" />
+              <span>Contato Telefônico / WhatsApp *</span>
+            </label>
+            <input
+              type="tel"
+              required
+              value={shippingInfo.phone}
+              onChange={(e) => setShippingInfo({ ...shippingInfo, phone: e.target.value })}
+              placeholder="Ex: +351 912 345 678"
+              className="h-10 px-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 font-medium focus:outline-none focus:ring-1 focus:ring-[#006750]"
+            />
+          </div>
+
+          {/* E-mail */}
+          <div className="flex flex-col gap-1.5 sm:col-span-2">
+            <label className="font-semibold text-slate-700 flex items-center gap-1.5">
+              <Mail className="w-3.5 h-3.5 text-slate-400" />
+              <span>E-mail para Notificação e Rastreio CTT/DHL *</span>
+            </label>
+            <input
+              type="email"
+              required
+              value={shippingInfo.email}
+              onChange={(e) => setShippingInfo({ ...shippingInfo, email: e.target.value })}
+              placeholder="Ex: mariana.vasconcelos@clinica.pt"
+              className="h-10 px-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 font-medium focus:outline-none focus:ring-1 focus:ring-[#006750]"
+            />
+          </div>
+
+          {/* Endereço / Morada */}
+          <div className="flex flex-col gap-1.5 sm:col-span-2">
+            <label className="font-semibold text-slate-700 flex items-center gap-1.5">
+              <MapPin className="w-3.5 h-3.5 text-slate-400" />
+              <span>Morada / Endereço Completo (Rua, Número, Bloco) *</span>
+            </label>
+            <input
+              type="text"
+              required
+              value={shippingInfo.address}
+              onChange={(e) => setShippingInfo({ ...shippingInfo, address: e.target.value })}
+              placeholder="Ex: Avenida da Liberdade, nº 142, 3º Direito"
+              className="h-10 px-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 font-medium focus:outline-none focus:ring-1 focus:ring-[#006750]"
+            />
+          </div>
+
+          {/* Complemento */}
+          <div className="flex flex-col gap-1.5">
+            <label className="font-semibold text-slate-700">Complemento / Edifício (Opcional)</label>
+            <input
+              type="text"
+              value={shippingInfo.complement || ''}
+              onChange={(e) => setShippingInfo({ ...shippingInfo, complement: e.target.value })}
+              placeholder="Ex: Recepção Médica, Apto 302"
+              className="h-10 px-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 font-medium focus:outline-none focus:ring-1 focus:ring-[#006750]"
+            />
+          </div>
+
+          {/* Código Postal */}
+          <div className="flex flex-col gap-1.5">
+            <label className="font-semibold text-slate-700">Código Postal / CEP *</label>
+            <input
+              type="text"
+              required
+              value={shippingInfo.postalCode}
+              onChange={(e) => setShippingInfo({ ...shippingInfo, postalCode: e.target.value })}
+              placeholder="Ex: 1250-146 ou 01310-100"
+              className="h-10 px-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 font-mono font-bold focus:outline-none focus:ring-1 focus:ring-[#006750]"
+            />
+          </div>
+
+          {/* Cidade */}
+          <div className="flex flex-col gap-1.5">
+            <label className="font-semibold text-slate-700">Cidade *</label>
+            <input
+              type="text"
+              required
+              value={shippingInfo.city}
+              onChange={(e) => setShippingInfo({ ...shippingInfo, city: e.target.value })}
+              placeholder="Ex: Lisboa, Porto, Coimbra"
+              className="h-10 px-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 font-medium focus:outline-none focus:ring-1 focus:ring-[#006750]"
+            />
+          </div>
+
+          {/* País */}
+          <div className="flex flex-col gap-1.5">
+            <label className="font-semibold text-slate-700">País de Destino *</label>
+            <select
+              value={shippingInfo.country}
+              onChange={(e) => setShippingInfo({ ...shippingInfo, country: e.target.value })}
+              className="h-10 px-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 font-medium focus:outline-none focus:ring-1 focus:ring-[#006750]"
+            >
+              <option value="Portugal">Portugal (Entrega 24h CTT Expresso)</option>
+              <option value="Espanha">Espanha (Entrega 24-48h DHL Express)</option>
+              <option value="França">França (Entrega 48h DHL Express)</option>
+              <option value="Alemanha">Alemanha (Entrega 48h DHL Express)</option>
+              <option value="Itália">Itália (Entrega 48h DHL Express)</option>
+              <option value="Reino Unido">Reino Unido (Entrega 72h)</option>
+              <option value="Brasil">Brasil (Despacho Expresso Prioritário)</option>
+              <option value="União Europeia">Outro País da UE</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
       {/* Payment Method Selector */}
       <div className="bg-white rounded-2xl p-4 sm:p-5 shadow-sm border border-slate-200/70 flex flex-col gap-3.5">
         <div className="flex items-center justify-between">
@@ -855,6 +1098,48 @@ export const CartView: React.FC = () => {
               : 'Gerar Endereço USDT / BTC'}
           </span>
           <ArrowRight className="w-5 h-5 text-white/80" />
+        </button>
+
+        {/* Instant Test / Label Simulator Button */}
+        <button
+          type="button"
+          onClick={async () => {
+            if (cart.length === 0) {
+              showToast('Adicione ao menos um produto ao carrinho para testar a emissão.');
+              return;
+            }
+            if (!shippingInfo.fullName || !shippingInfo.address || !shippingInfo.postalCode) {
+              showToast('Por favor, informe Nome, Morada e Código Postal.');
+              return;
+            }
+            const orderId = await createOrderInFirestore(shippingInfo, deliveryNotes, 'stripe');
+            const generatedOrder: OrderRecord = {
+              id: orderId || 'ORD-' + Math.floor(100000 + Math.random() * 900000),
+              totalAmount: cartTotal,
+              currency: 'EUR',
+              itemsCount: cart.reduce((sum, i) => sum + i.quantity, 0),
+              items: cart.map((i) => ({
+                productId: i.productId,
+                productName: i.product.name,
+                quantity: i.quantity,
+                vialsCount: i.vialsCount,
+                unitPrice: i.unitPrice,
+                totalPrice: i.totalPrice,
+              })),
+              shipping: shippingInfo,
+              status: 'paid',
+              paymentMethod: 'stripe',
+              trackingCode: `CTT-PT-${Math.floor(100000000 + Math.random() * 900000000)}`,
+              carrier: 'CTT Expresso Cold Chain 24h',
+              createdAt: new Date().toISOString(),
+            };
+            setSelectedOrderForLabel(generatedOrder);
+            showToast('✅ Pedido registrado! Etiqueta de despacho aberta com dados completos.');
+          }}
+          className="w-full py-3 px-4 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-[#635BFF] border border-indigo-200/80 font-bold text-xs flex items-center justify-center gap-2 cursor-pointer transition-all shadow-xs"
+        >
+          <Printer className="w-4 h-4 text-[#635BFF]" />
+          <span>🏷️ Simular Compra &amp; Abrir Etiqueta Imediata (Teste do Fluxo de Envio)</span>
         </button>
 
         {/* Supported Payment Methods Ribbon */}
@@ -1106,6 +1391,14 @@ export const CartView: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Shipping Label Modal */}
+      {selectedOrderForLabel && (
+        <ShippingLabelModal
+          order={selectedOrderForLabel}
+          onClose={() => setSelectedOrderForLabel(null)}
+        />
+      )}
     </div>
   );
 };

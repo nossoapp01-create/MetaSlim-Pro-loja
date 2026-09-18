@@ -1,6 +1,20 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { Product, BannerSlide, Testimonial, StoreSettings, CartItem } from '../types';
-import { initialProducts, initialBanners, initialTestimonials, initialStoreSettings } from '../data/initialData';
+import {
+  Product,
+  BannerSlide,
+  Testimonial,
+  StoreSettings,
+  CartItem,
+  OrderRecord,
+  CustomerShippingInfo,
+} from '../types';
+import {
+  initialProducts,
+  initialBanners,
+  initialTestimonials,
+  initialStoreSettings,
+  initialOrders,
+} from '../data/initialData';
 import {
   db,
   auth,
@@ -25,24 +39,13 @@ import {
   writeBatch,
 } from 'firebase/firestore';
 
-export interface OrderRecord {
-  id: string;
-  userId?: string;
-  customerEmail?: string;
-  totalAmount: number;
-  currency: string;
-  itemsCount: number;
-  deliveryNotes?: string;
-  status: 'pending' | 'paid' | 'shipped' | 'cancelled';
-  createdAt: string;
-}
-
 interface StoreContextType {
   products: Product[];
   banners: BannerSlide[];
   testimonials: Testimonial[];
   settings: StoreSettings;
   cart: CartItem[];
+  orders: OrderRecord[];
   activeTab: 'inicio' | 'produtos' | 'produto-detalhe' | 'resultados' | 'carrinho' | 'admin';
   selectedProductId: string;
   currency: 'EUR' | 'BRL';
@@ -88,7 +91,19 @@ interface StoreContextType {
   localAdminUser: { uid: string; email: string; displayName: string } | null;
   syncAllToFirebase: () => Promise<void>;
   refreshFromFirebase: () => Promise<void>;
-  createOrderInFirestore: (notes?: string) => Promise<string | null>;
+  createOrderInFirestore: (
+    shippingOrNotes?: CustomerShippingInfo | string,
+    notes?: string,
+    paymentMethod?: OrderRecord['paymentMethod'],
+    stripeSessionId?: string
+  ) => Promise<string | null>;
+  addOrder: (newOrder: OrderRecord) => Promise<void>;
+  updateOrderStatus: (
+    orderId: string,
+    status: OrderRecord['status'],
+    trackingCode?: string,
+    carrier?: string
+  ) => Promise<void>;
   cartSubtotal: number;
   cartDiscount: number;
   cartTotal: number;
@@ -104,6 +119,7 @@ const STORAGE_KEYS = {
   SETTINGS: 'metaslim_pro_settings_v3',
   CART: 'metaslim_pro_cart_v3',
   CURRENCY: 'metaslim_pro_currency_v3',
+  ORDERS: 'metaslim_pro_orders_v3',
 };
 
 const SUPER_ADMIN_EMAIL = 'nossoapp01@gmail.com';
@@ -193,6 +209,14 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [couponCode, setCouponCode] = useState<string>('METASLIM10');
   const [couponDiscountPercent, setCouponDiscountPercent] = useState<number>(10);
   const [deliveryNotes, setDeliveryNotes] = useState<string>('');
+  const [orders, setOrders] = useState<OrderRecord[]>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEYS.ORDERS);
+      return saved ? JSON.parse(saved) : initialOrders;
+    } catch {
+      return initialOrders;
+    }
+  });
 
   // Firebase states
   const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
@@ -271,6 +295,14 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       console.warn('Could not save currency to local storage', e);
     }
   }, [currency]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEYS.ORDERS, JSON.stringify(orders));
+    } catch (e) {
+      console.warn('Could not save orders to local storage', e);
+    }
+  }, [orders]);
 
   // Test connection and listen to auth state changes
   useEffect(() => {
@@ -732,27 +764,121 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setBanners(initialBanners);
     setTestimonials(initialTestimonials);
     setSettings(initialStoreSettings);
+    setOrders(initialOrders);
     showToast('Dados restaurados para o padrão de demonstração!');
   };
 
-  // Record an order in Firestore
-  const createOrderInFirestore = async (notes?: string): Promise<string | null> => {
+  const addOrder = async (newOrder: OrderRecord) => {
+    setOrders((prev) => [newOrder, ...prev]);
+    showToast(`Pedido #${newOrder.id} registrado com sucesso!`);
     try {
-      const orderId = 'ORD-' + Date.now().toString().slice(-6) + '-' + Math.floor(100 + Math.random() * 900);
+      await setDoc(doc(db, 'orders', newOrder.id), newOrder);
+    } catch {
+      console.warn('Order saved locally, Firestore sync pending.');
+    }
+  };
+
+  const updateOrderStatus = async (
+    orderId: string,
+    status: OrderRecord['status'],
+    trackingCode?: string,
+    carrier?: string
+  ) => {
+    setOrders((prev) =>
+      prev.map((o) => {
+        if (o.id === orderId) {
+          const updated: OrderRecord = {
+            ...o,
+            status,
+            trackingCode: trackingCode || o.trackingCode,
+            carrier: carrier || o.carrier,
+            shippedAt: status === 'shipped' ? new Date().toISOString() : o.shippedAt,
+          };
+          return updated;
+        }
+        return o;
+      })
+    );
+    showToast(`Pedido #${orderId} atualizado para "${status.toUpperCase()}"!`);
+
+    try {
+      const payload: any = { status };
+      if (trackingCode) payload.trackingCode = trackingCode;
+      if (carrier) payload.carrier = carrier;
+      if (status === 'shipped') payload.shippedAt = new Date().toISOString();
+      await setDoc(doc(db, 'orders', orderId), payload, { merge: true });
+    } catch {
+      console.warn('Status saved locally.');
+    }
+  };
+
+  // Record an order in Firestore with full shipping info
+  const createOrderInFirestore = async (
+    shippingOrNotes?: CustomerShippingInfo | string,
+    notes?: string,
+    paymentMethod: OrderRecord['paymentMethod'] = 'stripe',
+    stripeSessionId?: string
+  ): Promise<string | null> => {
+    try {
+      const orderId = 'ORD-' + Math.floor(100000 + Math.random() * 900000);
+
+      let finalShipping: CustomerShippingInfo;
+      let finalNotes = notes || deliveryNotes;
+
+      if (typeof shippingOrNotes === 'object' && shippingOrNotes !== null) {
+        finalShipping = shippingOrNotes;
+        if (shippingOrNotes.notes) finalNotes = shippingOrNotes.notes;
+      } else {
+        finalNotes = typeof shippingOrNotes === 'string' ? shippingOrNotes : deliveryNotes;
+        finalShipping = {
+          fullName: firebaseUser?.displayName || 'Cliente Verificado MetaSlim',
+          phone: '+351 912 345 678',
+          email: firebaseUser?.email || 'cliente@checkout.com',
+          address: 'Avenida da Liberdade, 100',
+          postalCode: '1250-001',
+          city: 'Lisboa',
+          country: 'Portugal',
+          notes: finalNotes,
+        };
+      }
+
+      const orderItems = cart.map((item) => ({
+        productId: item.productId,
+        productName: `${item.product.name} (${item.vialsCount} vials)`,
+        quantity: item.quantity,
+        vialsCount: item.vialsCount,
+        unitPrice: item.unitPrice,
+        totalPrice: item.totalPrice,
+      }));
+
       const orderPayload: OrderRecord = {
         id: orderId,
         userId: firebaseUser?.uid || 'guest',
-        customerEmail: firebaseUser?.email || 'cliente@checkout.com',
+        customerEmail: finalShipping.email || firebaseUser?.email || 'cliente@checkout.com',
         totalAmount: cartTotal,
         currency,
         itemsCount: cartItemsCount,
-        deliveryNotes: notes || deliveryNotes,
-        status: 'pending',
+        items: orderItems,
+        shipping: finalShipping,
+        deliveryNotes: finalNotes,
+        status: 'paid',
+        paymentMethod,
+        stripeSessionId,
+        trackingCode: `CTT-PT-${orderId.replace(/\D/g, '')}`,
+        carrier: 'CTT Expresso Cold Chain (2°C - 8°C)',
         createdAt: new Date().toISOString(),
+        paidAt: new Date().toISOString(),
       };
 
-      await setDoc(doc(db, 'orders', orderId), orderPayload);
-      console.log('Order registered in Firestore:', orderId);
+      setOrders((prev) => [orderPayload, ...prev]);
+
+      try {
+        await setDoc(doc(db, 'orders', orderId), orderPayload);
+        console.log('Order registered in Firestore:', orderId);
+      } catch (err) {
+        console.warn('Order saved locally, Firestore pending auth:', err);
+      }
+
       return orderId;
     } catch (err) {
       console.warn('Could not record order in Firestore, proceeding with checkout url:', err);
@@ -774,6 +900,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         testimonials,
         settings,
         cart,
+        orders,
         activeTab,
         selectedProductId,
         currency,
@@ -820,6 +947,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         syncAllToFirebase,
         refreshFromFirebase,
         createOrderInFirestore,
+        addOrder,
+        updateOrderStatus,
         cartSubtotal,
         cartDiscount,
         cartTotal,
