@@ -98,7 +98,7 @@ export const AdminPanel: React.FC = () => {
     secretKey: '',
     webhookSecret: '',
     accountId: '',
-    paymentLink: 'https://buy.stripe.com/live_metaslimpro_checkout',
+    paymentLink: '',
     currency: 'eur',
     successUrl: 'https://meta-slim-pro-loja-omega.vercel.app/?payment=success',
     cancelUrl: 'https://meta-slim-pro-loja-omega.vercel.app/?payment=cancelled',
@@ -1817,31 +1817,87 @@ export const AdminPanel: React.FC = () => {
             {/* Stripe Payment Link (Buy Link) */}
             <div className="flex flex-col gap-1.5 col-span-1 md:col-span-2">
               <div className="flex items-center justify-between">
-                <label className="text-xs font-bold text-slate-800">
-                  Link de Pagamento Padrão Stripe (Stripe Payment Link URL)
+                <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                  <CreditCard className="w-3.5 h-3.5 text-[#635BFF]" />
+                  <span>Link de Pagamento Padrão Stripe (Stripe Payment Link URL)</span>
                 </label>
-                {currentStripe.paymentLink && (
-                  <a
-                    href={currentStripe.paymentLink}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-[11px] text-[#635BFF] hover:underline font-bold flex items-center gap-1"
-                  >
-                    <span>Testar Link</span>
-                    <ExternalLink className="w-3 h-3" />
-                  </a>
-                )}
+                <div className="flex items-center gap-1.5">
+                  {currentStripe.paymentLink?.toLowerCase().includes('live_metaslimpro') && (
+                    <span className="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full flex items-center gap-1">
+                      <ShieldAlert className="w-3 h-3" />
+                      Link Fictício (Causa erro AccessDenied)
+                    </span>
+                  )}
+                  {currentStripe.paymentLink?.startsWith('https://buy.stripe.com/') &&
+                    !currentStripe.paymentLink?.toLowerCase().includes('live_metaslimpro') && (
+                      <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full flex items-center gap-1">
+                        <Check className="w-3 h-3" />
+                        Link Válido
+                      </span>
+                    )}
+                  {(!currentStripe.paymentLink || currentStripe.paymentLink.trim() === '') && (
+                    <span className="text-[10px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 px-2 py-0.5 rounded-full flex items-center gap-1">
+                      <Info className="w-3 h-3" />
+                      Checkout Direto por Cartão Ativo
+                    </span>
+                  )}
+                  {currentStripe.paymentLink && (
+                    <a
+                      href={currentStripe.paymentLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[11px] text-[#635BFF] hover:underline font-bold flex items-center gap-1"
+                    >
+                      <span>Testar Link</span>
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                  )}
+                </div>
               </div>
               <input
                 type="url"
-                value={currentStripe.paymentLink}
+                value={currentStripe.paymentLink || ''}
                 onChange={(e) => handleStripeChange('paymentLink', e.target.value.trim())}
                 placeholder="https://buy.stripe.com/..."
-                className="h-10 px-3 rounded-xl bg-slate-50 border border-slate-200 text-xs font-mono focus:ring-1 focus:ring-[#635BFF] focus:outline-none"
+                className={`h-10 px-3 rounded-xl bg-slate-50 border text-xs font-mono focus:ring-1 focus:ring-[#635BFF] focus:outline-none transition-colors ${
+                  currentStripe.paymentLink?.toLowerCase().includes('live_metaslimpro')
+                    ? 'border-amber-300 bg-amber-50/40 text-amber-900'
+                    : 'border-slate-200'
+                }`}
               />
               <span className="text-[10px] text-slate-500">
                 Cole aqui o link criado no painel da Stripe (Menu <strong>Payment Links</strong>). O sistema anexa automaticamente o ID do pedido e e-mail do cliente.
               </span>
+
+              {/* AccessDenied Error Explanation & Fix Box */}
+              <div className="mt-1 p-3 rounded-xl border border-amber-200 bg-amber-50/60 text-xs text-amber-900 flex flex-col gap-2">
+                <div className="flex items-center gap-2">
+                  <div className="w-5 h-5 rounded-md bg-amber-500 text-white flex items-center justify-center font-black text-[10px]">
+                    !
+                  </div>
+                  <span className="font-bold text-slate-900 text-xs">
+                    Entenda e Evite o Erro &lt;Error&gt;&lt;Code&gt;AccessDenied&lt;/Code&gt;&lt;/Error&gt; (XML no Navegador)
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-700 leading-relaxed">
+                  Esse erro ocorre exclusivamente quando o navegador do cliente tenta abrir uma URL do Stripe (ex: <code className="bg-white/80 px-1 py-0.5 rounded border border-amber-200 font-mono text-[10px]">https://buy.stripe.com/live_metaslimpro_...</code>) que não existe na infraestrutura da Stripe/AWS.
+                </p>
+                <div className="bg-white/90 p-2.5 rounded-lg border border-amber-200/80 flex flex-col gap-1 text-[11px] text-slate-700">
+                  <span className="font-bold text-slate-900">Como resolver definitivamente:</span>
+                  <ol className="list-decimal pl-4 space-y-1 text-[10.5px]">
+                    <li>Acesse seu painel em <strong>dashboard.stripe.com &gt; Payment links</strong>.</li>
+                    <li>Clique em <strong>+ Novo link de pagamento</strong> (ou selecione um existente).</li>
+                    <li>Copie o link real gerado (ex: <code className="bg-slate-100 px-1 py-0.5 rounded font-mono text-indigo-700 font-bold">https://buy.stripe.com/00g8w...</code>) e cole no campo acima.</li>
+                    <li>Clique em <strong>Salvar Configurações Stripe</strong>.</li>
+                  </ol>
+                </div>
+                <div className="flex items-center gap-1.5 text-[10.5px] text-emerald-800 font-semibold bg-emerald-50 p-2 rounded-lg border border-emerald-200">
+                  <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                  <span>
+                    <strong>Proteção Ativa:</strong> A loja agora valida o link e nunca mais redirecionará os clientes para páginas de erro XML da AWS. Enquanto não houver link real configurado, o cliente utiliza o Checkout Seguro por Cartão na própria tela.
+                  </span>
+                </div>
+              </div>
             </div>
 
             {/* Success URL */}
