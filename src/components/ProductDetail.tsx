@@ -115,9 +115,18 @@ export const ProductDetail: React.FC = () => {
 
         {/* Presentation Frame */}
         <div className="relative w-full aspect-[4/3] max-h-[380px] rounded-xl bg-gradient-to-b from-[#f4f7fb] via-[#eef2f8] to-[#f8fafc] flex items-center justify-center overflow-hidden p-4 border border-slate-100 group">
+          {/* MetaSlim Pro Official Brand Watermark */}
+          <div className="absolute top-3 left-3 z-10 flex items-center gap-1.5 bg-[#131b2e]/90 backdrop-blur-xs text-white px-2.5 py-1 rounded-md text-[10px] font-bold font-mono tracking-wider shadow-sm">
+            <span className="w-2 h-2 rounded-full bg-[#71face] animate-pulse" />
+            <span className="text-[#93f5d4]">METASLIM</span>
+            <span className="text-white">PRO</span>
+            <span className="text-slate-400 text-[9px] border-l border-slate-700 pl-1.5 ml-0.5">OFICIAL</span>
+          </div>
+
           <img
             src={product.image}
             alt={product.name}
+            referrerPolicy="no-referrer"
             className={`h-full w-full object-contain filter drop-shadow-xl transition-transform duration-500 ease-out cursor-zoom-in ${
               isZoomed ? 'scale-150' : 'group-hover:scale-105'
             }`}

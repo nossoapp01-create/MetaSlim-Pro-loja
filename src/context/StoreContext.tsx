@@ -122,7 +122,7 @@ interface StoreContextType {
 const StoreContext = createContext<StoreContextType | undefined>(undefined);
 
 const STORAGE_KEYS = {
-  PRODUCTS: 'metaslim_pro_products_v3',
+  PRODUCTS: 'metaslim_pro_products_v4',
   BANNERS: 'metaslim_pro_banners_v3',
   TESTIMONIALS: 'metaslim_pro_testimonials_v3',
   SETTINGS: 'metaslim_pro_settings_v3',
@@ -138,7 +138,20 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [products, setProducts] = useState<Product[]>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEYS.PRODUCTS);
-      return saved ? JSON.parse(saved) : initialProducts;
+      if (saved) {
+        const parsed = JSON.parse(saved) as Product[];
+        const existingIds = new Set(parsed.map((p) => p.id));
+        const missing = initialProducts.filter((p) => !existingIds.has(p.id));
+        if (missing.length > 0) {
+          const merged = [...parsed, ...missing];
+          try {
+            localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(merged));
+          } catch {}
+          return merged;
+        }
+        return parsed;
+      }
+      return initialProducts;
     } catch {
       return initialProducts;
     }
@@ -370,7 +383,9 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           loadedProds.push(d.data() as Product);
         });
         if (loadedProds.length > 0) {
-          setProducts(loadedProds);
+          const loadedIds = new Set(loadedProds.map((p) => p.id));
+          const missing = initialProducts.filter((p) => !loadedIds.has(p.id));
+          setProducts(missing.length > 0 ? [...loadedProds, ...missing] : loadedProds);
         }
       }
 

@@ -2,6 +2,7 @@ import React from 'react';
 import { Product } from '../types';
 import { useStore } from '../context/StoreContext';
 import { ShieldCheck, Info, ShoppingCart, Zap, ExternalLink } from 'lucide-react';
+import { ProductVialVisual } from './ProductVialVisual';
 
 interface ProductCardProps {
   product: Product;
@@ -43,20 +44,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
 
       {/* Product Image & Main Details Row */}
       <div className="flex gap-3 sm:gap-4 items-center cursor-pointer" onClick={handleOpenDetail}>
-        {/* Vial Image Frame with Hover Zoom */}
-        <div className="relative w-28 h-32 sm:w-32 sm:h-36 rounded-xl bg-gradient-to-b from-[#f2f4f8] via-[#eef2f6] to-[#f8f9fa] flex items-center justify-center p-2 shrink-0 overflow-hidden border border-slate-100 group-hover:border-emerald-200 transition-colors">
-          <img
-            src={product.image}
-            alt={product.name}
-            className="w-full h-full object-contain filter drop-shadow-md transform group-hover:scale-110 group-hover:rotate-1 transition-all duration-500 ease-out"
-            loading="lazy"
-          />
-          <div className="absolute bottom-1 left-1 right-1 px-1 py-0.5 bg-[#131b2e]/80 backdrop-blur-xs rounded text-center">
-            <span className="font-mono text-[8px] text-white tracking-widest uppercase block truncate">
-              {product.batchNumber || 'BATCH-2026'}
-            </span>
-          </div>
-        </div>
+        {/* Vial Image Frame with Hover Zoom & MetaSlim Pro Badge */}
+        <ProductVialVisual product={product} size="md" className="shrink-0" />
 
         {/* Info Column */}
         <div className="flex flex-col min-w-0 flex-1">
