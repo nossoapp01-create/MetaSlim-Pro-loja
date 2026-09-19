@@ -268,23 +268,16 @@ export const DeliveryPolicy: React.FC = () => {
           </span>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
           <div className="bg-slate-800/60 p-4 rounded-xl border border-slate-700/60 flex flex-col gap-1.5">
-            <span className="font-bold text-white">1. Caixas Isotérmicas</span>
-            <p className="text-slate-300 leading-relaxed text-[11px]">
-              Envios de peptídeos utilizam caixas com barreira térmica especial e almofadas de gel de refrigeração que protegem contra variações climáticas.
-            </p>
-          </div>
-
-          <div className="bg-slate-800/60 p-4 rounded-xl border border-slate-700/60 flex flex-col gap-1.5">
-            <span className="font-bold text-white">2. Rastreamento em Tempo Real</span>
+            <span className="font-bold text-white">1. Rastreamento em Tempo Real</span>
             <p className="text-slate-300 leading-relaxed text-[11px]">
               Receba notificações automáticas de status e código de rastreamento para acompanhar o percurso da encomenda desde a recolha até a entrega.
             </p>
           </div>
 
           <div className="bg-slate-800/60 p-4 rounded-xl border border-slate-700/60 flex flex-col gap-1.5">
-            <span className="font-bold text-white">3. Discreção Absoluta</span>
+            <span className="font-bold text-white">2. Discreção Absoluta</span>
             <p className="text-slate-300 leading-relaxed text-[11px]">
               Embalagem externa neutra e segura, sem menção ostensiva externa a fórmulas ou compostos, garantindo a sua total privacidade.
             </p>
