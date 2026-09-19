@@ -1251,6 +1251,23 @@ export const CartView: React.FC = () => {
             </select>
           </div>
         </div>
+
+        {/* Prazos de Entrega Quick Notice & Link */}
+        <div className="mt-4 pt-3.5 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 bg-emerald-50/60 p-3 rounded-xl border border-emerald-200/60 text-xs">
+          <div className="flex items-center gap-2 text-emerald-900">
+            <Truck className="w-4 h-4 text-[#006750] shrink-0" />
+            <span>
+              <strong>Prazos Estimados:</strong> Artigos em Stock (Portugal: 2-5 dias úteis | Ilhas: até 10 dias | Europa: 3-12 dias).
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setActiveTab('prazos-entrega')}
+            className="text-[11px] font-bold text-[#006750] hover:text-[#0b745c] underline shrink-0 cursor-pointer text-left sm:text-right"
+          >
+            Ver prazos e condições completos &rarr;
+          </button>
+        </div>
       </div>
 
       {/* Payment Method Selector */}

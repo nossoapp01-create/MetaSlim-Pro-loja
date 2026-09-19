@@ -8,10 +8,11 @@ import { ProductDetail } from './components/ProductDetail';
 import { BeforeAfterSection } from './components/BeforeAfterSection';
 import { CartView } from './components/CartView';
 import { AdminPanel } from './components/AdminPanel';
+import { DeliveryPolicy } from './components/DeliveryPolicy';
 import { Footer } from './components/Footer';
 import { BottomNav } from './components/BottomNav';
 import { DosageCalculatorModal } from './components/DosageCalculatorModal';
-import { ShieldCheck, Sparkles, AlertCircle, ArrowRight, Dna, Calculator, X } from 'lucide-react';
+import { ShieldCheck, Sparkles, AlertCircle, ArrowRight, Dna, Calculator, X, Truck } from 'lucide-react';
 
 const MainContent: React.FC = () => {
   const {
@@ -77,10 +78,14 @@ const MainContent: React.FC = () => {
                 <ShieldCheck className="w-4 h-4 text-[#006750]" />
                 <span>Laudo HPLC &gt;99%</span>
               </div>
-              <div className="flex items-center justify-center gap-1.5 text-slate-700 font-semibold">
-                <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                <span>Envio Térmico 2°C - 8°C</span>
-              </div>
+              <button
+                onClick={() => setActiveTab('prazos-entrega')}
+                className="flex items-center justify-center gap-1.5 text-slate-700 hover:text-[#006750] font-semibold transition-colors cursor-pointer group"
+                title="Ver Prazos e Condições de Entrega"
+              >
+                <Truck className="w-3.5 h-3.5 text-emerald-600 group-hover:scale-110 transition-transform" />
+                <span>Envio Térmico (Prazos)</span>
+              </button>
               <div className="flex items-center justify-center gap-1.5 text-slate-700 font-semibold">
                 <Sparkles className="w-4 h-4 text-emerald-600" />
                 <span>Liofilização Pura</span>
@@ -253,6 +258,9 @@ const MainContent: React.FC = () => {
 
         {/* VIEW 6: ADMIN PANEL */}
         {activeTab === 'admin' && <AdminPanel />}
+
+        {/* VIEW 7: PRAZOS E CONDIÇÕES DE ENTREGA */}
+        {activeTab === 'prazos-entrega' && <DeliveryPolicy />}
       </main>
 
       {/* Dosage Reconstitution Modal */}

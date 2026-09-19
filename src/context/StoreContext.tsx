@@ -49,7 +49,7 @@ interface StoreContextType {
   settings: StoreSettings;
   cart: CartItem[];
   orders: OrderRecord[];
-  activeTab: 'inicio' | 'produtos' | 'produto-detalhe' | 'resultados' | 'carrinho' | 'admin';
+  activeTab: 'inicio' | 'produtos' | 'produto-detalhe' | 'resultados' | 'carrinho' | 'admin' | 'prazos-entrega';
   selectedProductId: string;
   currency: 'EUR' | 'BRL';
   selectedCategory: string;
@@ -62,7 +62,7 @@ interface StoreContextType {
   isAdminUser: boolean;
   isFirebaseConnected: boolean;
   isSyncing: boolean;
-  setActiveTab: (tab: 'inicio' | 'produtos' | 'produto-detalhe' | 'resultados' | 'carrinho' | 'admin') => void;
+  setActiveTab: (tab: 'inicio' | 'produtos' | 'produto-detalhe' | 'resultados' | 'carrinho' | 'admin' | 'prazos-entrega') => void;
   setSelectedProductId: (id: string) => void;
   setSelectedCategory: (cat: string) => void;
   setSearchQuery: (query: string) => void;
@@ -203,7 +203,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   });
 
-  const [activeTab, setActiveTab] = useState<'inicio' | 'produtos' | 'produto-detalhe' | 'resultados' | 'carrinho' | 'admin'>('inicio');
+  const [activeTab, setActiveTab] = useState<'inicio' | 'produtos' | 'produto-detalhe' | 'resultados' | 'carrinho' | 'admin' | 'prazos-entrega'>('inicio');
   const [selectedProductId, setSelectedProductId] = useState<string>('retatrutide-10mg');
   const [selectedCategory, setSelectedCategory] = useState<string>('todos');
   const [searchQuery, setSearchQuery] = useState<string>('');

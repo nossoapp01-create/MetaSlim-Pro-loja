@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useStore } from '../context/StoreContext';
-import { Search, ShoppingBag, ShieldCheck, Dna, X, LogIn, LogOut, CloudCheck, UserCheck, User } from 'lucide-react';
+import { Search, ShoppingBag, ShieldCheck, Dna, X, LogIn, LogOut, CloudCheck, UserCheck, User, Truck } from 'lucide-react';
 
 interface HeaderProps {
   onOpenCalculator?: () => void;
@@ -100,6 +100,20 @@ export const Header: React.FC<HeaderProps> = ({ onOpenCalculator }) => {
               <span>Calculadora BAC</span>
             </button>
           )}
+
+          {/* Delivery Policy Link */}
+          <button
+            onClick={() => setActiveTab('prazos-entrega')}
+            className={`hidden sm:flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1.5 rounded-full transition-colors ${
+              activeTab === 'prazos-entrega'
+                ? 'bg-[#006750] text-white shadow-xs'
+                : 'text-slate-700 bg-[#f2f4f8] hover:bg-emerald-50 hover:text-[#006750] border border-slate-200/50'
+            }`}
+            title="Prazos e Condições de Entrega"
+          >
+            <Truck className="w-3.5 h-3.5 text-[#006750]" />
+            <span>Prazos</span>
+          </button>
 
           {/* Currency Switcher */}
           <button

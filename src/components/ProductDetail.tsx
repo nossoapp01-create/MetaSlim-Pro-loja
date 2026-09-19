@@ -21,6 +21,7 @@ import {
   BookOpen,
   FlaskConical,
   Award,
+  Truck,
 } from 'lucide-react';
 
 export const ProductDetail: React.FC = () => {
@@ -323,6 +324,15 @@ export const ProductDetail: React.FC = () => {
             <Package className="w-3.5 h-3.5 text-emerald-700" />
             Expedição Imediata
           </span>
+          <button
+            type="button"
+            onClick={() => setActiveTab('prazos-entrega')}
+            className="flex items-center gap-1 hover:text-[#006750] transition-colors cursor-pointer text-[#006750] font-medium"
+            title="Consultar Prazos e Condições de Entrega"
+          >
+            <Truck className="w-3.5 h-3.5 text-[#006750]" />
+            <span className="underline underline-offset-2">Prazos: 2 a 5 dias úteis</span>
+          </button>
           <span className="flex items-center gap-1">
             <RotateCcw className="w-3.5 h-3.5 text-emerald-700" />
             Garantia 28 Dias

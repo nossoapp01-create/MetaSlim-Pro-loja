@@ -1,6 +1,6 @@
 import React from 'react';
 import { useStore } from '../context/StoreContext';
-import { Dna, ShieldCheck, Lock, PhoneCall, Mail, MessageSquare } from 'lucide-react';
+import { Dna, ShieldCheck, Lock, PhoneCall, Mail, MessageSquare, Truck } from 'lucide-react';
 
 export const Footer: React.FC = () => {
   const { settings, setActiveTab } = useStore();
@@ -70,6 +70,13 @@ export const Footer: React.FC = () => {
               Carrinho de Compras
             </button>
             <button
+              onClick={() => setActiveTab('prazos-entrega')}
+              className="text-xs text-[#71face] hover:text-[#93f5d4] text-left transition-colors flex items-center gap-1.5 font-medium"
+            >
+              <Truck className="w-3.5 h-3.5 text-[#71face]" />
+              <span>Prazos de Entrega</span>
+            </button>
+            <button
               onClick={() => setActiveTab('admin')}
               className="text-xs text-emerald-400 hover:text-emerald-300 text-left font-semibold transition-colors"
             >
@@ -82,6 +89,13 @@ export const Footer: React.FC = () => {
             <span className="font-mono text-xs uppercase font-bold text-white tracking-wider">
               Garantia &amp; Qualidade
             </span>
+            <button
+              onClick={() => setActiveTab('prazos-entrega')}
+              className="flex items-start gap-2 text-xs text-slate-400 hover:text-[#71face] text-left transition-colors cursor-pointer group"
+            >
+              <Truck className="w-4 h-4 text-[#71face] shrink-0 mt-0.5 group-hover:scale-110 transition-transform" />
+              <span>Prazos: 2 a 5 dias úteis em stock (Portugal / Europa).</span>
+            </button>
             <div className="flex items-start gap-2 text-xs text-slate-400">
               <ShieldCheck className="w-4 h-4 text-[#71face] shrink-0 mt-0.5" />
               <span>HPLC Pureza &gt; 99% comprovada por laudo analítico anexo.</span>
