@@ -43,6 +43,7 @@ import {
   EyeOff,
   Key,
   ShieldAlert,
+  MessageCircle,
 } from 'lucide-react';
 
 export const AdminPanel: React.FC = () => {
@@ -776,15 +777,15 @@ export const AdminPanel: React.FC = () => {
         </section>
       )}
 
-      {/* TAB 2: Rotating Banners Manager (5 Slides) */}
+      {/* TAB 2: Rotating Banners Manager */}
       {activeAdminTab === 'banners' && (
         <section className="bg-white rounded-2xl p-5 sm:p-7 shadow-sm border border-slate-200/70 flex flex-col gap-5">
           <div>
             <h2 className="text-lg font-bold text-slate-900">
-              Gerenciador dos 5 Banners Rotativos da Home
+              Gerenciador dos Banners Rotativos da Home ({banners.length} Slides)
             </h2>
             <p className="text-xs text-slate-500">
-              Personalize imagens, títulos, chamadas promocionais e destinos dos 5 slides da página inicial.
+              Personalize imagens, títulos, chamadas promocionais e destinos dos slides da página inicial (incluindo o banner oficial de Revenda).
             </p>
           </div>
 
@@ -1055,6 +1056,54 @@ export const AdminPanel: React.FC = () => {
                 onChange={(e) => updateSettings({ currencyRateEurToBrl: parseFloat(e.target.value) || 6.0 })}
                 className="h-10 px-3 rounded-xl bg-slate-50 border border-slate-200 text-xs font-mono text-slate-900"
               />
+            </div>
+
+            {/* Reseller WhatsApp Field */}
+            <div className="sm:col-span-2 p-4 rounded-xl bg-emerald-50/70 border border-emerald-300/80 flex flex-col gap-2.5">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-lg bg-[#25D366] text-white flex items-center justify-center shadow-xs">
+                    <MessageCircle className="w-4 h-4 fill-white" />
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold text-slate-900 flex items-center gap-2">
+                      <span>WhatsApp Oficial para o Programa de Revenda &amp; Atacado</span>
+                      <span className="text-[10px] font-mono font-black bg-amber-400 text-slate-950 px-1.5 py-0.5 rounded">
+                        Packs 20+ Un. • Lucros &gt; 300%
+                      </span>
+                    </label>
+                    <p className="text-[11px] text-slate-600">
+                      Este é o número acionado pelo botão <strong>"Saiba Mais"</strong>, pelo simulador interativo de lucros e pelos botões de pedido da nova <strong>Página de Revenda</strong>.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-2 mt-1">
+                <input
+                  type="text"
+                  placeholder="+351912345678"
+                  value={settings.resaleWhatsappNumber ?? settings.whatsappNumber}
+                  onChange={(e) => updateSettings({ resaleWhatsappNumber: e.target.value })}
+                  className="flex-1 h-10 px-3 rounded-xl bg-white border border-slate-300 text-xs font-mono text-slate-900 focus:ring-1 focus:ring-[#006750]"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    const cleanNum = (settings.resaleWhatsappNumber || settings.whatsappNumber).replace(/\D/g, '');
+                    window.open(
+                      `https://wa.me/${cleanNum}?text=${encodeURIComponent(
+                        'Olá! Este é um teste do botão Saiba Mais do Programa de Revenda MetaSlim Pro.'
+                      )}`,
+                      '_blank'
+                    );
+                  }}
+                  className="h-10 px-4 rounded-xl bg-[#25D366] hover:bg-[#1ebe5d] text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-xs transition-colors shrink-0 cursor-pointer"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" />
+                  <span>Testar WhatsApp Revenda</span>
+                </button>
+              </div>
             </div>
           </div>
 

@@ -8,6 +8,7 @@ export const initialStoreSettings: StoreSettings = {
   currencyRateEurToBrl: 6.2,
   defaultPaymentLink: '',
   whatsappNumber: '+351912345678',
+  resaleWhatsappNumber: '+351912345678',
   freeShippingThreshold: 100,
   mypos: {
     enabled: true,
@@ -736,6 +737,18 @@ export const initialBanners: BannerSlide[] = [
     ctaText: 'Ver Antes & Depois',
     ctaLink: '#avaliacoes',
     badgeText: '98.4% Satisfação',
+  },
+  {
+    id: 6,
+    title: 'Seja Revendedor Oficial',
+    subtitle:
+      'Margens de lucro comprovadas superiores a 300% no atacado de peptídeos. Pedido mínimo a partir de packs com 20 unidades.',
+    tag: 'Revenda & Atacado',
+    image:
+      'https://lh3.googleusercontent.com/aida-public/AB6AXuDqu43o3f2QURlCTtBRZ0JLy1BKYc0OKNrvgwfg9PK-aMguco9S985gQ6dfdn53LKbPAhokBQ3ltftNMqq2AUwytWJvXhaaNv5tu89xicVLpRiuuWEdEvIfViWTKlOwfRswxRmtxT82Xj9Rhg-y-oXayY1vhyaCM5JFOlFfhVHqkzdWU7SzxyLwnjepDXo-yCB1OozIAjeom39-8tFy-6iGrXp3UJdIi-cw7i7StAOuAT_l7_SNdA89Bg',
+    ctaText: 'Saiba Mais',
+    ctaLink: '#revenda',
+    badgeText: 'Lucro > 300% • Mín. 20 Un.',
   },
 ];
 

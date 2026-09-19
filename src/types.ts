@@ -86,6 +86,7 @@ export interface StoreSettings {
   currencyRateEurToBrl: number;
   defaultPaymentLink: string;
   whatsappNumber: string;
+  resaleWhatsappNumber?: string;
   freeShippingThreshold: number;
   mypos?: MyPOSConfig;
   stripe?: StripeConfig;

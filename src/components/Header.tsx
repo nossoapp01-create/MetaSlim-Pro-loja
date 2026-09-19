@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useStore } from '../context/StoreContext';
-import { Search, ShoppingBag, ShieldCheck, Dna, X, LogIn, LogOut, CloudCheck, UserCheck, User, Truck } from 'lucide-react';
+import { Search, ShoppingBag, ShieldCheck, Dna, X, LogIn, LogOut, CloudCheck, UserCheck, User, Truck, TrendingUp } from 'lucide-react';
 
 interface HeaderProps {
   onOpenCalculator?: () => void;
@@ -113,6 +113,23 @@ export const Header: React.FC<HeaderProps> = ({ onOpenCalculator }) => {
           >
             <Truck className="w-3.5 h-3.5 text-[#006750]" />
             <span>Prazos</span>
+          </button>
+
+          {/* Reseller / Revenda Link */}
+          <button
+            onClick={() => setActiveTab('revenda')}
+            className={`flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1.5 rounded-full transition-colors ${
+              activeTab === 'revenda'
+                ? 'bg-[#006750] text-white shadow-xs'
+                : 'text-[#006750] bg-emerald-50 hover:bg-emerald-100 border border-emerald-300/60'
+            }`}
+            title="Programa Oficial de Revenda e Atacado (Lucros > 300%)"
+          >
+            <TrendingUp className="w-3.5 h-3.5 text-[#006750]" />
+            <span>Revenda</span>
+            <span className="hidden md:inline text-[9px] bg-amber-400 text-slate-950 px-1 rounded font-black tracking-tight">
+              300%+
+            </span>
           </button>
 
           {/* Currency Switcher */}

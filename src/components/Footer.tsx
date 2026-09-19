@@ -1,6 +1,6 @@
 import React from 'react';
 import { useStore } from '../context/StoreContext';
-import { Dna, ShieldCheck, Lock, PhoneCall, Mail, MessageSquare, Truck } from 'lucide-react';
+import { Dna, ShieldCheck, Lock, PhoneCall, Mail, MessageSquare, Truck, TrendingUp } from 'lucide-react';
 
 export const Footer: React.FC = () => {
   const { settings, setActiveTab } = useStore();
@@ -75,6 +75,13 @@ export const Footer: React.FC = () => {
             >
               <Truck className="w-3.5 h-3.5 text-[#71face]" />
               <span>Prazos de Entrega</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('revenda')}
+              className="text-xs text-amber-300 hover:text-amber-200 text-left transition-colors flex items-center gap-1.5 font-semibold"
+            >
+              <TrendingUp className="w-3.5 h-3.5 text-amber-400" />
+              <span>Programa de Revenda (Lucros &gt; 300%)</span>
             </button>
             <button
               onClick={() => setActiveTab('admin')}

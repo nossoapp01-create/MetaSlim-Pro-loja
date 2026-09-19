@@ -9,6 +9,7 @@ import { BeforeAfterSection } from './components/BeforeAfterSection';
 import { CartView } from './components/CartView';
 import { AdminPanel } from './components/AdminPanel';
 import { DeliveryPolicy } from './components/DeliveryPolicy';
+import { ResaleWholesale } from './components/ResaleWholesale';
 import { Footer } from './components/Footer';
 import { BottomNav } from './components/BottomNav';
 import { DosageCalculatorModal } from './components/DosageCalculatorModal';
@@ -261,6 +262,9 @@ const MainContent: React.FC = () => {
 
         {/* VIEW 7: PRAZOS E CONDIÇÕES DE ENTREGA */}
         {activeTab === 'prazos-entrega' && <DeliveryPolicy />}
+
+        {/* VIEW 8: PROGRAMA DE REVENDA E ATACADO */}
+        {activeTab === 'revenda' && <ResaleWholesale />}
       </main>
 
       {/* Dosage Reconstitution Modal */}
