@@ -1,6 +1,16 @@
 import React, { useState } from 'react';
 import { useStore } from '../context/StoreContext';
-import { Product, BannerSlide, Testimonial, StripeConfig, MyPOSConfig } from '../types';
+import {
+  Product,
+  BannerSlide,
+  Testimonial,
+  StripeConfig,
+  MyPOSConfig,
+  ResaleSettings,
+  ResaleCompoundConfig,
+  ResalePackConfig,
+} from '../types';
+import { initialResaleSettings } from '../data/initialData';
 import { StripeSalesDashboard } from './StripeSalesDashboard';
 import {
   testStripeConnection,
@@ -27,6 +37,7 @@ import {
   AlertCircle,
   ChevronDown,
   ChevronUp,
+  ChevronRight,
   Cloud,
   Database,
   LogIn,
@@ -44,6 +55,8 @@ import {
   Key,
   ShieldAlert,
   MessageCircle,
+  Calculator,
+  Percent,
 } from 'lucide-react';
 
 export const AdminPanel: React.FC = () => {
@@ -74,9 +87,20 @@ export const AdminPanel: React.FC = () => {
     quickAdminLogin,
     syncAllToFirebase,
     refreshFromFirebase,
+    setActiveTab,
   } = useStore();
 
-  const [activeAdminTab, setActiveAdminTab] = useState<'vendas-stripe' | 'produtos' | 'banners' | 'depoimentos' | 'configuracoes' | 'mypos' | 'stripe' | 'vercel'>('vendas-stripe');
+  const [activeAdminTab, setActiveAdminTab] = useState<
+    | 'vendas-stripe'
+    | 'produtos'
+    | 'banners'
+    | 'depoimentos'
+    | 'revenda'
+    | 'configuracoes'
+    | 'mypos'
+    | 'stripe'
+    | 'vercel'
+  >('vendas-stripe');
   const [selectedProdId, setSelectedProdId] = useState<string>(products[0]?.id || 'retatrutide-10mg');
   const [expandedBannerId, setExpandedBannerId] = useState<number | null>(1);
   const [isSaving, setIsSaving] = useState(false);
@@ -84,6 +108,139 @@ export const AdminPanel: React.FC = () => {
   const [showSecretKey, setShowSecretKey] = useState(false);
   const [showWebhookSecret, setShowWebhookSecret] = useState(false);
   const [copiedKeyField, setCopiedKeyField] = useState<string | null>(null);
+
+  // Resale & Wholesale Configuration State & Handlers
+  const currentResale: ResaleSettings = settings.resale || initialResaleSettings;
+  const resaleCompounds: ResaleCompoundConfig[] =
+    currentResale.compounds && currentResale.compounds.length > 0
+      ? currentResale.compounds
+      : initialResaleSettings.compounds;
+  const resalePacks: ResalePackConfig[] =
+    currentResale.packs && currentResale.packs.length > 0
+      ? currentResale.packs
+      : initialResaleSettings.packs;
+
+  const handleUpdateResaleCompound = (
+    compoundId: string,
+    field: keyof ResaleCompoundConfig,
+    value: any
+  ) => {
+    const updated = resaleCompounds.map((c) =>
+      c.id === compoundId ? { ...c, [field]: value } : c
+    );
+    updateSettings({
+      resale: {
+        ...currentResale,
+        compounds: updated,
+      },
+    });
+  };
+
+  const handleUpdateResalePack = (
+    packId: string,
+    field: keyof ResalePackConfig,
+    value: any
+  ) => {
+    const updated = resalePacks.map((p) =>
+      p.id === packId ? { ...p, [field]: value } : p
+    );
+    updateSettings({
+      resale: {
+        ...currentResale,
+        packs: updated,
+      },
+    });
+  };
+
+  const handleAddResaleCompound = () => {
+    const newId = `compound-${Date.now()}`;
+    const newCompound: ResaleCompoundConfig = {
+      id: newId,
+      name: 'Novo Peptídeo Liofilizado',
+      wholesaleCostEur: 20,
+      defaultSellPriceEur: 85,
+      marketDemand: 'Alta Demanda',
+    };
+    updateSettings({
+      resale: {
+        ...currentResale,
+        compounds: [...resaleCompounds, newCompound],
+      },
+    });
+    showToast('Novo composto adicionado à tabela de atacado!');
+  };
+
+  const handleDeleteResaleCompound = (compoundId: string) => {
+    if (resaleCompounds.length <= 1) {
+      showToast('É necessário manter pelo menos 1 composto cadastrado.');
+      return;
+    }
+    const updated = resaleCompounds.filter((c) => c.id !== compoundId);
+    updateSettings({
+      resale: {
+        ...currentResale,
+        compounds: updated,
+      },
+    });
+    showToast('Composto removido.');
+  };
+
+  const handleAddResalePack = () => {
+    const newId = `pack-${Date.now()}`;
+    const newPack: ResalePackConfig = {
+      id: newId,
+      name: 'Pack Personalizado',
+      units: 30,
+      badge: 'NOVO LOTE',
+      popular: false,
+      costPerUnitEur: 21,
+      suggestedSellPriceEur: 89,
+      highlight: 'Condição sob medida',
+      description: 'Lote configurável de frascos liofilizados padrão ouro com laudo HPLC.',
+      features: [
+        'Pedido Mínimo configurável',
+        'Margem líquida de lucro superior a 300%',
+        'Laudos cromatográficos HPLC (>99%) inclusos',
+        'Cadeia de frio isotérmica 2°C - 8°C',
+      ],
+    };
+    updateSettings({
+      resale: {
+        ...currentResale,
+        packs: [...resalePacks, newPack],
+      },
+    });
+    showToast('Novo pack adicionado!');
+  };
+
+  const handleDeleteResalePack = (packId: string) => {
+    if (resalePacks.length <= 1) {
+      showToast('É necessário manter pelo menos 1 pack cadastrado.');
+      return;
+    }
+    const updated = resalePacks.filter((p) => p.id !== packId);
+    updateSettings({
+      resale: {
+        ...currentResale,
+        packs: updated,
+      },
+    });
+    showToast('Pack removido.');
+  };
+
+  const handleResetResaleDefaults = () => {
+    if (
+      window.confirm(
+        'Deseja restaurar todos os custos de atacado e valores sugeridos dos packs para o padrão de fábrica?'
+      )
+    ) {
+      updateSettings({
+        resale: initialResaleSettings,
+        resaleWhatsappNumber: initialResaleSettings.whatsappNumber,
+      });
+      showToast('Valores de revenda restaurados com sucesso!');
+    }
+  };
 
   const copyToClipboard = (text: string, fieldId: string) => {
     if (!text) return;
@@ -465,6 +622,18 @@ export const AdminPanel: React.FC = () => {
           }`}
         >
           Antes &amp; Depois ({testimonials.length})
+        </button>
+
+        <button
+          onClick={() => setActiveAdminTab('revenda')}
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+            activeAdminTab === 'revenda'
+              ? 'bg-[#006750] text-white shadow-md'
+              : 'bg-white text-slate-700 hover:bg-emerald-50 border border-slate-200/70'
+          }`}
+        >
+          <TrendingUp className="w-3.5 h-3.5 text-emerald-600" />
+          <span>Revenda &amp; Atacado (Packs e Custos)</span>
         </button>
 
         <button
@@ -1006,6 +1175,523 @@ export const AdminPanel: React.FC = () => {
         </section>
       )}
 
+      {/* TAB: Resale & Wholesale Manager (Custos de Atacado e Valores Sugeridos dos Packs) */}
+      {activeAdminTab === 'revenda' && (
+        <section className="bg-white rounded-2xl p-5 sm:p-7 shadow-sm border border-slate-200/70 flex flex-col gap-8">
+          {/* Header */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-slate-200/80">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="p-1.5 rounded-lg bg-emerald-100 text-[#006750]">
+                  <TrendingUp className="w-5 h-5" />
+                </span>
+                <h2 className="text-xl font-bold text-slate-900">
+                  Custos de Atacado &amp; Valores Sugeridos dos Packs
+                </h2>
+              </div>
+              <p className="text-xs text-slate-500 mt-1 max-w-2xl">
+                Configure os custos unitários de fábrica, os valores de venda sugeridos ao consumidor final e os parâmetros de cada lote (packs de 20, 50 e 100 frascos). Todas as alterações são sincronizadas em tempo real com a <strong>Página de Revenda</strong> e o <strong>Simulador Interativo</strong>.
+              </p>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={handleResetResaleDefaults}
+                className="px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+                title="Restaurar valores de fábrica"
+              >
+                <RefreshCw className="w-3.5 h-3.5 text-slate-500" />
+                <span>Restaurar Padrões</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveTab('revenda');
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+                className="px-3.5 py-2 rounded-xl bg-[#006750] hover:bg-[#005240] text-white text-xs font-bold flex items-center gap-1.5 shadow-xs transition-all cursor-pointer"
+              >
+                <ExternalLink className="w-3.5 h-3.5 text-[#71face]" />
+                <span>Ver Página de Revenda</span>
+              </button>
+            </div>
+          </div>
+
+          {/* SECTION 1: Compound Costs & Suggested Prices (Simulador) */}
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div>
+                <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                  <Calculator className="w-4 h-4 text-[#006750]" />
+                  <span>1. Custos de Atacado &amp; Preço Sugerido por Peptídeo</span>
+                </h3>
+                <p className="text-xs text-slate-500">
+                  Estes compostos aparecem nos botões do simulador interativo de lucros da Página de Revenda (Screenshot 1).
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleAddResaleCompound}
+                className="px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-[#006750] text-xs font-bold border border-emerald-300 flex items-center gap-1.5 transition-colors self-start sm:self-auto cursor-pointer"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Adicionar Peptídeo</span>
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {resaleCompounds.map((comp) => {
+                const profitPerVial = comp.defaultSellPriceEur - comp.wholesaleCostEur;
+                const profitPct =
+                  comp.wholesaleCostEur > 0
+                    ? Math.round((profitPerVial / comp.wholesaleCostEur) * 100)
+                    : 0;
+
+                return (
+                  <div
+                    key={comp.id}
+                    className="p-4 rounded-2xl bg-slate-50/70 border border-slate-200/80 hover:border-emerald-500/40 transition-all flex flex-col gap-3.5 relative"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-xs font-mono font-bold text-slate-500 uppercase tracking-wider">
+                        Composto ID: {comp.id}
+                      </span>
+                      {resaleCompounds.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteResaleCompound(comp.id)}
+                          className="p-1 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
+                          title="Remover este composto"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="flex flex-col gap-1">
+                      <label className="text-xs font-bold text-slate-700">
+                        Nome do Peptídeo / Apresentação
+                      </label>
+                      <input
+                        type="text"
+                        value={comp.name}
+                        onChange={(e) => handleUpdateResaleCompound(comp.id, 'name', e.target.value)}
+                        className="h-9 px-3 rounded-xl bg-white border border-slate-200 text-xs font-bold text-slate-900 focus:ring-1 focus:ring-[#006750]"
+                        placeholder="Ex: Retatrutide 10mg (Triplo Agonista)"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="flex flex-col gap-1">
+                        <label className="text-xs font-bold text-slate-700 flex items-center justify-between">
+                          <span>Custo Atacado (€)</span>
+                          <span className="text-[10px] font-mono text-slate-400">por frasco</span>
+                        </label>
+                        <div className="relative">
+                          <input
+                            type="number"
+                            step="1"
+                            min="1"
+                            value={comp.wholesaleCostEur}
+                            onChange={(e) =>
+                              handleUpdateResaleCompound(
+                                comp.id,
+                                'wholesaleCostEur',
+                                parseFloat(e.target.value) || 0
+                              )
+                            }
+                            className="w-full h-9 pl-3 pr-8 rounded-xl bg-white border border-slate-200 text-xs font-mono font-bold text-slate-900 focus:ring-1 focus:ring-[#006750]"
+                          />
+                          <span className="absolute right-3 top-2.5 text-xs font-bold text-slate-400">
+                            €
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-col gap-1">
+                        <label className="text-xs font-bold text-slate-700 flex items-center justify-between">
+                          <span>Preço Sugerido (€)</span>
+                          <span className="text-[10px] font-mono text-[#006750] font-semibold">venda final</span>
+                        </label>
+                        <div className="relative">
+                          <input
+                            type="number"
+                            step="1"
+                            min="1"
+                            value={comp.defaultSellPriceEur}
+                            onChange={(e) =>
+                              handleUpdateResaleCompound(
+                                comp.id,
+                                'defaultSellPriceEur',
+                                parseFloat(e.target.value) || 0
+                              )
+                            }
+                            className="w-full h-9 pl-3 pr-8 rounded-xl bg-white border border-slate-200 text-xs font-mono font-bold text-[#006750] focus:ring-1 focus:ring-[#006750]"
+                          />
+                          <span className="absolute right-3 top-2.5 text-xs font-bold text-slate-400">
+                            €
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col gap-1">
+                      <label className="text-[11px] font-bold text-slate-600">
+                        Demanda / Status do Mercado
+                      </label>
+                      <input
+                        type="text"
+                        value={comp.marketDemand}
+                        onChange={(e) =>
+                          handleUpdateResaleCompound(comp.id, 'marketDemand', e.target.value)
+                        }
+                        className="h-8 px-2.5 rounded-lg bg-white border border-slate-200 text-xs text-slate-700 focus:ring-1 focus:ring-[#006750]"
+                        placeholder="Ex: Altíssima (Tendência Global)"
+                      />
+                    </div>
+
+                    {/* Financial Performance Pill */}
+                    <div className="p-2.5 rounded-xl bg-emerald-50/80 border border-emerald-200/70 flex items-center justify-between text-xs font-mono">
+                      <div className="flex items-center gap-1 text-slate-700">
+                        <span>Lucro p/ frasco:</span>
+                        <strong className="text-slate-900 font-bold">+{profitPerVial} €</strong>
+                      </div>
+                      <div className="flex items-center gap-1 font-bold text-[#006750]">
+                        <Percent className="w-3.5 h-3.5" />
+                        <span>Retorno: +{profitPct}%</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* SECTION 2: Resale Packs Configuration (Packs 20, 50, 100) */}
+          <div className="flex flex-col gap-4 pt-4 border-t border-slate-200/80">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div>
+                <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                  <Package className="w-4 h-4 text-[#006750]" />
+                  <span>2. Packs Oficiais de Atacado (Lotes de Frascos)</span>
+                </h3>
+                <p className="text-xs text-slate-500">
+                  Configure os lotes de pedido mínimo (ex: Pack 20, 50 e 100 frascos) exibidos nos cards da vitrine B2B (Screenshot 2).
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleAddResalePack}
+                className="px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-[#006750] text-xs font-bold border border-emerald-300 flex items-center gap-1.5 transition-colors self-start sm:self-auto cursor-pointer"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Adicionar Novo Pack</span>
+              </button>
+            </div>
+
+            <div className="flex flex-col gap-5">
+              {resalePacks.map((pack) => {
+                const totalCostBatch = pack.units * pack.costPerUnitEur;
+                const totalGrossBatch = pack.units * pack.suggestedSellPriceEur;
+                const netProfitBatch = totalGrossBatch - totalCostBatch;
+                const packMarginPct =
+                  pack.costPerUnitEur > 0
+                    ? Math.round(
+                        ((pack.suggestedSellPriceEur - pack.costPerUnitEur) /
+                          pack.costPerUnitEur) *
+                          100
+                      )
+                    : 0;
+
+                return (
+                  <div
+                    key={pack.id}
+                    className={`p-5 sm:p-6 rounded-2xl border transition-all flex flex-col gap-4 ${
+                      pack.popular
+                        ? 'bg-emerald-50/30 border-[#006750] shadow-sm ring-1 ring-[#006750]/20'
+                        : 'bg-slate-50/70 border-slate-200/80 hover:border-slate-300'
+                    }`}
+                  >
+                    {/* Pack Top Bar */}
+                    <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-slate-200/70">
+                      <div className="flex items-center gap-2">
+                        <span className="px-2.5 py-0.5 rounded-full bg-slate-900 text-white text-[10px] font-mono font-bold uppercase">
+                          {pack.units} Frascos
+                        </span>
+                        {pack.popular && (
+                          <span className="px-2.5 py-0.5 rounded-full bg-[#006750] text-white text-[10px] font-mono font-bold uppercase">
+                            Destaque Ativo
+                          </span>
+                        )}
+                        <span className="text-xs font-mono text-slate-400">ID: {pack.id}</span>
+                      </div>
+
+                      <div className="flex items-center gap-3">
+                        <label className="flex items-center gap-1.5 text-xs text-slate-700 cursor-pointer select-none">
+                          <input
+                            type="checkbox"
+                            checked={!!pack.popular}
+                            onChange={(e) => handleUpdateResalePack(pack.id, 'popular', e.target.checked)}
+                            className="rounded text-[#006750] focus:ring-[#006750]"
+                          />
+                          <span className="font-semibold">Mais Popular</span>
+                        </label>
+
+                        {resalePacks.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteResalePack(pack.id)}
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
+                            title="Remover este pack"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Inputs Grid */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+                      <div className="flex flex-col gap-1 sm:col-span-2">
+                        <label className="text-xs font-bold text-slate-700">Nome do Pack</label>
+                        <input
+                          type="text"
+                          value={pack.name}
+                          onChange={(e) => handleUpdateResalePack(pack.id, 'name', e.target.value)}
+                          className="h-9 px-3 rounded-xl bg-white border border-slate-200 text-xs font-bold text-slate-900 focus:ring-1 focus:ring-[#006750]"
+                          placeholder="Ex: Pack Start Revenda"
+                        />
+                      </div>
+
+                      <div className="flex flex-col gap-1">
+                        <label className="text-xs font-bold text-slate-700">Quantidade de Frascos</label>
+                        <input
+                          type="number"
+                          step="1"
+                          min="1"
+                          value={pack.units}
+                          onChange={(e) =>
+                            handleUpdateResalePack(pack.id, 'units', parseInt(e.target.value) || 1)
+                          }
+                          className="h-9 px-3 rounded-xl bg-white border border-slate-200 text-xs font-mono font-bold text-slate-900 focus:ring-1 focus:ring-[#006750]"
+                        />
+                      </div>
+
+                      <div className="flex flex-col gap-1">
+                        <label className="text-xs font-bold text-slate-700">Selo / Badge</label>
+                        <input
+                          type="text"
+                          value={pack.badge}
+                          onChange={(e) => handleUpdateResalePack(pack.id, 'badge', e.target.value)}
+                          className="h-9 px-3 rounded-xl bg-white border border-slate-200 text-xs font-bold text-slate-800 focus:ring-1 focus:ring-[#006750]"
+                          placeholder="Ex: PEDIDO MÍNIMO OFICIAL"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Price and Cost Inputs */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div className="flex flex-col gap-1">
+                        <label className="text-xs font-bold text-slate-700 flex items-center justify-between">
+                          <span>Custo Médio Unitário de Atacado (€)</span>
+                          <span className="text-[10px] font-mono text-slate-400">custo por frasco</span>
+                        </label>
+                        <div className="relative">
+                          <input
+                            type="number"
+                            step="1"
+                            min="1"
+                            value={pack.costPerUnitEur}
+                            onChange={(e) =>
+                              handleUpdateResalePack(
+                                pack.id,
+                                'costPerUnitEur',
+                                parseFloat(e.target.value) || 0
+                              )
+                            }
+                            className="w-full h-9 pl-3 pr-8 rounded-xl bg-white border border-slate-200 text-xs font-mono font-bold text-slate-900 focus:ring-1 focus:ring-[#006750]"
+                          />
+                          <span className="absolute right-3 top-2.5 text-xs font-bold text-slate-400">
+                            €
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-col gap-1">
+                        <label className="text-xs font-bold text-slate-700 flex items-center justify-between">
+                          <span>Venda Sugerida ao Consumidor (€)</span>
+                          <span className="text-[10px] font-mono text-[#006750] font-semibold">preço de mercado</span>
+                        </label>
+                        <div className="relative">
+                          <input
+                            type="number"
+                            step="1"
+                            min="1"
+                            value={pack.suggestedSellPriceEur}
+                            onChange={(e) =>
+                              handleUpdateResalePack(
+                                pack.id,
+                                'suggestedSellPriceEur',
+                                parseFloat(e.target.value) || 0
+                              )
+                            }
+                            className="w-full h-9 pl-3 pr-8 rounded-xl bg-white border border-slate-200 text-xs font-mono font-bold text-[#006750] focus:ring-1 focus:ring-[#006750]"
+                          />
+                          <span className="absolute right-3 top-2.5 text-xs font-bold text-slate-400">
+                            €
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Live Financial Metrics Card for this Pack */}
+                    <div className="p-4 rounded-xl bg-gradient-to-r from-slate-900 to-[#00382b] text-white flex flex-wrap items-center justify-between gap-4 font-mono shadow-xs">
+                      <div className="flex flex-col">
+                        <span className="text-[10px] text-slate-400 uppercase tracking-wider">
+                          Investimento Lote ({pack.units} un.)
+                        </span>
+                        <span className="text-sm font-bold text-white">
+                          {totalCostBatch} €
+                        </span>
+                      </div>
+
+                      <div className="flex flex-col">
+                        <span className="text-[10px] text-slate-400 uppercase tracking-wider">
+                          Faturamento Sugerido
+                        </span>
+                        <span className="text-sm font-bold text-white">
+                          {totalGrossBatch} €
+                        </span>
+                      </div>
+
+                      <div className="flex flex-col">
+                        <span className="text-[10px] text-emerald-300 uppercase tracking-wider">
+                          Lucro Líquido Estimado
+                        </span>
+                        <span className="text-base font-black text-[#71face]">
+                          +{netProfitBatch} €
+                        </span>
+                      </div>
+
+                      <div className="flex flex-col items-end">
+                        <span className="text-[10px] text-amber-300 uppercase tracking-wider">
+                          Margem de Retorno
+                        </span>
+                        <span className="text-base font-black text-amber-400">
+                          +{packMarginPct}%
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Description & Features */}
+                    <div className="flex flex-col gap-3">
+                      <div className="flex flex-col gap-1">
+                        <label className="text-xs font-bold text-slate-700">Descrição Comercial</label>
+                        <input
+                          type="text"
+                          value={pack.description}
+                          onChange={(e) => handleUpdateResalePack(pack.id, 'description', e.target.value)}
+                          className="h-8 px-2.5 rounded-lg bg-white border border-slate-200 text-xs text-slate-800 focus:ring-1 focus:ring-[#006750]"
+                          placeholder="Descrição do pack exibida no card"
+                        />
+                      </div>
+
+                      <div className="flex flex-col gap-1">
+                        <label className="text-xs font-bold text-slate-700 flex items-center justify-between">
+                          <span>Itens Incluídos / Benefícios no Card</span>
+                          <span className="text-[10px] text-slate-400 font-normal">
+                            1 benefício por linha
+                          </span>
+                        </label>
+                        <textarea
+                          rows={3}
+                          value={pack.features.join('\n')}
+                          onChange={(e) =>
+                            handleUpdateResalePack(
+                              pack.id,
+                              'features',
+                              e.target.value.split('\n').filter((line) => line.trim().length > 0)
+                            )
+                          }
+                          className="p-2.5 rounded-xl bg-white border border-slate-200 text-xs font-mono text-slate-800 focus:ring-1 focus:ring-[#006750]"
+                          placeholder="Digite cada benefício em uma nova linha..."
+                        />
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* SECTION 3: WhatsApp Support for Resale */}
+          <div className="pt-4 border-t border-slate-200/80 flex flex-col gap-3">
+            <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+              <MessageCircle className="w-4 h-4 text-[#25D366]" />
+              <span>3. WhatsApp Oficial para Contato de Revenda</span>
+            </h3>
+            <p className="text-xs text-slate-500">
+              Número internacional que recebe os leads do botão <strong>"Saiba Mais"</strong>, dos botões de <strong>"Pedir Pack"</strong> e do formulário da Página de Revenda.
+            </p>
+
+            <div className="flex flex-col sm:flex-row gap-2 max-w-xl">
+              <input
+                type="text"
+                placeholder="+351912345678"
+                value={settings.resaleWhatsappNumber ?? settings.whatsappNumber}
+                onChange={(e) => updateSettings({ resaleWhatsappNumber: e.target.value })}
+                className="flex-1 h-10 px-3 rounded-xl bg-white border border-slate-300 text-xs font-mono text-slate-900 focus:ring-1 focus:ring-[#006750]"
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  const cleanNum = (settings.resaleWhatsappNumber || settings.whatsappNumber).replace(
+                    /\D/g,
+                    ''
+                  );
+                  window.open(
+                    `https://wa.me/${cleanNum}?text=${encodeURIComponent(
+                      'Olá! Este é um teste do botão Saiba Mais do Programa de Revenda MetaSlim Pro.'
+                    )}`,
+                    '_blank'
+                  );
+                }}
+                className="h-10 px-4 rounded-xl bg-[#25D366] hover:bg-[#1ebe5d] text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-xs transition-colors shrink-0 cursor-pointer"
+              >
+                <ExternalLink className="w-3.5 h-3.5" />
+                <span>Testar Chamada WhatsApp</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Footer Save / Feedback */}
+          <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <CheckCircle className="w-4 h-4 text-[#006750]" />
+              <span className="text-xs text-slate-600">
+                Todas as alterações são salvas automaticamente na memória local e sincronizadas com a nuvem.
+              </span>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  showToast('Configurações de revenda salvas e sincronizadas!');
+                }}
+                className="px-4 py-2 rounded-xl bg-[#006750] hover:bg-[#005240] text-white text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
+              >
+                <Save className="w-3.5 h-3.5 text-[#71face]" />
+                <span>Confirmar e Salvar</span>
+              </button>
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* TAB 4: General Store Settings */}
       {activeAdminTab === 'configuracoes' && (
         <section className="bg-white rounded-2xl p-5 sm:p-7 shadow-sm border border-slate-200/70 flex flex-col gap-5">
@@ -1101,7 +1787,15 @@ export const AdminPanel: React.FC = () => {
                   className="h-10 px-4 rounded-xl bg-[#25D366] hover:bg-[#1ebe5d] text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-xs transition-colors shrink-0 cursor-pointer"
                 >
                   <ExternalLink className="w-3.5 h-3.5" />
-                  <span>Testar WhatsApp Revenda</span>
+                  <span>Testar WhatsApp</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveAdminTab('revenda')}
+                  className="h-10 px-4 rounded-xl bg-[#006750] hover:bg-[#005240] text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-xs transition-colors shrink-0 cursor-pointer"
+                >
+                  <TrendingUp className="w-3.5 h-3.5 text-[#71face]" />
+                  <span>Editar Custos de Atacado &amp; Packs</span>
                 </button>
               </div>
             </div>

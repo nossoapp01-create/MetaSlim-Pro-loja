@@ -1,4 +1,100 @@
-import { Product, BannerSlide, Testimonial, StoreSettings, OrderRecord } from '../types';
+import { Product, BannerSlide, Testimonial, StoreSettings, OrderRecord, ResaleSettings } from '../types';
+
+export const initialResaleSettings: ResaleSettings = {
+  whatsappNumber: '+351912345678',
+  compounds: [
+    {
+      id: 'retatrutide',
+      name: 'Retatrutide 10mg (Triplo Agonista)',
+      wholesaleCostEur: 22,
+      defaultSellPriceEur: 89,
+      marketDemand: 'Altíssima (Tendência Global)',
+    },
+    {
+      id: 'tirzepatide',
+      name: 'Tirzepatide 15mg (Dual GIP/GLP-1)',
+      wholesaleCostEur: 24,
+      defaultSellPriceEur: 99,
+      marketDemand: 'Consolidada e Recorrente',
+    },
+    {
+      id: 'semaglutide',
+      name: 'Semaglutide 5mg (GLP-1 Standard)',
+      wholesaleCostEur: 19,
+      defaultSellPriceEur: 79,
+      marketDemand: 'Alta Penetração de Mercado',
+    },
+    {
+      id: 'blend',
+      name: 'Mix Personalizado (Incretinas + BPC-157)',
+      wholesaleCostEur: 21,
+      defaultSellPriceEur: 85,
+      marketDemand: 'Excelente para Clínicas e Protocolos',
+    },
+  ],
+  packs: [
+    {
+      id: 'pack-20',
+      name: 'Pack Start Revenda',
+      units: 20,
+      badge: 'PEDIDO MÍNIMO OFICIAL',
+      popular: false,
+      costPerUnitEur: 22,
+      suggestedSellPriceEur: 89,
+      highlight: 'Perfeito para iniciar e testar o mercado local',
+      description:
+        'Lote de 20 frascos liofilizados padrão ouro com flexibilidade para escolher um único composto ou mix de incretinas.',
+      features: [
+        'Pedido Mínimo: 20 unidades lacradas',
+        'Margem líquida de lucro superior a 304%',
+        'Laudos cromatográficos HPLC (>99%) inclusos',
+        'Embalagem isotérmica com cadeia de frio 2°C - 8°C',
+        'Envio prioritário rastreado para Portugal e Europa',
+        'Acesso à Calculadora de Reconstituição e Fichas Técnicas',
+      ],
+    },
+    {
+      id: 'pack-50',
+      name: 'Pack Pro Master',
+      units: 50,
+      badge: 'MAIS POPULAR • MELHOR MARGEM',
+      popular: true,
+      costPerUnitEur: 20,
+      suggestedSellPriceEur: 89,
+      highlight: 'Excelente para consultórios, clínicas e revenda ativa',
+      description:
+        'Condição com desconto de volume ampliado por frasco. Permite maior competitividade e margens superiores a 345%.',
+      features: [
+        'Pack com 50 unidades lacradas',
+        'Margem líquida estimada superior a 345%',
+        'Frete Expresso Térmico 100% Grátis',
+        'Mix livre entre Retatrutide, Tirzepatide e Semaglutide',
+        'Canal de suporte direto prioritário via WhatsApp',
+        'Material gráfico e digital para divulgação aos seus clientes',
+      ],
+    },
+    {
+      id: 'pack-100',
+      name: 'Pack Elite Distribuidor',
+      units: 100,
+      badge: 'MÁXIMA RENTABILIDADE',
+      popular: false,
+      costPerUnitEur: 18,
+      suggestedSellPriceEur: 89,
+      highlight: 'Para distribuidores regionais e redes de estética',
+      description:
+        'Menor custo unitário de atacado. Possibilidade de despacho programado fracionado para manter a frescura.',
+      features: [
+        'Pack com 100 unidades lacradas',
+        'Margem líquida excepcional superior a 390%',
+        'Possibilidade de entrega fracionada em até 2 envios',
+        'Atendimento VIP dedicado com gerente de conta B2B',
+        'Garantia de reposição imediata e lote reservado',
+        'Prioridade máxima em lançamentos e novos lotes certificados',
+      ],
+    },
+  ],
+};
 
 export const initialStoreSettings: StoreSettings = {
   storeName: 'MetaSlim Pro',
@@ -9,6 +105,7 @@ export const initialStoreSettings: StoreSettings = {
   defaultPaymentLink: '',
   whatsappNumber: '+351912345678',
   resaleWhatsappNumber: '+351912345678',
+  resale: initialResaleSettings,
   freeShippingThreshold: 100,
   mypos: {
     enabled: true,

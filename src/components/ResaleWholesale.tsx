@@ -1,5 +1,7 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { useStore } from '../context/StoreContext';
+import { ResaleCompoundConfig, ResalePackConfig } from '../types';
+import { initialResaleSettings } from '../data/initialData';
 import {
   TrendingUp,
   ShieldCheck,
@@ -19,138 +21,74 @@ import {
   Dna,
 } from 'lucide-react';
 
-interface PackOption {
-  id: string;
-  name: string;
-  units: number;
-  badge: string;
-  popular?: boolean;
-  costPerUnitEur: number;
-  suggestedSellPriceEur: number;
-  highlight: string;
-  description: string;
-  features: string[];
-}
-
 export const ResaleWholesale: React.FC = () => {
   const { settings, formatPrice, currency, setActiveTab } = useStore();
 
+  // Dynamic resale settings from store, falling back to initial data
+  const resaleConfig = settings.resale || initialResaleSettings;
+  const compounds: ResaleCompoundConfig[] =
+    resaleConfig.compounds && resaleConfig.compounds.length > 0
+      ? resaleConfig.compounds
+      : initialResaleSettings.compounds;
+  const packs: ResalePackConfig[] =
+    resaleConfig.packs && resaleConfig.packs.length > 0
+      ? resaleConfig.packs
+      : initialResaleSettings.packs;
+
   // Selected pack for interactive calculator
-  const [selectedPackUnits, setSelectedPackUnits] = useState<number>(20);
-  const [selectedCompound, setSelectedCompound] = useState<'tirzepatide' | 'retatrutide' | 'semaglutide' | 'blend'>('retatrutide');
-  const [customSellingPriceEur, setCustomSellingPriceEur] = useState<number>(89);
+  const [selectedPackUnits, setSelectedPackUnits] = useState<number>(packs[0]?.units || 20);
+  const [selectedCompoundId, setSelectedCompoundId] = useState<string>(compounds[0]?.id || 'retatrutide');
+  const activeCompoundInfo =
+    compounds.find((c) => c.id === selectedCompoundId) || compounds[0] || initialResaleSettings.compounds[0];
+
+  const [customSellingPriceEur, setCustomSellingPriceEur] = useState<number>(() => {
+    return activeCompoundInfo.defaultSellPriceEur || 89;
+  });
 
   // Target WhatsApp number from store settings (with fallback)
-  const targetWhatsapp = settings.resaleWhatsappNumber?.trim() || settings.whatsappNumber?.trim() || '+351912345678';
+  const targetWhatsapp =
+    settings.resaleWhatsappNumber?.trim() ||
+    resaleConfig.whatsappNumber?.trim() ||
+    settings.whatsappNumber?.trim() ||
+    '+351912345678';
   const cleanPhone = targetWhatsapp.replace(/\D/g, '');
 
   const createWhatsAppLink = (customText?: string) => {
     const defaultMsg =
-      'Olá! Tenho interesse no Programa Oficial de Revenda MetaSlim Pro (Pedido mínimo pack a partir de 20 unidades com lucros > 300%). Gostaria de receber a tabela de atacado e tirar algumas dúvidas.';
+      `Olá! Tenho interesse no Programa Oficial de Revenda MetaSlim Pro (Pedido mínimo a partir de ${packs[0]?.units || 20} unidades). Gostaria de receber a tabela de atacado e tirar algumas dúvidas.`;
     const text = customText || defaultMsg;
     return `https://wa.me/${cleanPhone}?text=${encodeURIComponent(text)}`;
   };
 
-  // Compound market benchmarks for simulation
-  const compoundData = {
-    retatrutide: {
-      name: 'Retatrutide 10mg (Triplo Agonista)',
-      wholesaleCostEur: 22,
-      defaultSellPriceEur: 89,
-      marketDemand: 'Altíssima (Tendência Global)',
-    },
-    tirzepatide: {
-      name: 'Tirzepatide 15mg (Dual GIP/GLP-1)',
-      wholesaleCostEur: 24,
-      defaultSellPriceEur: 99,
-      marketDemand: 'Consolidada e Recorrente',
-    },
-    semaglutide: {
-      name: 'Semaglutide 5mg (GLP-1 Standard)',
-      wholesaleCostEur: 19,
-      defaultSellPriceEur: 79,
-      marketDemand: 'Alta Penetração de Mercado',
-    },
-    blend: {
-      name: 'Mix Personalizado (Incretinas + BPC-157)',
-      wholesaleCostEur: 21,
-      defaultSellPriceEur: 85,
-      marketDemand: 'Excelente para Clínicas e Protocolos',
-    },
-  };
-
-  const handleCompoundChange = (comp: 'tirzepatide' | 'retatrutide' | 'semaglutide' | 'blend') => {
-    setSelectedCompound(comp);
-    setCustomSellingPriceEur(compoundData[comp].defaultSellPriceEur);
+  const handleCompoundChange = (comp: ResaleCompoundConfig) => {
+    setSelectedCompoundId(comp.id);
+    setCustomSellingPriceEur(comp.defaultSellPriceEur);
   };
 
   // Calculations for current interactive simulation
-  const activeCompoundInfo = compoundData[selectedCompound];
   const wholesaleUnitCost = activeCompoundInfo.wholesaleCostEur;
   const totalCost = wholesaleUnitCost * selectedPackUnits;
   const totalGrossRevenue = customSellingPriceEur * selectedPackUnits;
   const netProfit = totalGrossRevenue - totalCost;
-  const profitPercentage = Math.round((netProfit / totalCost) * 100);
+  const profitPercentage = totalCost > 0 ? Math.round((netProfit / totalCost) * 100) : 0;
 
-  const packs: PackOption[] = [
-    {
-      id: 'pack-20',
-      name: 'Pack Start Revenda',
-      units: 20,
-      badge: 'PEDIDO MÍNIMO OFICIAL',
-      popular: false,
-      costPerUnitEur: 22,
-      suggestedSellPriceEur: 89,
-      highlight: 'Perfeito para iniciar e testar o mercado local',
-      description: 'Lote de 20 frascos liofilizados padrão ouro com flexibilidade para escolher um único composto ou mix de incretinas.',
-      features: [
-        'Pedido Mínimo: 20 unidades lacradas',
-        'Margem líquida de lucro superior a 304%',
-        'Laudos cromatográficos HPLC (>99%) inclusos',
-        'Embalagem isotérmica com cadeia de frio 2°C - 8°C',
-        'Envio prioritário rastreado para Portugal e Europa',
-        'Acesso à Calculadora de Reconstituição e Fichas Técnicas',
-      ],
-    },
-    {
-      id: 'pack-50',
-      name: 'Pack Pro Master',
-      units: 50,
-      badge: 'MAIS POPULAR • MELHOR MARGEM',
-      popular: true,
-      costPerUnitEur: 20,
-      suggestedSellPriceEur: 89,
-      highlight: 'Excelente para consultórios, clínicas e revenda ativa',
-      description: 'Condição com desconto de volume ampliado por frasco. Permite maior competitividade e margens superiores a 345%.',
-      features: [
-        'Pack com 50 unidades lacradas',
-        'Margem líquida estimada superior a 345%',
-        'Frete Expresso Térmico 100% Grátis',
-        'Mix livre entre Retatrutide, Tirzepatide e Semaglutide',
-        'Canal de suporte direto prioritário via WhatsApp',
-        'Material gráfico e digital para divulgação aos seus clientes',
-      ],
-    },
-    {
-      id: 'pack-100',
-      name: 'Pack Elite Distribuidor',
-      units: 100,
-      badge: 'MÁXIMA RENTABILIDADE',
-      popular: false,
-      costPerUnitEur: 18,
-      suggestedSellPriceEur: 89,
-      highlight: 'Para distribuidores regionais e redes de estética',
-      description: 'Menor custo unitário de atacado. Possibilidade de despacho programado fracionado para manter a frescura.',
-      features: [
-        'Pack com 100 unidades lacradas',
-        'Margem líquida excepcional superior a 390%',
-        'Possibilidade de entrega fracionada em até 2 envios',
-        'Atendimento VIP dedicado com gerente de conta B2B',
-        'Garantia de reposição imediata e lote reservado',
-        'Prioridade máxima em lançamentos e novos lotes certificados',
-      ],
-    },
-  ];
+  // Dynamic ranges for marketing copy
+  const minWholesale = Math.min(
+    ...compounds.map((c) => c.wholesaleCostEur),
+    ...packs.map((p) => p.costPerUnitEur)
+  );
+  const maxWholesale = Math.max(
+    ...compounds.map((c) => c.wholesaleCostEur),
+    ...packs.map((p) => p.costPerUnitEur)
+  );
+  const minSell = Math.min(
+    ...compounds.map((c) => c.defaultSellPriceEur),
+    ...packs.map((p) => p.suggestedSellPriceEur)
+  );
+  const maxSell = Math.max(
+    ...compounds.map((c) => c.defaultSellPriceEur),
+    ...packs.map((p) => p.suggestedSellPriceEur)
+  );
 
   return (
     <div className="flex flex-col gap-10 sm:gap-14 pb-12">
@@ -264,7 +202,7 @@ export const ResaleWholesale: React.FC = () => {
               </span>
             </h3>
             <p className="text-xs text-slate-600 leading-relaxed">
-              Compre direto no atacado a valores de frasco entre <strong>18€ e 24€</strong> e revenda no mercado a valores de <strong>79€ a 110€</strong>. O seu investimento inicial retorna triplicado.
+              Compre direto no atacado a valores de frasco entre <strong>{minWholesale}€ e {maxWholesale}€</strong> e revenda no mercado a valores de <strong>{minSell}€ a {maxSell}€</strong>. O seu investimento inicial retorna triplicado.
             </p>
           </div>
 
@@ -274,13 +212,13 @@ export const ResaleWholesale: React.FC = () => {
               <Package className="w-6 h-6" />
             </div>
             <h3 className="font-bold text-base text-slate-900 flex items-center justify-between">
-              <span>Pedido Mínimo: Pack de 20</span>
+              <span>Pedido Mínimo: Pack de {packs[0]?.units || 20}</span>
               <span className="text-[10px] font-mono font-bold bg-emerald-100 text-[#006750] px-2 py-0.5 rounded-full">
                 Flexível
               </span>
             </h3>
             <p className="text-xs text-slate-600 leading-relaxed">
-              Não exigimos investimentos de dezenas de milhares de euros. Comece com apenas <strong>1 pack de 20 unidades</strong>, permitindo validar a sua carteira de clientes sem risco de capital excessivo.
+              Não exigimos investimentos de dezenas de milhares de euros. Comece com apenas <strong>1 pack de {packs[0]?.units || 20} unidades</strong>, permitindo validar a sua carteira de clientes sem risco de capital excessivo.
             </p>
           </div>
 
@@ -372,13 +310,9 @@ export const ResaleWholesale: React.FC = () => {
                 </span>
               </label>
               <div className="grid grid-cols-3 gap-2 sm:gap-3">
-                {[
-                  { units: 20, label: 'Pack 20 Un.', sub: 'Mínimo Oficial' },
-                  { units: 50, label: 'Pack 50 Un.', sub: 'Mais Popular' },
-                  { units: 100, label: 'Pack 100 Un.', sub: 'Distribuidor' },
-                ].map((item) => (
+                {packs.map((item) => (
                   <button
-                    key={item.units}
+                    key={item.id}
                     type="button"
                     onClick={() => setSelectedPackUnits(item.units)}
                     className={`p-3 rounded-xl border text-left flex flex-col gap-0.5 transition-all cursor-pointer ${
@@ -387,8 +321,8 @@ export const ResaleWholesale: React.FC = () => {
                         : 'bg-white/5 border-white/10 hover:bg-white/10 text-slate-300'
                     }`}
                   >
-                    <span className="font-bold text-sm">{item.label}</span>
-                    <span className="text-[10px] text-slate-300">{item.sub}</span>
+                    <span className="font-bold text-sm">Pack {item.units} Un.</span>
+                    <span className="text-[10px] text-slate-300 truncate">{item.badge}</span>
                   </button>
                 ))}
               </div>
@@ -400,14 +334,13 @@ export const ResaleWholesale: React.FC = () => {
                 2. Selecione o Peptídeo de Referência
               </label>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {(['retatrutide', 'tirzepatide', 'semaglutide', 'blend'] as const).map((key) => {
-                  const data = compoundData[key];
-                  const isSelected = selectedCompound === key;
+                {compounds.map((comp) => {
+                  const isSelected = selectedCompoundId === comp.id;
                   return (
                     <button
-                      key={key}
+                      key={comp.id}
                       type="button"
-                      onClick={() => handleCompoundChange(key)}
+                      onClick={() => handleCompoundChange(comp)}
                       className={`p-3 rounded-xl border text-left flex flex-col gap-1 transition-all cursor-pointer ${
                         isSelected
                           ? 'bg-emerald-950/70 border-emerald-400 text-white ring-1 ring-emerald-400'
@@ -415,12 +348,12 @@ export const ResaleWholesale: React.FC = () => {
                       }`}
                     >
                       <div className="flex items-center justify-between">
-                        <span className="font-bold text-xs text-white">{data.name}</span>
+                        <span className="font-bold text-xs text-white">{comp.name}</span>
                         {isSelected && <CheckCircle2 className="w-4 h-4 text-[#71face] shrink-0" />}
                       </div>
                       <div className="flex items-center justify-between text-[11px] text-slate-400 font-mono">
-                        <span>Custo Atacado: {data.wholesaleCostEur}€</span>
-                        <span className="text-[#71face]">Sugerido: {data.defaultSellPriceEur}€</span>
+                        <span>Custo Atacado: {comp.wholesaleCostEur}€</span>
+                        <span className="text-[#71face]">Sugerido: {comp.defaultSellPriceEur}€</span>
                       </div>
                     </button>
                   );

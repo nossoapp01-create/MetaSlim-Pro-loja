@@ -78,6 +78,33 @@ export interface StripeConfig {
   cancelUrl?: string;
 }
 
+export interface ResaleCompoundConfig {
+  id: 'retatrutide' | 'tirzepatide' | 'semaglutide' | 'blend' | string;
+  name: string;
+  wholesaleCostEur: number;
+  defaultSellPriceEur: number;
+  marketDemand?: string;
+}
+
+export interface ResalePackConfig {
+  id: string;
+  name: string;
+  units: number;
+  badge: string;
+  popular?: boolean;
+  costPerUnitEur: number;
+  suggestedSellPriceEur: number;
+  highlight?: string;
+  description: string;
+  features: string[];
+}
+
+export interface ResaleSettings {
+  whatsappNumber?: string;
+  compounds: ResaleCompoundConfig[];
+  packs: ResalePackConfig[];
+}
+
 export interface StoreSettings {
   storeName: string;
   storeSubtitle: string;
@@ -87,6 +114,7 @@ export interface StoreSettings {
   defaultPaymentLink: string;
   whatsappNumber: string;
   resaleWhatsappNumber?: string;
+  resale?: ResaleSettings;
   freeShippingThreshold: number;
   mypos?: MyPOSConfig;
   stripe?: StripeConfig;

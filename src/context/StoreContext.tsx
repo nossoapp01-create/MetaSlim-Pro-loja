@@ -191,7 +191,15 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [settings, setSettings] = useState<StoreSettings>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEYS.SETTINGS);
-      return saved ? JSON.parse(saved) : initialStoreSettings;
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return {
+          ...initialStoreSettings,
+          ...parsed,
+          resale: parsed.resale || initialStoreSettings.resale,
+        };
+      }
+      return initialStoreSettings;
     } catch {
       return initialStoreSettings;
     }
@@ -438,7 +446,12 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       if (settingsSnap && !settingsSnap.empty) {
         const generalDoc = settingsSnap.docs.find((d) => d.id === 'general');
         if (generalDoc) {
-          setSettings(generalDoc.data() as StoreSettings);
+          const cloudSettings = generalDoc.data() as StoreSettings;
+          setSettings({
+            ...initialStoreSettings,
+            ...cloudSettings,
+            resale: cloudSettings.resale || initialStoreSettings.resale,
+          });
         }
       }
 
