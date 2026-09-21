@@ -21,3 +21,34 @@
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+@keyframes revenda-pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(0, 103, 80, 0.4), 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 0 0 5px rgba(0, 103, 80, 0), 0 4px 12px 0 rgba(0, 103, 80, 0.18);
+    transform: scale(1.03);
+  }
+}
+
+@keyframes revenda-badge-pulse {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.5);
+  }
+  50% {
+    transform: scale(1.08);
+    box-shadow: 0 0 0 4px rgba(245, 158, 11, 0);
+  }
+}
+
+.animate-revenda-pulse {
+  animation: revenda-pulse-glow 2.2s infinite ease-in-out;
+}
+
+.animate-badge-pulse {
+  animation: revenda-badge-pulse 2.2s infinite ease-in-out;
+}
+

@@ -115,19 +115,24 @@ export const Header: React.FC<HeaderProps> = ({ onOpenCalculator }) => {
             <span>Prazos</span>
           </button>
 
-          {/* Reseller / Revenda Link */}
+          {/* Reseller / Revenda Link with Pulse Effect */}
           <button
             onClick={() => setActiveTab('revenda')}
-            className={`flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1.5 rounded-full transition-colors ${
+            className={`relative flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1.5 rounded-full transition-all cursor-pointer ${
               activeTab === 'revenda'
-                ? 'bg-[#006750] text-white shadow-xs'
-                : 'text-[#006750] bg-emerald-50 hover:bg-emerald-100 border border-emerald-300/60'
+                ? 'bg-[#006750] text-white shadow-md shadow-emerald-900/20 ring-2 ring-emerald-400'
+                : 'text-[#006750] bg-emerald-50 hover:bg-emerald-100 border border-emerald-300/80 animate-revenda-pulse'
             }`}
             title="Programa Oficial de Revenda e Atacado (Lucros > 300%)"
+            id="header-revenda-btn"
           >
-            <TrendingUp className="w-3.5 h-3.5 text-[#006750]" />
-            <span>Revenda</span>
-            <span className="hidden md:inline text-[9px] bg-amber-400 text-slate-950 px-1 rounded font-black tracking-tight">
+            <span className="relative flex h-2 w-2 shrink-0">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-[#006750]"></span>
+            </span>
+            <TrendingUp className={`w-3.5 h-3.5 ${activeTab === 'revenda' ? 'text-[#71face]' : 'text-[#006750]'}`} />
+            <span className="font-bold">Revenda</span>
+            <span className="text-[9px] bg-amber-400 text-slate-950 px-1.5 py-0.5 rounded-full font-black tracking-tight shadow-xs animate-badge-pulse">
               300%+
             </span>
           </button>
