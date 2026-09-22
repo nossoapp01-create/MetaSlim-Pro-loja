@@ -13,6 +13,7 @@ import { ResaleWholesale } from './components/ResaleWholesale';
 import { Footer } from './components/Footer';
 import { BottomNav } from './components/BottomNav';
 import { DosageCalculatorModal } from './components/DosageCalculatorModal';
+import { FloatingConsultationButton } from './components/FloatingConsultationButton';
 import { ShieldCheck, Sparkles, AlertCircle, ArrowRight, Dna, Calculator, X, Truck } from 'lucide-react';
 
 const MainContent: React.FC = () => {
@@ -22,6 +23,7 @@ const MainContent: React.FC = () => {
     products,
     selectedCategory,
     searchQuery,
+    settings,
     toast,
     setToast,
     setSelectedProductId,
@@ -275,6 +277,13 @@ const MainContent: React.FC = () => {
 
       {/* Global Footer */}
       <Footer />
+
+      {/* Floating Free Medical Consultation Button */}
+      {activeTab !== 'admin' && (
+        <FloatingConsultationButton
+          consultationUrl={settings.consultationUrl || 'https://consulta.metaslim-pro.shop/'}
+        />
+      )}
 
       {/* Floating Bottom Navigation Bar for Mobile */}
       <BottomNav />

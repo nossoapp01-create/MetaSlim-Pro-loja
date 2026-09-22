@@ -57,6 +57,7 @@ import {
   MessageCircle,
   Calculator,
   Percent,
+  Stethoscope,
 } from 'lucide-react';
 
 export const AdminPanel: React.FC = () => {
@@ -1819,6 +1820,44 @@ export const AdminPanel: React.FC = () => {
               >
                 <ExternalLink className="w-3.5 h-3.5" />
                 <span>Testar</span>
+              </button>
+            </div>
+          </div>
+
+          {/* App de Consulta Grátis Link Field */}
+          <div className="flex flex-col gap-1 p-4 rounded-xl bg-teal-50/70 border border-teal-200/80">
+            <div className="flex items-center justify-between gap-2">
+              <label className="text-xs font-bold text-slate-900 flex items-center gap-2">
+                <Stethoscope className="w-4 h-4 text-[#006750]" />
+                <span>Aplicativo de Consulta Médica Gratuita (Botão Flutuante)</span>
+                <span className="text-[10px] font-mono font-bold bg-[#006750] text-white px-2 py-0.5 rounded-full">
+                  100% Grátis
+                </span>
+              </label>
+            </div>
+            <p className="text-[11px] text-slate-600">
+              URL do aplicativo de triagem e consulta médica (Dra. Valéria Prado) acionado pelo botão flutuante da loja.
+            </p>
+            <div className="flex gap-2 mt-1">
+              <input
+                type="url"
+                placeholder="https://consulta.metaslim-pro.shop/"
+                value={settings.consultationUrl || 'https://consulta.metaslim-pro.shop/'}
+                onChange={(e) => updateSettings({ consultationUrl: e.target.value })}
+                className="flex-1 h-10 px-3 rounded-xl bg-white border border-slate-300 text-xs font-mono text-slate-900 focus:ring-1 focus:ring-[#006750]"
+              />
+              <button
+                type="button"
+                onClick={() =>
+                  window.open(
+                    settings.consultationUrl || 'https://consulta.metaslim-pro.shop/',
+                    '_blank'
+                  )
+                }
+                className="h-10 px-4 rounded-xl bg-[#006750] hover:bg-[#005240] text-white text-xs font-bold flex items-center gap-1.5 shadow-xs transition-colors shrink-0 cursor-pointer"
+              >
+                <ExternalLink className="w-3.5 h-3.5" />
+                <span>Testar App</span>
               </button>
             </div>
           </div>

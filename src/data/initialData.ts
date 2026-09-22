@@ -106,6 +106,7 @@ export const initialStoreSettings: StoreSettings = {
   whatsappNumber: '+351912345678',
   resaleWhatsappNumber: '+351912345678',
   resale: initialResaleSettings,
+  consultationUrl: 'https://consulta.metaslim-pro.shop/',
   freeShippingThreshold: 100,
   mypos: {
     enabled: true,

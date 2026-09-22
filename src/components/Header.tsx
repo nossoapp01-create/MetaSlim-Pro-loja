@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useStore } from '../context/StoreContext';
-import { Search, ShoppingBag, ShieldCheck, Dna, X, LogIn, LogOut, CloudCheck, UserCheck, User, Truck, TrendingUp } from 'lucide-react';
+import { Search, ShoppingBag, ShieldCheck, Dna, X, LogIn, LogOut, CloudCheck, UserCheck, User, Truck, TrendingUp, Stethoscope } from 'lucide-react';
 
 interface HeaderProps {
   onOpenCalculator?: () => void;
@@ -100,6 +100,22 @@ export const Header: React.FC<HeaderProps> = ({ onOpenCalculator }) => {
               <span>Calculadora BAC</span>
             </button>
           )}
+
+          {/* Consulta Médica Gratuita App Link */}
+          <a
+            href={settings.consultationUrl || 'https://consulta.metaslim-pro.shop/'}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hidden xl:flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1.5 rounded-full bg-emerald-100/70 hover:bg-emerald-200/90 text-[#006750] border border-emerald-300/80 transition-colors shadow-2xs"
+            title="Faça sua consulta médica grátis online (Dra. Valéria Prado)"
+            id="header-consulta-gratis-link"
+          >
+            <Stethoscope className="w-3.5 h-3.5 text-[#006750]" />
+            <span>Consulta Grátis</span>
+            <span className="text-[9px] bg-[#006750] text-white px-1.5 py-0.2 rounded-full font-bold">
+              IA
+            </span>
+          </a>
 
           {/* Delivery Policy Link */}
           <button

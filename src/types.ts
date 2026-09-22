@@ -115,6 +115,7 @@ export interface StoreSettings {
   whatsappNumber: string;
   resaleWhatsappNumber?: string;
   resale?: ResaleSettings;
+  consultationUrl?: string;
   freeShippingThreshold: number;
   mypos?: MyPOSConfig;
   stripe?: StripeConfig;
