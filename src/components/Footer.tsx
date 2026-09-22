@@ -3,7 +3,8 @@ import { useStore } from '../context/StoreContext';
 import { Dna, ShieldCheck, Lock, PhoneCall, Mail, MessageSquare, Truck, TrendingUp } from 'lucide-react';
 
 export const Footer: React.FC = () => {
-  const { settings, setActiveTab } = useStore();
+  const { settings, setActiveTab, allTenants, isSuperAdmin } = useStore();
+  const pendingTenantsCount = allTenants.filter((t) => t.status === 'pending').length;
 
   const handleWhatsapp = () => {
     const cleanNumber = settings.whatsappNumber.replace(/[^0-9]/g, '');
@@ -127,6 +128,43 @@ export const Footer: React.FC = () => {
               <span>Transações protegidas por gateway bancário internacional 256-bit.</span>
             </div>
           </div>
+        </div>
+
+        {/* Dedicated Super Admin Panel Card in Footer */}
+        <div className="bg-slate-900/95 rounded-2xl p-4 sm:p-5 border border-amber-500/30 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-xl">
+          <div className="flex items-center gap-3.5 text-center sm:text-left">
+            <div className="w-11 h-11 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 shrink-0">
+              <ShieldCheck className="w-6 h-6 text-amber-400" />
+            </div>
+            <div>
+              <div className="flex flex-wrap items-center gap-2 justify-center sm:justify-start">
+                <span className="text-xs sm:text-sm font-bold text-amber-300">
+                  Painel do Super Admin (Gestão de Lojas)
+                </span>
+                {pendingTenantsCount > 0 ? (
+                  <span className="bg-amber-400 text-slate-950 font-black text-[10px] px-2 py-0.5 rounded-full animate-pulse">
+                    {pendingTenantsCount} loja(s) aguardando autorização
+                  </span>
+                ) : (
+                  <span className="bg-emerald-500/20 text-emerald-300 font-bold text-[10px] px-2 py-0.5 rounded-full border border-emerald-500/30">
+                    Todas as lojas autorizadas
+                  </span>
+                )}
+              </div>
+              <p className="text-[11px] text-slate-400 mt-1 max-w-xl">
+                Área reservada para o Super Admin gerenciar lojas cadastradas, aprovar novas solicitações, auditar e configurar o ambiente multi-tenant.
+              </p>
+            </div>
+          </div>
+
+          <button
+            onClick={() => setActiveTab('super-admin')}
+            className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 text-xs font-black transition-all shadow-md active:scale-95 flex items-center gap-2 cursor-pointer shrink-0"
+            id="footer-super-admin-btn"
+          >
+            <ShieldCheck className="w-4 h-4 text-slate-950" />
+            <span>Acessar Super Admin</span>
+          </button>
         </div>
 
         {/* Disclaimer & Bottom Bar */}

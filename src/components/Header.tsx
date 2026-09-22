@@ -159,28 +159,6 @@ export const Header: React.FC<HeaderProps> = ({ onOpenCalculator }) => {
             <span>Prazos</span>
           </button>
 
-          {/* Super Admin Access Button */}
-          <button
-            onClick={() => setActiveTab('super-admin')}
-            className={`hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold transition-all cursor-pointer ${
-              activeTab === 'super-admin'
-                ? 'bg-amber-400 text-slate-950 shadow-md ring-2 ring-amber-300'
-                : isSuperAdmin
-                ? 'bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 shadow-2xs'
-                : 'bg-slate-100 hover:bg-amber-50 text-slate-600 hover:text-amber-800 border border-slate-200/60'
-            }`}
-            title="Painel do Super Admin: Gerenciar e Autorizar Lojas Cadastradas"
-            id="header-super-admin-btn"
-          >
-            <ShieldCheck className="w-3.5 h-3.5 text-amber-600" />
-            <span>Super Admin</span>
-            {pendingTenantsCount > 0 && (
-              <span className="bg-amber-500 text-slate-950 px-1.5 py-0.2 rounded-full text-[9px] font-black animate-pulse">
-                {pendingTenantsCount}
-              </span>
-            )}
-          </button>
-
           {/* Reseller / Revenda Link with Pulse Effect */}
           <button
             onClick={() => setActiveTab('revenda')}
