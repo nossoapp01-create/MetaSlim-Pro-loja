@@ -17,10 +17,18 @@ export const Footer: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* Brand Info */}
           <div className="flex flex-col gap-3 md:col-span-2">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-xl bg-[#006750] flex items-center justify-center text-[#93f5d4] shadow-md">
-                <Dna className="w-5 h-5" />
-              </div>
+            <div className="flex items-center gap-3">
+              {settings.logoUrl ? (
+                <img
+                  src={settings.logoUrl}
+                  alt={settings.storeName}
+                  className="h-10 max-h-10 max-w-[160px] object-contain rounded-lg bg-white/5 p-1"
+                />
+              ) : (
+                <div className="w-8 h-8 rounded-xl bg-[#006750] flex items-center justify-center text-[#93f5d4] shadow-md">
+                  <Dna className="w-5 h-5" />
+                </div>
+              )}
               <span className="text-xl font-extrabold text-white tracking-tight">
                 {settings.storeName}
               </span>

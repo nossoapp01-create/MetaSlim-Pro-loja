@@ -41,18 +41,40 @@ export const Header: React.FC<HeaderProps> = ({ onOpenCalculator }) => {
           className="flex items-center gap-2.5 text-left group transition-transform active:scale-95"
           id="logo-button"
         >
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-[#006750] to-[#0d8267] flex items-center justify-center text-white shadow-md shadow-emerald-900/20 group-hover:scale-105 transition-transform">
-            <Dna className="w-5 h-5 text-[#93f5d4]" />
-          </div>
-          <div className="flex flex-col">
-            <div className="flex items-center gap-1 leading-none">
-              <span className="font-extrabold text-[17px] tracking-tight text-[#006750]">{settings.storeName.split(' ')[0] || 'MetaSlim'}</span>
-              <span className="font-light text-[17px] tracking-tight text-[#131b2e]">{settings.storeName.split(' ')[1] || 'Pro'}</span>
+          {settings.logoUrl ? (
+            <div className="flex items-center gap-2.5">
+              <img
+                src={settings.logoUrl}
+                alt={settings.storeName}
+                className="h-10 max-h-10 max-w-[150px] object-contain rounded-lg"
+              />
+              <div className="flex flex-col hidden sm:flex">
+                <div className="flex items-center gap-1 leading-none">
+                  <span className="font-extrabold text-[16px] tracking-tight text-[#006750]">
+                    {settings.storeName}
+                  </span>
+                </div>
+                <span className="text-[9px] uppercase tracking-widest text-emerald-800/60 font-semibold font-mono mt-0.5">
+                  {settings.storeSubtitle || 'Clinical Peptide Labs'}
+                </span>
+              </div>
             </div>
-            <span className="text-[9px] uppercase tracking-widest text-emerald-800/60 font-semibold font-mono mt-0.5">
-              {settings.storeSubtitle || 'Clinical Peptide Labs'}
-            </span>
-          </div>
+          ) : (
+            <>
+              <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-[#006750] to-[#0d8267] flex items-center justify-center text-white shadow-md shadow-emerald-900/20 group-hover:scale-105 transition-transform">
+                <Dna className="w-5 h-5 text-[#93f5d4]" />
+              </div>
+              <div className="flex flex-col">
+                <div className="flex items-center gap-1 leading-none">
+                  <span className="font-extrabold text-[17px] tracking-tight text-[#006750]">{settings.storeName.split(' ')[0] || 'MetaSlim'}</span>
+                  <span className="font-light text-[17px] tracking-tight text-[#131b2e]">{settings.storeName.split(' ')[1] || 'Pro'}</span>
+                </div>
+                <span className="text-[9px] uppercase tracking-widest text-emerald-800/60 font-semibold font-mono mt-0.5">
+                  {settings.storeSubtitle || 'Clinical Peptide Labs'}
+                </span>
+              </div>
+            </>
+          )}
         </button>
 
         {/* Search Bar on Desktop / Expandable on Mobile */}

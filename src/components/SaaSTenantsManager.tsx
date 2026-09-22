@@ -20,6 +20,7 @@ import {
   ShoppingBag,
   Share2,
 } from 'lucide-react';
+import { ImageUploadField } from './ImageUploadField';
 
 export const SaaSTenantsManager: React.FC = () => {
   const {
@@ -42,6 +43,14 @@ export const SaaSTenantsManager: React.FC = () => {
   const [storeNameInput, setStoreNameInput] = useState(settings.storeName);
   const [storeSubtitleInput, setStoreSubtitleInput] = useState(settings.storeSubtitle);
   const [storeWhatsappInput, setStoreWhatsappInput] = useState(settings.whatsappNumber);
+  const [storeLogoInput, setStoreLogoInput] = useState(settings.logoUrl || '');
+
+  React.useEffect(() => {
+    setStoreNameInput(settings.storeName);
+    setStoreSubtitleInput(settings.storeSubtitle);
+    setStoreWhatsappInput(settings.whatsappNumber);
+    setStoreLogoInput(settings.logoUrl || '');
+  }, [settings.storeName, settings.storeSubtitle, settings.whatsappNumber, settings.logoUrl]);
 
   // Compute public store URL
   const publicStoreUrl =
@@ -65,8 +74,9 @@ export const SaaSTenantsManager: React.FC = () => {
       storeName: storeNameInput,
       storeSubtitle: storeSubtitleInput,
       whatsappNumber: storeWhatsappInput,
+      logoUrl: storeLogoInput,
     });
-    showToast('Identidade visual da sua loja SaaS salva com sucesso!');
+    showToast('Identidade visual e logo da sua loja salvas com sucesso!');
   };
 
   return (
@@ -298,6 +308,17 @@ export const SaaSTenantsManager: React.FC = () => {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="sm:col-span-2 p-3.5 rounded-xl bg-slate-50 border border-slate-200">
+            <ImageUploadField
+              label="Logotipo da Sua Loja (Upload de Arquivo)"
+              value={storeLogoInput}
+              onChange={(newLogo) => setStoreLogoInput(newLogo)}
+              helperText="Upload do logotipo personalizado da sua loja (PNG transparente, JPG ou WebP). Seus clientes verão sua logo ao entrar pelo seu link."
+              aspectRatio="logo"
+              placeholder="https://..."
+            />
+          </div>
+
           <div>
             <label className="block text-xs font-semibold text-slate-700 mb-1">
               Nome da Loja

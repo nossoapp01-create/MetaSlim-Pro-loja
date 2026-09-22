@@ -13,6 +13,7 @@ import {
 import { initialResaleSettings } from '../data/initialData';
 import { StripeSalesDashboard } from './StripeSalesDashboard';
 import { SaaSTenantsManager } from './SaaSTenantsManager';
+import { ImageUploadField } from './ImageUploadField';
 import {
   testStripeConnection,
   extractSecretKeyIfPastedInPublishableKey,
@@ -810,28 +811,16 @@ export const AdminPanel: React.FC = () => {
             </div>
           </div>
 
-          {/* Product Image URL & Preview */}
-          <div className="bg-slate-50 p-4 rounded-xl border border-slate-200/70 flex flex-col sm:flex-row items-center gap-4">
-            <div className="relative w-28 h-32 rounded-xl bg-white border border-slate-200 flex items-center justify-center p-2 shrink-0 overflow-hidden shadow-xs">
-              <img
-                src={selectedProduct.image}
-                alt={selectedProduct.name}
-                className="w-full h-full object-contain"
-              />
-            </div>
-            <div className="flex-1 w-full flex flex-col gap-2">
-              <label className="text-xs font-bold text-slate-700">URL da Imagem do Frasco</label>
-              <input
-                type="text"
-                value={selectedProduct.image}
-                onChange={(e) => handleProductFieldChange('image', e.target.value)}
-                placeholder="https://..."
-                className="w-full h-9 px-3 rounded-lg bg-white border border-slate-200 text-xs font-mono text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#006750]"
-              />
-              <span className="text-[11px] text-slate-500">
-                Pode usar imagens de laboratório com frasco com tampa verde e caixa clínica MetaSlim Pro.
-              </span>
-            </div>
+          {/* Product Image Upload & Preview */}
+          <div className="bg-slate-50 p-4 rounded-xl border border-slate-200/70">
+            <ImageUploadField
+              label="Imagem do Frasco / Caixa do Peptídeo"
+              value={selectedProduct.image}
+              onChange={(newImg) => handleProductFieldChange('image', newImg)}
+              helperText="Upload direto do arquivo de imagem do frasco com tampa verde e caixa clínica MetaSlim Pro, ou informe uma URL externa."
+              aspectRatio="portrait"
+              placeholder="https://..."
+            />
           </div>
 
           {/* Form Grid */}
@@ -1139,13 +1128,14 @@ export const AdminPanel: React.FC = () => {
                         </div>
                       </div>
 
-                      <div className="flex flex-col gap-1">
-                        <label className="text-[11px] font-bold text-slate-600">URL da Imagem do Banner</label>
-                        <input
-                          type="text"
+                      <div className="pt-2 border-t border-slate-100">
+                        <ImageUploadField
+                          label="Imagem do Banner"
                           value={slide.image}
-                          onChange={(e) => handleBannerFieldChange(slide.id, 'image', e.target.value)}
-                          className="h-9 px-3 rounded-lg bg-slate-50 border border-slate-200 text-xs font-mono text-slate-900"
+                          onChange={(newImg) => handleBannerFieldChange(slide.id, 'image', newImg)}
+                          helperText="Faça upload do banner (PNG, JPG, WebP) ou insira a URL externa."
+                          aspectRatio="banner"
+                          placeholder="https://..."
                         />
                       </div>
                     </div>
@@ -1217,30 +1207,23 @@ export const AdminPanel: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div className="flex flex-col gap-1">
-                    <label className="text-[10px] font-bold text-slate-500 uppercase">
-                      URL Foto Antes
-                    </label>
-                    <input
-                      type="text"
-                      value={test.beforeImage}
-                      onChange={(e) => handleTestimonialFieldChange(test.id, 'beforeImage', e.target.value)}
-                      className="h-8 px-2.5 rounded-lg bg-white border border-slate-200 text-[11px] font-mono text-slate-800"
-                    />
-                  </div>
-
-                  <div className="flex flex-col gap-1">
-                    <label className="text-[10px] font-bold text-slate-500 uppercase">
-                      URL Foto Depois
-                    </label>
-                    <input
-                      type="text"
-                      value={test.afterImage}
-                      onChange={(e) => handleTestimonialFieldChange(test.id, 'afterImage', e.target.value)}
-                      className="h-8 px-2.5 rounded-lg bg-white border border-slate-200 text-[11px] font-mono text-slate-800"
-                    />
-                  </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-3 bg-slate-50/70 rounded-xl border border-slate-100">
+                  <ImageUploadField
+                    label="Foto Antes"
+                    value={test.beforeImage}
+                    onChange={(newImg) => handleTestimonialFieldChange(test.id, 'beforeImage', newImg)}
+                    aspectRatio="portrait"
+                    placeholder="https://..."
+                    helperText="Upload ou link da foto antes"
+                  />
+                  <ImageUploadField
+                    label="Foto Depois"
+                    value={test.afterImage}
+                    onChange={(newImg) => handleTestimonialFieldChange(test.id, 'afterImage', newImg)}
+                    aspectRatio="portrait"
+                    placeholder="https://..."
+                    helperText="Upload ou link da foto depois"
+                  />
                 </div>
 
                 <div className="flex flex-col gap-1">
@@ -1788,6 +1771,18 @@ export const AdminPanel: React.FC = () => {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* Logo da Loja (Upload direto ou URL) */}
+            <div className="sm:col-span-2 p-4 rounded-xl bg-slate-50/80 border border-slate-200">
+              <ImageUploadField
+                label="Logotipo Oficial da Loja (Upload de Imagem)"
+                value={settings.logoUrl || ''}
+                onChange={(newLogo) => updateSettings({ logoUrl: newLogo })}
+                helperText="Arraste ou selecione a imagem do logotipo da sua marca (PNG com fundo transparente, JPG ou SVG). O logo será exibido com máxima nitidez no cabeçalho e rodapé."
+                aspectRatio="logo"
+                placeholder="https://..."
+              />
+            </div>
+
             <div className="flex flex-col gap-1">
               <label className="text-xs font-bold text-slate-700">Nome da Loja</label>
               <input

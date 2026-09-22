@@ -109,6 +109,7 @@ export interface StoreSettings {
   storeName: string;
   storeSubtitle: string;
   logoText: string;
+  logoUrl?: string;
   currencySymbol: '€' | 'R$';
   currencyRateEurToBrl: number;
   defaultPaymentLink: string;
@@ -181,6 +182,7 @@ export interface TenantAccount {
   ownerName: string;
   storeName: string;
   storeSlug: string;
+  logoUrl?: string;
   phone?: string;
   currency?: 'EUR' | 'BRL';
   plan: 'starter' | 'pro' | 'clinic';
