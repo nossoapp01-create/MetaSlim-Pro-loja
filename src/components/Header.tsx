@@ -33,7 +33,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenCalculator }) => {
 
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
-  const pendingTenantsCount = allTenants.filter((t) => t.status === 'pending').length;
+  const pendingTenantsCount = (allTenants || []).filter((t) => t?.status === 'pending').length;
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-[#ffffff]/90 backdrop-blur-md border-b border-emerald-950/5 shadow-[0_1px_8px_rgba(0,0,0,0.03)]">

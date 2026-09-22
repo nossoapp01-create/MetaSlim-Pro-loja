@@ -4,10 +4,10 @@ import { Dna, ShieldCheck, Lock, PhoneCall, Mail, MessageSquare, Truck, Trending
 
 export const Footer: React.FC = () => {
   const { settings, setActiveTab, allTenants, isSuperAdmin } = useStore();
-  const pendingTenantsCount = allTenants.filter((t) => t.status === 'pending').length;
+  const pendingTenantsCount = (allTenants || []).filter((t) => t?.status === 'pending').length;
 
   const handleWhatsapp = () => {
-    const cleanNumber = settings.whatsappNumber.replace(/[^0-9]/g, '');
+    const cleanNumber = (settings?.whatsappNumber || '').replace(/[^0-9]/g, '');
     window.open(`https://wa.me/${cleanNumber}?text=Olá,%20gostaria%20de%20informações%20sobre%20os%20peptídeos%20MetaSlim%20Pro`, '_blank');
   };
 

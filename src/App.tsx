@@ -16,6 +16,7 @@ import { BottomNav } from './components/BottomNav';
 import { DosageCalculatorModal } from './components/DosageCalculatorModal';
 import { FloatingConsultationButton } from './components/FloatingConsultationButton';
 import { SaaSAuthModal } from './components/SaaSAuthModal';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { ShieldCheck, Sparkles, AlertCircle, ArrowRight, Dna, Calculator, X, Truck } from 'lucide-react';
 
 const MainContent: React.FC = () => {
@@ -301,9 +302,11 @@ const MainContent: React.FC = () => {
 
 export function App() {
   return (
-    <StoreProvider>
-      <MainContent />
-    </StoreProvider>
+    <ErrorBoundary>
+      <StoreProvider>
+        <MainContent />
+      </StoreProvider>
+    </ErrorBoundary>
   );
 }
 

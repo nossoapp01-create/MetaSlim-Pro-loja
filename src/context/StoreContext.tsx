@@ -182,12 +182,20 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     try {
       const saved = localStorage.getItem('metaslim_all_tenants');
       if (saved) {
-        const parsed = JSON.parse(saved) as TenantAccount[];
-        const existingIds = new Set(parsed.map((t) => t.tenantId));
-        const missing = initialTenants.filter((t) => !existingIds.has(t.tenantId));
-        return missing.length > 0 ? [...parsed, ...missing] : parsed;
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const validated = parsed.map((t) => ({
+            ...t,
+            status: t.status || 'active',
+          })) as TenantAccount[];
+          const existingIds = new Set(validated.map((t) => t.tenantId));
+          const missing = initialTenants.filter((t) => !existingIds.has(t.tenantId));
+          return missing.length > 0 ? [...validated, ...missing] : validated;
+        }
       }
-    } catch {}
+    } catch (e) {
+      console.warn('Erro ao carregar tenants do localStorage, usando padrões:', e);
+    }
     return initialTenants;
   });
 
@@ -205,12 +213,12 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       const saved = localStorage.getItem('metaslim_active_tenant_id');
       if (saved) return saved;
     } catch {}
-    return initialTenants[0].tenantId;
+    return (initialTenants[0] && initialTenants[0].tenantId) || 'metaslim-pro-official';
   });
 
   const currentTenant =
-    allTenants.find((t) => t.tenantId === activeTenantId || t.storeSlug === activeTenantId) ||
-    allTenants[0] ||
+    (Array.isArray(allTenants) && allTenants.find((t) => t?.tenantId === activeTenantId || t?.storeSlug === activeTenantId)) ||
+    (Array.isArray(allTenants) && allTenants[0]) ||
     initialTenants[0];
 
   const [authModalOpen, setAuthModalOpen] = useState<boolean>(false);
