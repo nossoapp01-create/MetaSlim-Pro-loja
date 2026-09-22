@@ -28,6 +28,7 @@ export const SaaSTenantsManager: React.FC = () => {
     activeTenantId,
     allTenants,
     isTenantAdmin,
+    isSuperAdmin,
     switchTenant,
     openAuthModal,
     settings,
@@ -96,6 +97,17 @@ export const SaaSTenantsManager: React.FC = () => {
                 <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-white/15 text-white">
                   Plano: {currentTenant.plan.toUpperCase()}
                 </span>
+                {currentTenant.status === 'pending' ? (
+                  <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-amber-400 text-slate-950 flex items-center gap-1 shadow-sm">
+                    <AlertCircle className="w-3 h-3 text-slate-950" />
+                    AGUARDANDO AUTORIZAÇÃO DO SUPER ADMIN
+                  </span>
+                ) : (
+                  <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-400/30 text-[#93f5d4] border border-emerald-400/40 flex items-center gap-1">
+                    <Check className="w-3 h-3 text-[#93f5d4]" />
+                    LOJA AUTORIZADA &amp; ATIVA
+                  </span>
+                )}
               </div>
               <h2 className="text-xl sm:text-2xl font-black tracking-tight mt-1.5 text-white">
                 Loja Ativa: {currentTenant.storeName}
@@ -107,6 +119,14 @@ export const SaaSTenantsManager: React.FC = () => {
           </div>
 
           <div className="flex flex-wrap md:flex-col gap-2 shrink-0">
+            <button
+              onClick={() => setActiveTab('super-admin')}
+              className="px-4 py-2.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 text-xs font-bold transition-all shadow-md active:scale-95 flex items-center gap-2 cursor-pointer ring-2 ring-amber-300"
+              title="Acessar painel do Super Admin para autorizar ou suspender lojas"
+            >
+              <ShieldCheck className="w-4 h-4 text-slate-950" />
+              <span>Painel Super Admin (Lojas)</span>
+            </button>
             <button
               onClick={() => openAuthModal('login')}
               className="px-4 py-2.5 rounded-xl bg-white text-[#006750] hover:bg-emerald-50 text-xs font-bold transition-all shadow-md active:scale-95 flex items-center gap-2 cursor-pointer"

@@ -55,7 +55,7 @@ interface StoreContextType {
   settings: StoreSettings;
   cart: CartItem[];
   orders: OrderRecord[];
-  activeTab: 'inicio' | 'produtos' | 'produto-detalhe' | 'resultados' | 'carrinho' | 'admin' | 'prazos-entrega' | 'revenda';
+  activeTab: 'inicio' | 'produtos' | 'produto-detalhe' | 'resultados' | 'carrinho' | 'admin' | 'prazos-entrega' | 'revenda' | 'super-admin';
   selectedProductId: string;
   currency: 'EUR' | 'BRL';
   selectedCategory: string;
@@ -66,6 +66,10 @@ interface StoreContextType {
   deliveryNotes: string;
   firebaseUser: FirebaseUser | null;
   isAdminUser: boolean;
+  isSuperAdmin: boolean;
+  superAdminKeyUnlocked: boolean;
+  unlockSuperAdmin: (pin: string) => boolean;
+  lockSuperAdmin: () => void;
   isFirebaseConnected: boolean;
   isSyncing: boolean;
   currentTenant: TenantAccount;
@@ -73,6 +77,20 @@ interface StoreContextType {
   allTenants: TenantAccount[];
   isTenantAdmin: boolean;
   switchTenant: (tenantId: string) => void;
+  approveTenant: (tenantId: string) => Promise<void>;
+  suspendTenant: (tenantId: string, reason?: string) => Promise<void>;
+  reactivateTenant: (tenantId: string) => Promise<void>;
+  deleteTenant: (tenantId: string) => Promise<void>;
+  updateTenantAccount: (tenantId: string, updates: Partial<TenantAccount>) => Promise<void>;
+  createTenantBySuperAdmin: (data: {
+    storeName: string;
+    ownerName: string;
+    ownerEmail: string;
+    phone?: string;
+    plan: 'starter' | 'pro' | 'clinic';
+    currency?: 'EUR' | 'BRL';
+    notes?: string;
+  }) => Promise<TenantAccount>;
   createTenantStore: (
     storeName: string,
     ownerName: string,
@@ -86,7 +104,7 @@ interface StoreContextType {
   setAuthModalOpen: (open: boolean) => void;
   authModalDefaultTab: 'login' | 'register' | 'demo';
   openAuthModal: (tab?: 'login' | 'register' | 'demo') => void;
-  setActiveTab: (tab: 'inicio' | 'produtos' | 'produto-detalhe' | 'resultados' | 'carrinho' | 'admin' | 'prazos-entrega' | 'revenda') => void;
+  setActiveTab: (tab: 'inicio' | 'produtos' | 'produto-detalhe' | 'resultados' | 'carrinho' | 'admin' | 'prazos-entrega' | 'revenda' | 'super-admin') => void;
   setSelectedProductId: (id: string) => void;
   setSelectedCategory: (cat: string) => void;
   setSearchQuery: (query: string) => void;
@@ -299,7 +317,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   });
 
-  const [activeTab, setActiveTab] = useState<'inicio' | 'produtos' | 'produto-detalhe' | 'resultados' | 'carrinho' | 'admin' | 'prazos-entrega' | 'revenda'>('inicio');
+  const [activeTab, setActiveTab] = useState<'inicio' | 'produtos' | 'produto-detalhe' | 'resultados' | 'carrinho' | 'admin' | 'prazos-entrega' | 'revenda' | 'super-admin'>('inicio');
   const [selectedProductId, setSelectedProductId] = useState<string>('retatrutide-10mg');
   const [selectedCategory, setSelectedCategory] = useState<string>('todos');
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -343,13 +361,27 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   });
 
+  const [superAdminKeyUnlocked, setSuperAdminKeyUnlocked] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('metaslim_super_admin_unlocked') === 'true';
+    } catch {}
+    return false;
+  });
+
   const isAuthenticated = Boolean(firebaseUser || localAdminUser || customerUser);
   const [authErrorModalOpen, setAuthErrorModalOpen] = useState<boolean>(false);
   const [authErrorInfo, setAuthErrorInfo] = useState<AuthErrorInfo | null>(null);
   const [isFirebaseConnected, setIsFirebaseConnected] = useState<boolean>(false);
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
 
+  const isSuperAdmin = Boolean(
+    (firebaseUser && firebaseUser.email?.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase()) ||
+    (localAdminUser && localAdminUser.email?.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase()) ||
+    superAdminKeyUnlocked
+  );
+
   const isAdminUser = Boolean(
+    isSuperAdmin ||
     (firebaseUser &&
       (firebaseUser.email?.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase() ||
         firebaseUser.email?.includes('admin'))) ||
@@ -532,6 +564,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         console.warn('Notice from Firebase email registration:', authErr?.message);
       }
 
+      const initialStatus = isSuperAdmin ? 'active' : 'pending';
       const newTenant: TenantAccount = {
         tenantId: newTenantId,
         ownerUid,
@@ -542,7 +575,9 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         phone: phone?.trim() || '',
         plan: 'starter',
         createdAt: new Date().toISOString(),
-        status: 'active',
+        approvedAt: isSuperAdmin ? new Date().toISOString() : undefined,
+        status: initialStatus,
+        notes: isSuperAdmin ? undefined : 'Aguardando autorização e ativação pelo Super Admin',
       };
 
       const updatedTenants = [...allTenants, newTenant];
@@ -588,13 +623,206 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       } catch {}
 
       setActiveTab('admin');
-      showToast(`Parabéns! Sua loja "${storeName}" foi criada com seu painel 100% isolado!`, 6000);
+      if (initialStatus === 'pending') {
+        showToast(`Loja "${storeName}" cadastrada com sucesso! Ela foi enviada para autorização do Super Admin.`, 8000);
+      } else {
+        showToast(`Parabéns! Sua loja "${storeName}" foi criada com seu painel 100% isolado!`, 6000);
+      }
       return { success: true };
     } catch (err: any) {
       showToast(`Erro ao criar loja: ${err?.message || 'Tente novamente.'}`);
       return { success: false, message: err?.message };
     }
   };
+
+  // Super Admin Methods
+  const unlockSuperAdmin = useCallback((pin: string) => {
+    const clean = pin.trim().toLowerCase();
+    if (clean === 'superadmin2026' || clean === 'admin123' || clean === 'metaslim99' || clean === 'nossoapp01') {
+      setSuperAdminKeyUnlocked(true);
+      try {
+        localStorage.setItem('metaslim_super_admin_unlocked', 'true');
+      } catch {}
+      showToast('Acesso de Super Admin liberado com sucesso!');
+      return true;
+    }
+    showToast('Chave de acesso de Super Admin incorreta.');
+    return false;
+  }, [showToast]);
+
+  const lockSuperAdmin = useCallback(() => {
+    setSuperAdminKeyUnlocked(false);
+    try {
+      localStorage.removeItem('metaslim_super_admin_unlocked');
+    } catch {}
+    showToast('Sessão de Super Admin encerrada.');
+  }, [showToast]);
+
+  const approveTenant = useCallback(
+    async (tenantId: string) => {
+      const target = allTenants.find((t) => t.tenantId === tenantId);
+      if (!target) return;
+
+      const updated = allTenants.map((t) =>
+        t.tenantId === tenantId
+          ? {
+              ...t,
+              status: 'active' as const,
+              approvedAt: new Date().toISOString(),
+              notes: undefined,
+            }
+          : t
+      );
+      setAllTenants(updated);
+      try {
+        localStorage.setItem('metaslim_all_tenants', JSON.stringify(updated));
+        await setDoc(
+          doc(db, 'tenants', tenantId),
+          { status: 'active', approvedAt: new Date().toISOString(), notes: null },
+          { merge: true }
+        );
+      } catch (e) {
+        console.warn('Sync notice:', e);
+      }
+      showToast(`Loja "${target.storeName}" AUTORIZADA com sucesso pelo Super Admin! Vendas liberadas.`);
+    },
+    [allTenants, showToast]
+  );
+
+  const suspendTenant = useCallback(
+    async (tenantId: string, reason?: string) => {
+      const target = allTenants.find((t) => t.tenantId === tenantId);
+      if (!target) return;
+      if (tenantId === 'tenant_metaslim_prime') {
+        showToast('A loja matriz padrão não pode ser suspensa.');
+        return;
+      }
+
+      const updated = allTenants.map((t) =>
+        t.tenantId === tenantId
+          ? {
+              ...t,
+              status: 'suspended' as const,
+              notes: reason || 'Loja suspensa preventivamente pelo Super Admin.',
+            }
+          : t
+      );
+      setAllTenants(updated);
+      try {
+        localStorage.setItem('metaslim_all_tenants', JSON.stringify(updated));
+        await setDoc(
+          doc(db, 'tenants', tenantId),
+          { status: 'suspended', notes: reason || 'Suspensa pelo Super Admin' },
+          { merge: true }
+        );
+      } catch (e) {
+        console.warn('Sync notice:', e);
+      }
+      showToast(`Loja "${target.storeName}" SUSPENSA pelo Super Admin.`);
+    },
+    [allTenants, showToast]
+  );
+
+  const reactivateTenant = useCallback(
+    async (tenantId: string) => {
+      await approveTenant(tenantId);
+    },
+    [approveTenant]
+  );
+
+  const deleteTenant = useCallback(
+    async (tenantId: string) => {
+      if (tenantId === 'tenant_metaslim_prime') {
+        showToast('A loja matriz padrão não pode ser removida.');
+        return;
+      }
+      const target = allTenants.find((t) => t.tenantId === tenantId);
+      const updated = allTenants.filter((t) => t.tenantId !== tenantId);
+      setAllTenants(updated);
+      try {
+        localStorage.setItem('metaslim_all_tenants', JSON.stringify(updated));
+        await deleteDoc(doc(db, 'tenants', tenantId));
+      } catch (e) {
+        console.warn('Sync notice:', e);
+      }
+      showToast(`Loja "${target?.storeName || tenantId}" excluída com sucesso.`);
+    },
+    [allTenants, showToast]
+  );
+
+  const updateTenantAccount = useCallback(
+    async (tenantId: string, updates: Partial<TenantAccount>) => {
+      const updated = allTenants.map((t) =>
+        t.tenantId === tenantId ? { ...t, ...updates } : t
+      );
+      setAllTenants(updated);
+      try {
+        localStorage.setItem('metaslim_all_tenants', JSON.stringify(updated));
+        await setDoc(doc(db, 'tenants', tenantId), updates, { merge: true });
+      } catch (e) {
+        console.warn('Sync notice:', e);
+      }
+      showToast('Dados da loja atualizados com sucesso!');
+    },
+    [allTenants, showToast]
+  );
+
+  const createTenantBySuperAdmin = useCallback(
+    async (data: {
+      storeName: string;
+      ownerName: string;
+      ownerEmail: string;
+      phone?: string;
+      plan: 'starter' | 'pro' | 'clinic';
+      currency?: 'EUR' | 'BRL';
+      notes?: string;
+    }): Promise<TenantAccount> => {
+      const cleanSlug =
+        data.storeName
+          .toLowerCase()
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '')
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/(^-|-$)/g, '') || 'nova-loja';
+
+      const newTenantId = `tenant_${cleanSlug}_${Date.now().toString(36)}`;
+      const newTenant: TenantAccount = {
+        tenantId: newTenantId,
+        ownerUid: `usr_${Date.now().toString(36)}`,
+        ownerEmail: data.ownerEmail.toLowerCase().trim(),
+        ownerName: data.ownerName.trim(),
+        storeName: data.storeName.trim(),
+        storeSlug: cleanSlug,
+        phone: data.phone?.trim() || '',
+        plan: data.plan || 'pro',
+        currency: data.currency || 'EUR',
+        createdAt: new Date().toISOString(),
+        approvedAt: new Date().toISOString(),
+        status: 'active',
+        notes: data.notes,
+      };
+
+      const updated = [...allTenants, newTenant];
+      setAllTenants(updated);
+      try {
+        localStorage.setItem('metaslim_all_tenants', JSON.stringify(updated));
+        const initialTenantProducts = getInitialProductsForTenant(newTenantId, data.storeName);
+        const initialTenantSettings = getInitialSettingsForTenant(newTenant);
+        localStorage.setItem(`metaslim_tenant_products_${newTenantId}`, JSON.stringify(initialTenantProducts));
+        localStorage.setItem(`metaslim_tenant_settings_${newTenantId}`, JSON.stringify(initialTenantSettings));
+        localStorage.setItem(`metaslim_tenant_orders_${newTenantId}`, JSON.stringify([]));
+
+        await setDoc(doc(db, 'tenants', newTenantId), newTenant);
+        await setDoc(doc(db, 'tenants', newTenantId, 'settings', 'general'), initialTenantSettings);
+      } catch (e) {
+        console.warn('Sync notice:', e);
+      }
+
+      showToast(`Nova loja "${newTenant.storeName}" criada e autorizada com sucesso!`);
+      return newTenant;
+    },
+    [allTenants, showToast]
+  );
 
   // Login tenant with email and password
   const loginTenantWithPassword = async (
@@ -1529,6 +1757,10 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         deliveryNotes,
         firebaseUser,
         isAdminUser,
+        isSuperAdmin,
+        superAdminKeyUnlocked,
+        unlockSuperAdmin,
+        lockSuperAdmin,
         isFirebaseConnected,
         isSyncing,
         currentTenant,
@@ -1536,6 +1768,12 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         allTenants,
         isTenantAdmin,
         switchTenant,
+        approveTenant,
+        suspendTenant,
+        reactivateTenant,
+        deleteTenant,
+        updateTenantAccount,
+        createTenantBySuperAdmin,
         createTenantStore,
         loginTenantWithPassword,
         resetTenantPassword,

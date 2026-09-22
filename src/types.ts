@@ -187,5 +187,7 @@ export interface TenantAccount {
   currency?: 'EUR' | 'BRL';
   plan: 'starter' | 'pro' | 'clinic';
   createdAt: string;
-  status: 'active' | 'suspended';
+  approvedAt?: string;
+  status: 'active' | 'pending' | 'suspended';
+  notes?: string;
 }

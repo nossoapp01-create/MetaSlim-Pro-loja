@@ -21,6 +21,8 @@ export const Header: React.FC<HeaderProps> = ({ onOpenCalculator }) => {
     customerUser,
     isAuthenticated,
     isAdminUser,
+    isSuperAdmin,
+    allTenants,
     loginWithGoogle,
     logout,
     isFirebaseConnected,
@@ -31,6 +33,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenCalculator }) => {
 
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const pendingTenantsCount = allTenants.filter((t) => t.status === 'pending').length;
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-[#ffffff]/90 backdrop-blur-md border-b border-emerald-950/5 shadow-[0_1px_8px_rgba(0,0,0,0.03)]">
@@ -142,20 +145,6 @@ export const Header: React.FC<HeaderProps> = ({ onOpenCalculator }) => {
             </span>
           </a>
 
-          {/* SaaS Active Tenant Selector Button */}
-          <button
-            onClick={() => openAuthModal('demo')}
-            className="hidden lg:flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-slate-100 hover:bg-emerald-50 border border-slate-200/80 text-slate-700 hover:text-[#006750] text-[11px] font-semibold transition-all cursor-pointer shadow-2xs"
-            title="SaaS Multi-Tenant: Alternar Loja ou Ver Ambientes Isolados"
-            id="header-saas-tenant-btn"
-          >
-            <Building2 className="w-3.5 h-3.5 text-[#006750]" />
-            <span className="max-w-[110px] truncate font-medium">{currentTenant.storeName}</span>
-            <span className="text-[9px] bg-[#006750] text-white px-1.5 py-0.2 rounded-full font-bold">
-              SaaS
-            </span>
-          </button>
-
           {/* Delivery Policy Link */}
           <button
             onClick={() => setActiveTab('prazos-entrega')}
@@ -170,15 +159,26 @@ export const Header: React.FC<HeaderProps> = ({ onOpenCalculator }) => {
             <span>Prazos</span>
           </button>
 
-          {/* SaaS Login / Portal Button */}
+          {/* Super Admin Access Button */}
           <button
-            onClick={() => openAuthModal('login')}
-            className="flex items-center gap-1 text-[11px] font-bold px-2.5 py-1.5 rounded-full bg-emerald-50 hover:bg-emerald-100 text-[#006750] border border-emerald-200/70 transition-all cursor-pointer"
-            title="Acessar painel da sua loja ou criar uma nova conta SaaS"
-            id="header-saas-login-btn"
+            onClick={() => setActiveTab('super-admin')}
+            className={`hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold transition-all cursor-pointer ${
+              activeTab === 'super-admin'
+                ? 'bg-amber-400 text-slate-950 shadow-md ring-2 ring-amber-300'
+                : isSuperAdmin
+                ? 'bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 shadow-2xs'
+                : 'bg-slate-100 hover:bg-amber-50 text-slate-600 hover:text-amber-800 border border-slate-200/60'
+            }`}
+            title="Painel do Super Admin: Gerenciar e Autorizar Lojas Cadastradas"
+            id="header-super-admin-btn"
           >
-            <Store className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Minha Loja</span>
+            <ShieldCheck className="w-3.5 h-3.5 text-amber-600" />
+            <span>Super Admin</span>
+            {pendingTenantsCount > 0 && (
+              <span className="bg-amber-500 text-slate-950 px-1.5 py-0.2 rounded-full text-[9px] font-black animate-pulse">
+                {pendingTenantsCount}
+              </span>
+            )}
           </button>
 
           {/* Reseller / Revenda Link with Pulse Effect */}
@@ -314,22 +314,23 @@ export const Header: React.FC<HeaderProps> = ({ onOpenCalculator }) => {
                     </button>
                   )}
 
-                  <div className="px-3 py-1.5 border-t border-slate-100 my-1 bg-slate-50 rounded-lg">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[10px] uppercase font-bold text-slate-400 font-mono">Loja SaaS</span>
-                      <span className="text-[9px] bg-emerald-100 text-[#006750] px-1 rounded font-bold">Isolada</span>
+                  <button
+                    onClick={() => {
+                      setActiveTab('super-admin');
+                      setIsUserMenuOpen(false);
+                    }}
+                    className="w-full text-left px-3 py-2 text-xs text-amber-900 bg-amber-50 hover:bg-amber-100 rounded-lg flex items-center justify-between font-bold border border-amber-200 my-1"
+                  >
+                    <div className="flex items-center gap-2">
+                      <ShieldCheck className="w-3.5 h-3.5 text-amber-600" />
+                      <span>Super Admin (Lojas)</span>
                     </div>
-                    <p className="text-xs font-semibold text-slate-800 truncate mt-0.5">{currentTenant.storeName}</p>
-                    <button
-                      onClick={() => {
-                        setIsUserMenuOpen(false);
-                        openAuthModal('demo');
-                      }}
-                      className="mt-1 text-[11px] text-[#006750] hover:underline font-semibold block"
-                    >
-                      Alternar Loja SaaS →
-                    </button>
-                  </div>
+                    {pendingTenantsCount > 0 && (
+                      <span className="bg-amber-500 text-slate-950 px-1.5 py-0.2 rounded-full text-[9px] font-black">
+                        {pendingTenantsCount}
+                      </span>
+                    )}
+                  </button>
 
                   <button
                     onClick={() => {

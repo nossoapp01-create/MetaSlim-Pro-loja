@@ -639,6 +639,20 @@ export const AdminPanel: React.FC = () => {
       {/* Admin Tabs - Full-width Wrapped Layout that never overflows or cuts off */}
       <div className="flex flex-wrap items-center gap-2 p-1.5 bg-slate-100/90 rounded-2xl border border-slate-200/80">
         <button
+          onClick={() => setActiveTab('super-admin')}
+          className="px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer bg-amber-400 hover:bg-amber-300 text-slate-950 shadow-md ring-2 ring-amber-300 active:scale-98"
+          title="Acessar o Painel do Super Admin para autorização de lojas"
+        >
+          <ShieldCheck className="w-3.5 h-3.5 text-slate-950" />
+          <span>Super Admin (Autorizar Lojas)</span>
+          {allTenants.filter((t) => t.status === 'pending').length > 0 && (
+            <span className="text-[10px] font-mono px-1.5 py-0.2 rounded-full font-black bg-slate-950 text-amber-300 animate-pulse">
+              {allTenants.filter((t) => t.status === 'pending').length} pendente(s)
+            </span>
+          )}
+        </button>
+
+        <button
           onClick={() => setActiveAdminTab('saas-tenants')}
           className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
             activeAdminTab === 'saas-tenants'

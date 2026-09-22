@@ -8,6 +8,7 @@ import { ProductDetail } from './components/ProductDetail';
 import { BeforeAfterSection } from './components/BeforeAfterSection';
 import { CartView } from './components/CartView';
 import { AdminPanel } from './components/AdminPanel';
+import { SuperAdminPanel } from './components/SuperAdminPanel';
 import { DeliveryPolicy } from './components/DeliveryPolicy';
 import { ResaleWholesale } from './components/ResaleWholesale';
 import { Footer } from './components/Footer';
@@ -262,6 +263,9 @@ const MainContent: React.FC = () => {
 
         {/* VIEW 6: ADMIN PANEL */}
         {activeTab === 'admin' && <AdminPanel />}
+
+        {/* VIEW 6.1: SUPER ADMIN PANEL (GESTÃO E AUTORIZAÇÃO DE LOJAS) */}
+        {activeTab === 'super-admin' && <SuperAdminPanel />}
 
         {/* VIEW 7: PRAZOS E CONDIÇÕES DE ENTREGA */}
         {activeTab === 'prazos-entrega' && <DeliveryPolicy />}

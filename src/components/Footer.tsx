@@ -97,6 +97,13 @@ export const Footer: React.FC = () => {
             >
               Painel do Administrador
             </button>
+            <button
+              onClick={() => setActiveTab('super-admin')}
+              className="text-xs text-amber-400 hover:text-amber-300 text-left font-semibold transition-colors flex items-center gap-1.5"
+            >
+              <ShieldCheck className="w-3.5 h-3.5 text-amber-400" />
+              <span>Super Admin (Gestão de Lojas)</span>
+            </button>
           </div>
 
           {/* Compliance & Lab Certification */}

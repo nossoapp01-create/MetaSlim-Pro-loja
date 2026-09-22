@@ -1080,6 +1080,7 @@ export const initialTenants: TenantAccount[] = [
     phone: '+351 912 345 678',
     plan: 'clinic',
     createdAt: '2026-01-15T10:00:00.000Z',
+    approvedAt: '2026-01-15T12:00:00.000Z',
     status: 'active',
   },
   {
@@ -1092,6 +1093,7 @@ export const initialTenants: TenantAccount[] = [
     phone: '+351 925 819 201',
     plan: 'pro',
     createdAt: '2026-02-01T14:30:00.000Z',
+    approvedAt: '2026-02-01T16:00:00.000Z',
     status: 'active',
   },
   {
@@ -1104,7 +1106,21 @@ export const initialTenants: TenantAccount[] = [
     phone: '+55 11 99887-6655',
     plan: 'starter',
     createdAt: '2026-02-20T09:15:00.000Z',
-    status: 'active',
+    status: 'pending',
+    notes: 'Aguardando validação cadastral e aprovação de contrato pelo Super Admin',
+  },
+  {
+    tenantId: 'tenant_dra_camila_endocrino',
+    ownerUid: 'usr_camila_04',
+    ownerEmail: 'dra.camila@clinicametabolica.com',
+    ownerName: 'Dra. Camila Nogueira',
+    storeName: 'Dra. Camila - Medicina & Peptídeos',
+    storeSlug: 'dra-camila-peptideos',
+    phone: '+351 934 112 890',
+    plan: 'clinic',
+    createdAt: '2026-03-01T11:20:00.000Z',
+    status: 'pending',
+    notes: 'Solicitação de abertura de consultório digital. CRM e certificação anexados.',
   },
 ];
 

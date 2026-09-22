@@ -1,6 +1,6 @@
 {
   "name": "MetaSlim-Pro-loja",
-  "description": "Plataforma SaaS multi-tenant robusta para lojas de peptídeos com isolamento total de dados entre clientes, autenticação independente com login e senha por lojista, painel administrativo dedicado, gateways Stripe e myPOS, e consulta gratuita com Dra. Valéria Prado.",
+  "description": "Plataforma SaaS multi-tenant robusta para lojas de peptídeos com isolamento total de dados, Painel de Super Admin com controle e autorização de lojas cadastradas, autenticação independente por lojista, upload de imagens via arquivo, gateways Stripe e myPOS, e consulta com Dra. Valéria Prado.",
   "requestFramePermissions": [],
   "majorCapabilities": [
     "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
