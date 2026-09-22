@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useStore } from '../context/StoreContext';
 import { TenantAccount } from '../types';
+import { AIExtractorAgent } from './AIExtractorAgent';
 import {
   ShieldCheck,
   Building2,
@@ -29,6 +30,9 @@ import {
   X,
   Eye,
   Sliders,
+  Sparkles,
+  Bot,
+  FileText,
 } from 'lucide-react';
 
 export const SuperAdminPanel: React.FC = () => {
@@ -51,6 +55,7 @@ export const SuperAdminPanel: React.FC = () => {
     formatPrice,
   } = useStore();
 
+  const [activeSuperAdminTab, setActiveSuperAdminTab] = useState<'tenants' | 'ai-extractor'>('tenants');
   const [pinInput, setPinInput] = useState('');
   const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'active' | 'suspended'>('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -246,6 +251,17 @@ export const SuperAdminPanel: React.FC = () => {
 
           <div className="flex flex-wrap items-center gap-2.5">
             <button
+              onClick={() => setActiveSuperAdminTab(activeSuperAdminTab === 'ai-extractor' ? 'tenants' : 'ai-extractor')}
+              className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all shadow-md active:scale-95 flex items-center gap-1.5 cursor-pointer ${
+                activeSuperAdminTab === 'ai-extractor'
+                  ? 'bg-white text-slate-900 border border-slate-200 hover:bg-slate-100'
+                  : 'bg-emerald-500 hover:bg-emerald-400 text-slate-950'
+              }`}
+            >
+              <Bot className="w-4 h-4" />
+              <span>{activeSuperAdminTab === 'ai-extractor' ? 'Ver Gestão de Lojas' : 'Agente IA Extrator'}</span>
+            </button>
+            <button
               onClick={() => setIsCreateModalOpen(true)}
               className="px-4 py-2.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 text-xs font-bold transition-all shadow-md active:scale-95 flex items-center gap-1.5 cursor-pointer"
             >
@@ -268,7 +284,52 @@ export const SuperAdminPanel: React.FC = () => {
         <div className="absolute -bottom-20 -left-20 w-72 h-72 rounded-full bg-amber-500/10 blur-3xl pointer-events-none" />
       </div>
 
-      {/* Metrics Row */}
+      {/* Super Admin Navigation Tabs */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 p-1.5 bg-slate-100 rounded-2xl border border-slate-200/80">
+        <button
+          onClick={() => setActiveSuperAdminTab('tenants')}
+          className={`flex-1 py-3 px-4 rounded-xl text-xs sm:text-sm font-extrabold transition-all flex items-center justify-center gap-2 cursor-pointer ${
+            activeSuperAdminTab === 'tenants'
+              ? 'bg-white text-slate-900 shadow-xs border border-slate-200'
+              : 'text-slate-600 hover:text-slate-900'
+          }`}
+        >
+          <Store className="w-4 h-4 text-emerald-700" />
+          <span>Lojas Parceiras &amp; Autorizações</span>
+          <span className="ml-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700">
+            {allTenants.length}
+          </span>
+          {pendingCount > 0 && (
+            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-400 text-slate-950 animate-pulse">
+              {pendingCount} pendente{pendingCount > 1 ? 's' : ''}
+            </span>
+          )}
+        </button>
+
+        <button
+          onClick={() => setActiveSuperAdminTab('ai-extractor')}
+          className={`flex-1 py-3 px-4 rounded-xl text-xs sm:text-sm font-extrabold transition-all flex items-center justify-center gap-2 cursor-pointer ${
+            activeSuperAdminTab === 'ai-extractor'
+              ? 'bg-gradient-to-r from-emerald-700 to-teal-800 text-white shadow-xs'
+              : 'text-slate-600 hover:text-slate-900'
+          }`}
+        >
+          <Bot className={`w-4 h-4 ${activeSuperAdminTab === 'ai-extractor' ? 'text-amber-300' : 'text-emerald-700'}`} />
+          <span>Agente IA: Extrator de PDF &amp; Imagens</span>
+          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+            activeSuperAdminTab === 'ai-extractor' ? 'bg-amber-400 text-slate-950' : 'bg-emerald-100 text-emerald-800'
+          }`}>
+            Gemini &amp; DeepSeek
+          </span>
+        </button>
+      </div>
+
+      {/* Conditionally Render AI Extractor Agent or Tenants Management */}
+      {activeSuperAdminTab === 'ai-extractor' ? (
+        <AIExtractorAgent />
+      ) : (
+        <>
+          {/* Metrics Row */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Total Lojas */}
         <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs flex items-center justify-between">
@@ -627,6 +688,8 @@ export const SuperAdminPanel: React.FC = () => {
           })
         )}
       </div>
+      </>
+      )}
 
       {/* CREATE STORE MODAL */}
       {isCreateModalOpen && (

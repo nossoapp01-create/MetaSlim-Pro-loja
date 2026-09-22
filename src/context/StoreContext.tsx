@@ -119,6 +119,7 @@ interface StoreContextType {
   removeCoupon: () => void;
   updateProduct: (updated: Product) => Promise<void>;
   addProduct: (newProd: Omit<Product, 'id'>) => Promise<void>;
+  addMultipleProducts: (newProds: Omit<Product, 'id'>[], targetTenantId?: string) => Promise<number>;
   deleteProduct: (id: string) => Promise<void>;
   updateBanner: (updated: BannerSlide) => Promise<void>;
   updateTestimonial: (updated: Testimonial) => Promise<void>;
@@ -1471,6 +1472,58 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   };
 
+  const addMultipleProducts = async (
+    newProds: Omit<Product, 'id'>[],
+    targetTenantId?: string
+  ): Promise<number> => {
+    if (!newProds || newProds.length === 0) return 0;
+    const destTenantId = targetTenantId || activeTenantId;
+
+    const createdList: Product[] = newProds.map((p, idx) => {
+      const cleanSlug = p.name.toLowerCase().replace(/[^a-z0-9]/g, '-').slice(0, 30) || 'prod';
+      const id = `${cleanSlug}-${Date.now().toString(36)}-${idx}`;
+      return {
+        ...p,
+        id,
+      };
+    });
+
+    if (destTenantId === activeTenantId) {
+      setProducts((prev) => {
+        const next = [...createdList, ...prev];
+        try {
+          localStorage.setItem(`metaslim_tenant_products_${destTenantId}`, JSON.stringify(next));
+          if (destTenantId === initialTenants[0].tenantId) {
+            localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(next));
+          }
+        } catch {}
+        return next;
+      });
+    } else {
+      try {
+        const key = `metaslim_tenant_products_${destTenantId}`;
+        const saved = localStorage.getItem(key);
+        const existing: Product[] = saved ? JSON.parse(saved) : [];
+        const next = [...createdList, ...existing];
+        localStorage.setItem(key, JSON.stringify(next));
+      } catch {}
+    }
+
+    try {
+      for (const prod of createdList) {
+        await setDoc(doc(db, 'tenants', destTenantId, 'products', prod.id), prod).catch(() => {});
+        if (destTenantId === initialTenants[0].tenantId) {
+          await setDoc(doc(db, 'products', prod.id), prod).catch(() => {});
+        }
+      }
+    } catch (e) {
+      console.warn('Sync notice:', e);
+    }
+
+    showToast(`${createdList.length} produto(s) adicionados ao catálogo com sucesso!`);
+    return createdList.length;
+  };
+
   const deleteProduct = async (id: string) => {
     setProducts((prev) => {
       const next = prev.filter((p) => p.id !== id);
@@ -1804,6 +1857,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         removeCoupon,
         updateProduct,
         addProduct,
+        addMultipleProducts,
         deleteProduct,
         updateBanner,
         updateTestimonial,
