@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useStore } from '../context/StoreContext';
-import { Search, ShoppingBag, ShieldCheck, Dna, X, LogIn, LogOut, CloudCheck, UserCheck, User, Truck, TrendingUp, Stethoscope } from 'lucide-react';
+import { Search, ShoppingBag, ShieldCheck, Dna, X, LogIn, LogOut, CloudCheck, UserCheck, User, Truck, TrendingUp, Stethoscope, Building2, Store } from 'lucide-react';
 
 interface HeaderProps {
   onOpenCalculator?: () => void;
@@ -24,6 +24,9 @@ export const Header: React.FC<HeaderProps> = ({ onOpenCalculator }) => {
     loginWithGoogle,
     logout,
     isFirebaseConnected,
+    currentTenant,
+    activeTenantId,
+    openAuthModal,
   } = useStore();
 
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -117,6 +120,20 @@ export const Header: React.FC<HeaderProps> = ({ onOpenCalculator }) => {
             </span>
           </a>
 
+          {/* SaaS Active Tenant Selector Button */}
+          <button
+            onClick={() => openAuthModal('demo')}
+            className="hidden lg:flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-slate-100 hover:bg-emerald-50 border border-slate-200/80 text-slate-700 hover:text-[#006750] text-[11px] font-semibold transition-all cursor-pointer shadow-2xs"
+            title="SaaS Multi-Tenant: Alternar Loja ou Ver Ambientes Isolados"
+            id="header-saas-tenant-btn"
+          >
+            <Building2 className="w-3.5 h-3.5 text-[#006750]" />
+            <span className="max-w-[110px] truncate font-medium">{currentTenant.storeName}</span>
+            <span className="text-[9px] bg-[#006750] text-white px-1.5 py-0.2 rounded-full font-bold">
+              SaaS
+            </span>
+          </button>
+
           {/* Delivery Policy Link */}
           <button
             onClick={() => setActiveTab('prazos-entrega')}
@@ -129,6 +146,17 @@ export const Header: React.FC<HeaderProps> = ({ onOpenCalculator }) => {
           >
             <Truck className="w-3.5 h-3.5 text-[#006750]" />
             <span>Prazos</span>
+          </button>
+
+          {/* SaaS Login / Portal Button */}
+          <button
+            onClick={() => openAuthModal('login')}
+            className="flex items-center gap-1 text-[11px] font-bold px-2.5 py-1.5 rounded-full bg-emerald-50 hover:bg-emerald-100 text-[#006750] border border-emerald-200/70 transition-all cursor-pointer"
+            title="Acessar painel da sua loja ou criar uma nova conta SaaS"
+            id="header-saas-login-btn"
+          >
+            <Store className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Minha Loja</span>
           </button>
 
           {/* Reseller / Revenda Link with Pulse Effect */}
@@ -263,6 +291,23 @@ export const Header: React.FC<HeaderProps> = ({ onOpenCalculator }) => {
                       <span>Painel Administrativo</span>
                     </button>
                   )}
+
+                  <div className="px-3 py-1.5 border-t border-slate-100 my-1 bg-slate-50 rounded-lg">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] uppercase font-bold text-slate-400 font-mono">Loja SaaS</span>
+                      <span className="text-[9px] bg-emerald-100 text-[#006750] px-1 rounded font-bold">Isolada</span>
+                    </div>
+                    <p className="text-xs font-semibold text-slate-800 truncate mt-0.5">{currentTenant.storeName}</p>
+                    <button
+                      onClick={() => {
+                        setIsUserMenuOpen(false);
+                        openAuthModal('demo');
+                      }}
+                      className="mt-1 text-[11px] text-[#006750] hover:underline font-semibold block"
+                    >
+                      Alternar Loja SaaS →
+                    </button>
+                  </div>
 
                   <button
                     onClick={() => {

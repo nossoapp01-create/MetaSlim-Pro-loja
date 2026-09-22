@@ -12,6 +12,7 @@ import {
 } from '../types';
 import { initialResaleSettings } from '../data/initialData';
 import { StripeSalesDashboard } from './StripeSalesDashboard';
+import { SaaSTenantsManager } from './SaaSTenantsManager';
 import {
   testStripeConnection,
   extractSecretKeyIfPastedInPublishableKey,
@@ -58,6 +59,11 @@ import {
   Calculator,
   Percent,
   Stethoscope,
+  Building2,
+  Store,
+  Users,
+  Share2,
+  Layers,
 } from 'lucide-react';
 
 export const AdminPanel: React.FC = () => {
@@ -89,9 +95,16 @@ export const AdminPanel: React.FC = () => {
     syncAllToFirebase,
     refreshFromFirebase,
     setActiveTab,
+    currentTenant,
+    activeTenantId,
+    allTenants,
+    isTenantAdmin,
+    switchTenant,
+    openAuthModal,
   } = useStore();
 
   const [activeAdminTab, setActiveAdminTab] = useState<
+    | 'saas-tenants'
     | 'vendas-stripe'
     | 'produtos'
     | 'banners'
@@ -403,6 +416,57 @@ export const AdminPanel: React.FC = () => {
 
   return (
     <div className="flex flex-col gap-6 max-w-4xl mx-auto pb-20" id="admin-panel">
+      {/* SaaS Multi-Tenant Active Store Workspace Banner */}
+      <div className="bg-[#131b2e] text-white rounded-2xl p-4 sm:p-5 shadow-lg border border-slate-700/80 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex items-start sm:items-center gap-3.5">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-[#006750] to-[#0d8267] flex items-center justify-center text-white shrink-0 shadow-md">
+            <Building2 className="w-5 h-5 text-[#93f5d4]" />
+          </div>
+          <div>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="font-mono text-[10px] uppercase font-bold text-[#71face] bg-[#006750]/40 px-2 py-0.5 rounded-full border border-emerald-500/30">
+                🔒 AMBIENTE SAAS ISOLADO
+              </span>
+              <span className="text-[10px] font-mono text-slate-300 bg-slate-800 px-2 py-0.5 rounded-full">
+                ID: {currentTenant.tenantId}
+              </span>
+              <span className="text-[10px] font-mono text-emerald-300 bg-emerald-950/60 px-2 py-0.5 rounded-full">
+                Plano {currentTenant.plan.toUpperCase()}
+              </span>
+            </div>
+            <div className="text-sm sm:text-base font-extrabold text-white mt-1 flex items-center gap-2">
+              <span>{currentTenant.storeName}</span>
+              <span className="text-xs text-slate-400 font-normal font-mono">({currentTenant.ownerEmail})</span>
+            </div>
+            <p className="text-[11px] text-slate-400 mt-0.5">
+              Catálogo de peptídeos, pedidos, clientes e faturamento exclusivos desta conta.
+            </p>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2 shrink-0">
+          <button
+            onClick={() => setActiveAdminTab('saas-tenants')}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+              activeAdminTab === 'saas-tenants'
+                ? 'bg-[#71face] text-[#002117] shadow-sm'
+                : 'bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700'
+            }`}
+          >
+            <Layers className="w-3.5 h-3.5 text-[#71face]" />
+            <span>Gerenciar Lojas SaaS</span>
+          </button>
+
+          <button
+            onClick={() => openAuthModal('login')}
+            className="px-3 py-1.5 rounded-xl bg-white hover:bg-emerald-50 text-[#006750] text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 cursor-pointer"
+          >
+            <LogIn className="w-3.5 h-3.5" />
+            <span>Alternar Conta / Login</span>
+          </button>
+        </div>
+      </div>
+
       {/* Admin Context Header */}
       <div className="bg-white rounded-2xl p-4 sm:p-5 shadow-sm border border-slate-200/70 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2.5">
@@ -574,6 +638,21 @@ export const AdminPanel: React.FC = () => {
       {/* Admin Tabs - Full-width Wrapped Layout that never overflows or cuts off */}
       <div className="flex flex-wrap items-center gap-2 p-1.5 bg-slate-100/90 rounded-2xl border border-slate-200/80">
         <button
+          onClick={() => setActiveAdminTab('saas-tenants')}
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
+            activeAdminTab === 'saas-tenants'
+              ? 'bg-[#006750] text-white shadow-md'
+              : 'bg-white text-slate-700 hover:bg-emerald-50 border border-slate-200/70 hover:border-emerald-300'
+          }`}
+        >
+          <Building2 className="w-3.5 h-3.5 text-emerald-400" />
+          <span>Lojas SaaS &amp; Isolamento</span>
+          <span className="text-[10px] font-mono px-2 py-0.5 rounded-full font-bold bg-emerald-100 text-[#006750]">
+            {allTenants.length}
+          </span>
+        </button>
+
+        <button
           onClick={() => setActiveAdminTab('vendas-stripe')}
           className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
             activeAdminTab === 'vendas-stripe'
@@ -684,6 +763,11 @@ export const AdminPanel: React.FC = () => {
           <span>Deploy Vercel</span>
         </button>
       </div>
+
+      {/* TAB SAAS: Multi-Tenant SaaS Management & Isolation */}
+      {activeAdminTab === 'saas-tenants' && (
+        <SaaSTenantsManager />
+      )}
 
       {/* TAB 0: Stripe Sales & Shipping Labels Dashboard */}
       {activeAdminTab === 'vendas-stripe' && (

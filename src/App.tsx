@@ -14,6 +14,7 @@ import { Footer } from './components/Footer';
 import { BottomNav } from './components/BottomNav';
 import { DosageCalculatorModal } from './components/DosageCalculatorModal';
 import { FloatingConsultationButton } from './components/FloatingConsultationButton';
+import { SaaSAuthModal } from './components/SaaSAuthModal';
 import { ShieldCheck, Sparkles, AlertCircle, ArrowRight, Dna, Calculator, X, Truck } from 'lucide-react';
 
 const MainContent: React.FC = () => {
@@ -284,6 +285,9 @@ const MainContent: React.FC = () => {
           consultationUrl={settings.consultationUrl || 'https://consulta.metaslim-pro.shop/'}
         />
       )}
+
+      {/* SaaS Multi-Tenant Authentication & Store Manager Modal */}
+      <SaaSAuthModal />
 
       {/* Floating Bottom Navigation Bar for Mobile */}
       <BottomNav />

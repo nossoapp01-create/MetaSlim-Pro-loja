@@ -111,6 +111,7 @@
       "type": "object",
       "properties": {
         "id": { "type": "string", "maxLength": 128 },
+        "tenantId": { "type": "string", "maxLength": 128 },
         "userId": { "type": "string", "maxLength": 128 },
         "customerEmail": { "type": "string", "maxLength": 150 },
         "totalAmount": { "type": "number" },
@@ -120,9 +121,55 @@
         "createdAt": { "type": "string", "maxLength": 60 }
       },
       "required": ["id", "totalAmount", "status"]
+    },
+    "Tenant": {
+      "title": "Tenant",
+      "description": "Multi-tenant SaaS store account profile and isolated workspace",
+      "type": "object",
+      "properties": {
+        "tenantId": { "type": "string", "maxLength": 128 },
+        "ownerUid": { "type": "string", "maxLength": 128 },
+        "ownerEmail": { "type": "string", "maxLength": 150 },
+        "ownerName": { "type": "string", "maxLength": 150 },
+        "storeName": { "type": "string", "maxLength": 150 },
+        "storeSlug": { "type": "string", "maxLength": 100 },
+        "plan": { "type": "string", "enum": ["starter", "pro", "clinic"] },
+        "createdAt": { "type": "string", "maxLength": 60 }
+      },
+      "required": ["tenantId", "ownerUid", "ownerEmail", "storeName"]
     }
   },
   "firestore": {
+    "/tenants/{tenantId}": {
+      "schema": "#/entities/Tenant",
+      "description": "Tenant store account profile and workspace configuration"
+    },
+    "/tenants/{tenantId}/products/{productId}": {
+      "schema": "#/entities/Product",
+      "description": "Tenant-isolated peptide product catalog"
+    },
+    "/tenants/{tenantId}/orders/{orderId}": {
+      "schema": "#/entities/Order",
+      "description": "Tenant-isolated customer orders and checkout records"
+    },
+    "/tenants/{tenantId}/banners/{bannerId}": {
+      "schema": "#/entities/BannerSlide",
+      "description": "Tenant-isolated hero marketing banners"
+    },
+    "/tenants/{tenantId}/testimonials/{testimonialId}": {
+      "schema": "#/entities/Testimonial",
+      "description": "Tenant-isolated client reviews and before/after proofs"
+    },
+    "/tenants/{tenantId}/settings/{settingId}": {
+      "schema": "#/entities/StoreSettings",
+      "description": "Tenant-isolated store payment gateways, contact and branding settings"
+    },
+    "/users/{userId}": {
+      "schema": {
+        "$ref": "#/entities/Tenant"
+      },
+      "description": "User profiles and tenant association"
+    },
     "/products/{productId}": {
       "schema": "#/entities/Product",
       "description": "Public catalog of peptide vials and clinical research compounds"

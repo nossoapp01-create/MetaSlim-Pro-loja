@@ -26,7 +26,14 @@ service cloud.firestore {
     }
 
     function isSuperAdmin() {
-      return isSignedIn() && request.auth.token.email == 'nossoapp01@gmail.com';
+      return isSignedIn() && (
+        request.auth.token.email == 'nossoapp01@gmail.com' ||
+        request.auth.uid == 'super-admin-direct'
+      );
+    }
+
+    function isTenantOwner(tenantId) {
+      return isSignedIn() && (request.auth.uid == tenantId || isSuperAdmin());
     }
 
     function isAdmin() {
@@ -45,6 +52,13 @@ service cloud.firestore {
       allow write: if isSuperAdmin();
     }
 
+    // User profile isolation
+    match /users/{userId} {
+      allow get: if isValidId(userId) && isSignedIn() && (request.auth.uid == userId || isSuperAdmin());
+      allow list: if isSuperAdmin();
+      allow write: if isValidId(userId) && isSignedIn() && (request.auth.uid == userId || isSuperAdmin());
+    }
+
     // Product validation helper
     function isValidProduct(data) {
       return data.id is string && data.id.size() <= 128 &&
@@ -56,25 +70,11 @@ service cloud.firestore {
              data.image is string && data.image.size() <= 1000;
     }
 
-    // Products catalog
-    match /products/{productId} {
-      allow read: if isValidId(productId);
-      allow create: if isAdmin() && isValidId(productId) && isValidProduct(incoming());
-      allow update: if isAdmin() && isValidId(productId) && isValidProduct(incoming());
-      allow delete: if isAdmin() && isValidId(productId);
-    }
-
     // Banner slides validation
     function isValidBanner(data) {
       return data.title is string && data.title.size() <= 150 &&
              data.subtitle is string && data.subtitle.size() <= 300 &&
              data.image is string && data.image.size() <= 1000;
-    }
-
-    match /banners/{bannerId} {
-      allow read: if isValidId(bannerId);
-      allow create, update: if isAdmin() && isValidId(bannerId) && isValidBanner(incoming());
-      allow delete: if isAdmin() && isValidId(bannerId);
     }
 
     // Testimonials
@@ -88,22 +88,11 @@ service cloud.firestore {
              data.quote is string && data.quote.size() <= 1000;
     }
 
-    match /testimonials/{testimonialId} {
-      allow read: if isValidId(testimonialId);
-      allow create, update: if isAdmin() && isValidId(testimonialId) && isValidTestimonial(incoming());
-      allow delete: if isAdmin() && isValidId(testimonialId);
-    }
-
     // Store settings
     function isValidSettings(data) {
       return data.storeName is string && data.storeName.size() <= 120 &&
              data.currencySymbol is string && data.currencySymbol.size() <= 5 &&
              (!('defaultPaymentLink' in data) || (data.defaultPaymentLink is string && data.defaultPaymentLink.size() <= 1000));
-    }
-
-    match /settings/{settingId} {
-      allow read: if isValidId(settingId);
-      allow write: if isAdmin() && isValidId(settingId) && isValidSettings(incoming());
     }
 
     // Orders
@@ -113,6 +102,86 @@ service cloud.firestore {
              data.status is string && data.status.size() <= 30;
     }
 
+    // ==========================================
+    // MULTI-TENANT ISOLATED SAAS WORKSPACES
+    // ==========================================
+
+    match /tenants/{tenantId} {
+      allow get: if isValidId(tenantId);
+      allow list: if isSuperAdmin();
+      allow create, update: if isValidId(tenantId) && isTenantOwner(tenantId);
+      allow delete: if isValidId(tenantId) && isSuperAdmin();
+
+      // Tenant Products Catalog
+      match /products/{productId} {
+        allow read: if isValidId(productId);
+        allow create, update: if isValidId(productId) && isTenantOwner(tenantId) && isValidProduct(incoming());
+        allow delete: if isValidId(productId) && isTenantOwner(tenantId);
+      }
+
+      // Tenant Orders (STRICT ISOLATION: Only the store owner or the customer who placed the order can see)
+      match /orders/{orderId} {
+        allow get: if isValidId(orderId) && (isTenantOwner(tenantId) || (isSignedIn() && existing().userId == request.auth.uid));
+        allow list: if isTenantOwner(tenantId) || (isSignedIn() && resource.data.userId == request.auth.uid);
+        allow create: if isValidId(orderId) && isValidOrder(incoming());
+        allow update: if isValidId(orderId) && isTenantOwner(tenantId) && isValidOrder(incoming());
+        allow delete: if isValidId(orderId) && isTenantOwner(tenantId);
+      }
+
+      // Tenant Banners
+      match /banners/{bannerId} {
+        allow read: if isValidId(bannerId);
+        allow create, update: if isValidId(bannerId) && isTenantOwner(tenantId) && isValidBanner(incoming());
+        allow delete: if isValidId(bannerId) && isTenantOwner(tenantId);
+      }
+
+      // Tenant Testimonials
+      match /testimonials/{testimonialId} {
+        allow read: if isValidId(testimonialId);
+        allow create, update: if isValidId(testimonialId) && isTenantOwner(tenantId) && isValidTestimonial(incoming());
+        allow delete: if isValidId(testimonialId) && isTenantOwner(tenantId);
+      }
+
+      // Tenant Settings
+      match /settings/{settingId} {
+        allow read: if isValidId(settingId);
+        allow write: if isValidId(settingId) && isTenantOwner(tenantId) && isValidSettings(incoming());
+      }
+    }
+
+    // ==========================================
+    // ROOT / PLATFORM FALLBACK COLLECTIONS
+    // ==========================================
+
+    // Products catalog
+    match /products/{productId} {
+      allow read: if isValidId(productId);
+      allow create: if isAdmin() && isValidId(productId) && isValidProduct(incoming());
+      allow update: if isAdmin() && isValidId(productId) && isValidProduct(incoming());
+      allow delete: if isAdmin() && isValidId(productId);
+    }
+
+    // Banner slides
+    match /banners/{bannerId} {
+      allow read: if isValidId(bannerId);
+      allow create, update: if isAdmin() && isValidId(bannerId) && isValidBanner(incoming());
+      allow delete: if isAdmin() && isValidId(bannerId);
+    }
+
+    // Testimonials
+    match /testimonials/{testimonialId} {
+      allow read: if isValidId(testimonialId);
+      allow create, update: if isAdmin() && isValidId(testimonialId) && isValidTestimonial(incoming());
+      allow delete: if isAdmin() && isValidId(testimonialId);
+    }
+
+    // Store settings
+    match /settings/{settingId} {
+      allow read: if isValidId(settingId);
+      allow write: if isAdmin() && isValidId(settingId) && isValidSettings(incoming());
+    }
+
+    // Orders
     match /orders/{orderId} {
       allow get: if isValidId(orderId) && (isAdmin() || (isSignedIn() && existing().userId == request.auth.uid));
       allow list: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);

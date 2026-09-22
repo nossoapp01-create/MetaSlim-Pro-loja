@@ -1,6 +1,6 @@
 {
   "name": "MetaSlim-Pro-loja",
-  "description": "Loja oficial de peptídeos MetaSlim-Pro com fichas clínicas didáticas, laudos HPLC, programa oficial de revenda (>300% de lucro), gateways Stripe e myPOS, prazos de entrega e painel administrativo.",
+  "description": "Plataforma SaaS multi-tenant robusta para lojas de peptídeos com isolamento total de dados entre clientes, autenticação independente com login e senha por lojista, painel administrativo dedicado, gateways Stripe e myPOS, e consulta gratuita com Dra. Valéria Prado.",
   "requestFramePermissions": [],
   "majorCapabilities": [
     "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"

@@ -154,6 +154,7 @@ export interface OrderItemDetail {
 
 export interface OrderRecord {
   id: string;
+  tenantId?: string;
   userId?: string;
   customerEmail?: string;
   totalAmount: number;
@@ -171,4 +172,18 @@ export interface OrderRecord {
   createdAt: string;
   paidAt?: string;
   shippedAt?: string;
+}
+
+export interface TenantAccount {
+  tenantId: string;
+  ownerUid: string;
+  ownerEmail: string;
+  ownerName: string;
+  storeName: string;
+  storeSlug: string;
+  phone?: string;
+  currency?: 'EUR' | 'BRL';
+  plan: 'starter' | 'pro' | 'clinic';
+  createdAt: string;
+  status: 'active' | 'suspended';
 }

@@ -1,4 +1,4 @@
-import { Product, BannerSlide, Testimonial, StoreSettings, OrderRecord, ResaleSettings } from '../types';
+import { Product, BannerSlide, Testimonial, StoreSettings, OrderRecord, ResaleSettings, TenantAccount } from '../types';
 
 export const initialResaleSettings: ResaleSettings = {
   whatsappNumber: '+351912345678',
@@ -1068,3 +1068,206 @@ export const initialOrders: OrderRecord[] = [
     paidAt: new Date(Date.now() - 1000 * 60 * 60 * 5).toISOString(),
   },
 ];
+
+export const initialTenants: TenantAccount[] = [
+  {
+    tenantId: 'tenant_metaslim_prime',
+    ownerUid: 'usr_ricardo_01',
+    ownerEmail: 'dr.ricardo@metaslim.pt',
+    ownerName: 'Dr. Ricardo Silveira',
+    storeName: 'MetaSlim Prime Lab',
+    storeSlug: 'metaslim-prime',
+    phone: '+351 912 345 678',
+    plan: 'clinic',
+    createdAt: '2026-01-15T10:00:00.000Z',
+    status: 'active',
+  },
+  {
+    tenantId: 'tenant_longevidade_viva',
+    ownerUid: 'usr_mariana_02',
+    ownerEmail: 'dra.mariana@longevidade.com',
+    ownerName: 'Dra. Mariana Vasconcelos',
+    storeName: 'Clínica Longevidade & Estética',
+    storeSlug: 'longevidade-estetica',
+    phone: '+351 925 819 201',
+    plan: 'pro',
+    createdAt: '2026-02-01T14:30:00.000Z',
+    status: 'active',
+  },
+  {
+    tenantId: 'tenant_biopeptideos_atacado',
+    ownerUid: 'usr_andre_03',
+    ownerEmail: 'contato@peptideosatacado.com',
+    ownerName: 'André Santos (Distribuidor)',
+    storeName: 'BioPeptídeos Atacado & Revenda',
+    storeSlug: 'biopeptideos-atacado',
+    phone: '+55 11 99887-6655',
+    plan: 'starter',
+    createdAt: '2026-02-20T09:15:00.000Z',
+    status: 'active',
+  },
+];
+
+/**
+ * Returns isolated initial orders for a given tenant to demonstrate strict data separation.
+ */
+export function getInitialOrdersForTenant(tenantId: string): OrderRecord[] {
+  if (tenantId === 'tenant_metaslim_prime') {
+    return initialOrders.map((o) => ({ ...o, tenantId }));
+  }
+  if (tenantId === 'tenant_longevidade_viva') {
+    return [
+      {
+        id: 'ORD-LNV-4019',
+        tenantId,
+        userId: 'cust-longevidade-1',
+        customerEmail: 'carolina.mendes@clinica.pt',
+        totalAmount: 238.0,
+        currency: 'EUR',
+        itemsCount: 2,
+        items: [
+          {
+            productId: 'semaglutide-5mg',
+            productName: 'Semaglutide 5mg (GLP-1 Premium Longevidade)',
+            quantity: 2,
+            vialsCount: 2,
+            unitPrice: 119.0,
+            totalPrice: 238.0,
+          },
+        ],
+        shipping: {
+          fullName: 'Carolina Mendes de Aguiar',
+          phone: '+351 914 552 109',
+          email: 'carolina.mendes@clinica.pt',
+          address: 'Rua Castilho, 52 - 3º Dto',
+          postalCode: '1250-068',
+          city: 'Lisboa',
+          country: 'Portugal',
+          notes: 'Paciente em acompanhamento estético metabólico.',
+        },
+        deliveryNotes: 'Entrega na clínica das 09h às 18h.',
+        status: 'paid',
+        paymentMethod: 'stripe',
+        stripeSessionId: 'cs_live_longevidade_991823',
+        trackingCode: 'CTT-LNV-99182',
+        carrier: 'CTT Expresso 24h Cold Chain',
+        createdAt: new Date(Date.now() - 1000 * 60 * 60 * 18).toISOString(),
+        paidAt: new Date(Date.now() - 1000 * 60 * 60 * 18).toISOString(),
+      },
+      {
+        id: 'ORD-LNV-4020',
+        tenantId,
+        userId: 'cust-longevidade-2',
+        customerEmail: 'felipe.albuquerque@gmail.com',
+        totalAmount: 180.0,
+        currency: 'EUR',
+        itemsCount: 1,
+        items: [
+          {
+            productId: 'bpc-157-tb-500',
+            productName: 'BPC-157 + TB-500 Regeneração Celular',
+            quantity: 1,
+            vialsCount: 2,
+            unitPrice: 180.0,
+            totalPrice: 180.0,
+          },
+        ],
+        shipping: {
+          fullName: 'Felipe Albuquerque',
+          phone: '+351 933 219 004',
+          email: 'felipe.albuquerque@gmail.com',
+          address: 'Avenida da Boavista, 1200',
+          postalCode: '4100-132',
+          city: 'Porto',
+          country: 'Portugal',
+        },
+        status: 'shipped',
+        paymentMethod: 'mbway_pix',
+        trackingCode: 'CTT-LNV-99183',
+        carrier: 'CTT Expresso Urgente',
+        createdAt: new Date(Date.now() - 1000 * 60 * 60 * 48).toISOString(),
+        paidAt: new Date(Date.now() - 1000 * 60 * 60 * 48).toISOString(),
+        shippedAt: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
+      },
+    ];
+  }
+  if (tenantId === 'tenant_biopeptideos_atacado') {
+    return [
+      {
+        id: 'ORD-ATC-8001',
+        tenantId,
+        userId: 'revendedor-porto',
+        customerEmail: 'pedidos@clinicaesteticaporto.pt',
+        totalAmount: 1890.0,
+        currency: 'EUR',
+        itemsCount: 20,
+        items: [
+          {
+            productId: 'retatrutide-10mg',
+            productName: 'Pack 20 Frascos Retatrutide Atacado',
+            quantity: 20,
+            vialsCount: 1,
+            unitPrice: 94.5,
+            totalPrice: 1890.0,
+          },
+        ],
+        shipping: {
+          fullName: 'Clínica Estética e Longevidade do Porto Lda',
+          phone: '+351 22 509 8190',
+          email: 'pedidos@clinicaesteticaporto.pt',
+          address: 'Rua de Santa Catarina, 890',
+          postalCode: '4000-447',
+          city: 'Porto',
+          country: 'Portugal',
+          notes: 'Nota fiscal com NIF 519283746 na embalagem térmica.',
+        },
+        deliveryNotes: 'Remessa prioritária B2B com controle térmico certificado.',
+        status: 'paid',
+        paymentMethod: 'direct',
+        trackingCode: 'DHL-EX-ATC-8001',
+        carrier: 'DHL Express Pharma Cold Chain',
+        createdAt: new Date(Date.now() - 1000 * 60 * 60 * 12).toISOString(),
+        paidAt: new Date(Date.now() - 1000 * 60 * 60 * 12).toISOString(),
+      },
+    ];
+  }
+  // Newly registered tenant starts with empty or welcome sample order
+  return [];
+}
+
+/**
+ * Returns isolated initial products for a tenant
+ */
+export function getInitialProductsForTenant(tenantId: string, storeName?: string): Product[] {
+  if (tenantId === 'tenant_longevidade_viva') {
+    return initialProducts.slice(0, 5).map((p) => ({
+      ...p,
+      subtitle: `${storeName || 'Clínica Longevidade'} • Protocolo Exclusivo`,
+      price: Math.round(p.price * 1.15),
+      originalPrice: Math.round(p.originalPrice * 1.15),
+    }));
+  }
+  if (tenantId === 'tenant_biopeptideos_atacado') {
+    return initialProducts.map((p) => ({
+      ...p,
+      subtitle: 'Lote Lacrado para Clínicas & Revenda',
+      badge: 'ATACADO B2B',
+    }));
+  }
+  return initialProducts;
+}
+
+/**
+ * Returns isolated initial store settings for a tenant
+ */
+export function getInitialSettingsForTenant(tenant: TenantAccount): StoreSettings {
+  return {
+    ...initialStoreSettings,
+    storeName: tenant.storeName,
+    storeSubtitle: `Painel Exclusivo de ${tenant.ownerName} • ${tenant.plan.toUpperCase()}`,
+    whatsappNumber: tenant.phone || initialStoreSettings.whatsappNumber,
+    resaleWhatsappNumber: tenant.phone || initialStoreSettings.resaleWhatsappNumber,
+    defaultPaymentLink: initialStoreSettings.defaultPaymentLink,
+    consultationUrl: 'https://consulta.metaslim-pro.shop/',
+  };
+}

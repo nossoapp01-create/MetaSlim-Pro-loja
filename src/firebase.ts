@@ -9,6 +9,7 @@ import {
   onAuthStateChanged,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
+  sendPasswordResetEmail,
   updateProfile,
   User as FirebaseUser,
 } from 'firebase/auth';
@@ -216,6 +217,10 @@ export async function registerWithEmail(name: string, email: string, pass: strin
     await updateProfile(auth.currentUser, { displayName: name });
   }
   return userCredential.user;
+}
+
+export async function resetUserPassword(email: string): Promise<void> {
+  await sendPasswordResetEmail(auth, email);
 }
 
 export { onAuthStateChanged };

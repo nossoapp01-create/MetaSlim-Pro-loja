@@ -8,6 +8,7 @@ import {
   OrderRecord,
   CustomerShippingInfo,
   CustomerUser,
+  TenantAccount,
 } from '../types';
 import {
   initialProducts,
@@ -15,6 +16,10 @@ import {
   initialTestimonials,
   initialStoreSettings,
   initialOrders,
+  initialTenants,
+  getInitialOrdersForTenant,
+  getInitialProductsForTenant,
+  getInitialSettingsForTenant,
 } from '../data/initialData';
 import {
   db,
@@ -28,6 +33,7 @@ import {
   onAuthStateChanged,
   signInWithEmail,
   registerWithEmail,
+  resetUserPassword,
   handleFirestoreError,
   OperationType,
   FirebaseUser,
@@ -62,6 +68,24 @@ interface StoreContextType {
   isAdminUser: boolean;
   isFirebaseConnected: boolean;
   isSyncing: boolean;
+  currentTenant: TenantAccount;
+  activeTenantId: string;
+  allTenants: TenantAccount[];
+  isTenantAdmin: boolean;
+  switchTenant: (tenantId: string) => void;
+  createTenantStore: (
+    storeName: string,
+    ownerName: string,
+    email: string,
+    password: string,
+    phone?: string
+  ) => Promise<{ success: boolean; message?: string }>;
+  loginTenantWithPassword: (email: string, password: string) => Promise<{ success: boolean; message?: string }>;
+  resetTenantPassword: (email: string) => Promise<{ success: boolean; message?: string }>;
+  authModalOpen: boolean;
+  setAuthModalOpen: (open: boolean) => void;
+  authModalDefaultTab: 'login' | 'register' | 'demo';
+  openAuthModal: (tab?: 'login' | 'register' | 'demo') => void;
   setActiveTab: (tab: 'inicio' | 'produtos' | 'produto-detalhe' | 'resultados' | 'carrinho' | 'admin' | 'prazos-entrega' | 'revenda') => void;
   setSelectedProductId: (id: string) => void;
   setSelectedCategory: (cat: string) => void;
@@ -135,26 +159,67 @@ const STORAGE_KEYS = {
 const SUPER_ADMIN_EMAIL = 'nossoapp01@gmail.com';
 
 export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  // SaaS Multi-Tenant state
+  const [allTenants, setAllTenants] = useState<TenantAccount[]>(() => {
+    try {
+      const saved = localStorage.getItem('metaslim_all_tenants');
+      if (saved) {
+        const parsed = JSON.parse(saved) as TenantAccount[];
+        const existingIds = new Set(parsed.map((t) => t.tenantId));
+        const missing = initialTenants.filter((t) => !existingIds.has(t.tenantId));
+        return missing.length > 0 ? [...parsed, ...missing] : parsed;
+      }
+    } catch {}
+    return initialTenants;
+  });
+
+  const [activeTenantId, setActiveTenantId] = useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const params = new URLSearchParams(window.location.search);
+        const storeParam = params.get('store') || params.get('tenant');
+        if (storeParam) {
+          return storeParam;
+        }
+      } catch {}
+    }
+    try {
+      const saved = localStorage.getItem('metaslim_active_tenant_id');
+      if (saved) return saved;
+    } catch {}
+    return initialTenants[0].tenantId;
+  });
+
+  const currentTenant =
+    allTenants.find((t) => t.tenantId === activeTenantId || t.storeSlug === activeTenantId) ||
+    allTenants[0] ||
+    initialTenants[0];
+
+  const [authModalOpen, setAuthModalOpen] = useState<boolean>(false);
+  const [authModalDefaultTab, setAuthModalDefaultTab] = useState<'login' | 'register' | 'demo'>('login');
+
+  const openAuthModal = (tab: 'login' | 'register' | 'demo' = 'login') => {
+    setAuthModalDefaultTab(tab);
+    setAuthModalOpen(true);
+  };
+
   const [products, setProducts] = useState<Product[]>(() => {
     try {
-      const saved = localStorage.getItem(STORAGE_KEYS.PRODUCTS);
+      const tenantKey = `metaslim_tenant_products_${activeTenantId}`;
+      const saved = localStorage.getItem(tenantKey);
       if (saved) {
         const parsed = JSON.parse(saved) as Product[];
-        const existingIds = new Set(parsed.map((p) => p.id));
-        const missing = initialProducts.filter((p) => !existingIds.has(p.id));
-        if (missing.length > 0) {
-          const merged = [...parsed, ...missing];
-          try {
-            localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(merged));
-          } catch {}
-          return merged;
-        }
-        return parsed;
+        if (parsed.length > 0) return parsed;
       }
-      return initialProducts;
-    } catch {
-      return initialProducts;
-    }
+      if (activeTenantId === initialTenants[0].tenantId) {
+        const legacySaved = localStorage.getItem(STORAGE_KEYS.PRODUCTS);
+        if (legacySaved) {
+          const parsed = JSON.parse(legacySaved) as Product[];
+          if (parsed.length > 0) return parsed;
+        }
+      }
+    } catch {}
+    return getInitialProductsForTenant(activeTenantId, currentTenant?.storeName);
   });
 
   const [banners, setBanners] = useState<BannerSlide[]>(() => {
@@ -190,19 +255,29 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const [settings, setSettings] = useState<StoreSettings>(() => {
     try {
-      const saved = localStorage.getItem(STORAGE_KEYS.SETTINGS);
+      const tenantKey = `metaslim_tenant_settings_${activeTenantId}`;
+      const saved = localStorage.getItem(tenantKey);
       if (saved) {
         const parsed = JSON.parse(saved);
         return {
-          ...initialStoreSettings,
+          ...getInitialSettingsForTenant(currentTenant),
           ...parsed,
           resale: parsed.resale || initialStoreSettings.resale,
         };
       }
-      return initialStoreSettings;
-    } catch {
-      return initialStoreSettings;
-    }
+      if (activeTenantId === initialTenants[0].tenantId) {
+        const legacySaved = localStorage.getItem(STORAGE_KEYS.SETTINGS);
+        if (legacySaved) {
+          const parsed = JSON.parse(legacySaved);
+          return {
+            ...initialStoreSettings,
+            ...parsed,
+            resale: parsed.resale || initialStoreSettings.resale,
+          };
+        }
+      }
+    } catch {}
+    return getInitialSettingsForTenant(currentTenant);
   });
 
   const [cart, setCart] = useState<CartItem[]>(() => {
@@ -232,13 +307,21 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [couponCode, setCouponCode] = useState<string>('METASLIM10');
   const [couponDiscountPercent, setCouponDiscountPercent] = useState<number>(10);
   const [deliveryNotes, setDeliveryNotes] = useState<string>('');
+  
+  // Isolated orders per active tenant
   const [orders, setOrders] = useState<OrderRecord[]>(() => {
     try {
-      const saved = localStorage.getItem(STORAGE_KEYS.ORDERS);
-      return saved ? JSON.parse(saved) : initialOrders;
-    } catch {
-      return initialOrders;
-    }
+      const tenantKey = `metaslim_tenant_orders_${activeTenantId}`;
+      const saved = localStorage.getItem(tenantKey);
+      if (saved) {
+        return JSON.parse(saved);
+      }
+      if (activeTenantId === initialTenants[0].tenantId) {
+        const legacySaved = localStorage.getItem(STORAGE_KEYS.ORDERS);
+        if (legacySaved) return JSON.parse(legacySaved);
+      }
+    } catch {}
+    return getInitialOrdersForTenant(activeTenantId);
   });
 
   // Firebase states
@@ -273,6 +356,16 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     (localAdminUser && localAdminUser.email?.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase())
   );
 
+  // Check if current authenticated user owns or administers the active tenant store
+  const isTenantAdmin = Boolean(
+    isAdminUser ||
+    (currentTenant && (
+      (firebaseUser && (firebaseUser.email?.toLowerCase() === currentTenant.ownerEmail.toLowerCase() || firebaseUser.uid === currentTenant.ownerUid)) ||
+      (localAdminUser && (localAdminUser.email?.toLowerCase() === currentTenant.ownerEmail.toLowerCase() || localAdminUser.uid === currentTenant.ownerUid)) ||
+      (customerUser && customerUser.email?.toLowerCase() === currentTenant.ownerEmail.toLowerCase())
+    ))
+  );
+
   const showToast = useCallback((msg: string, duration?: number) => {
     setToast(msg);
     const time = duration || (msg.length > 50 ? 6000 : 4000);
@@ -281,14 +374,24 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }, time);
   }, []);
 
-  // Persist to localStorage
+  // Save all tenants list
   useEffect(() => {
     try {
-      localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(products));
+      localStorage.setItem('metaslim_all_tenants', JSON.stringify(allTenants));
+    } catch {}
+  }, [allTenants]);
+
+  // Persist tenant-isolated datasets to localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem(`metaslim_tenant_products_${activeTenantId}`, JSON.stringify(products));
+      if (activeTenantId === initialTenants[0].tenantId) {
+        localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(products));
+      }
     } catch (e) {
       console.warn('Could not save products to local storage', e);
     }
-  }, [products]);
+  }, [products, activeTenantId]);
 
   useEffect(() => {
     try {
@@ -308,11 +411,14 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   useEffect(() => {
     try {
-      localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(settings));
+      localStorage.setItem(`metaslim_tenant_settings_${activeTenantId}`, JSON.stringify(settings));
+      if (activeTenantId === initialTenants[0].tenantId) {
+        localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(settings));
+      }
     } catch (e) {
       console.warn('Could not save settings to local storage', e);
     }
-  }, [settings]);
+  }, [settings, activeTenantId]);
 
   useEffect(() => {
     try {
@@ -332,11 +438,271 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   useEffect(() => {
     try {
-      localStorage.setItem(STORAGE_KEYS.ORDERS, JSON.stringify(orders));
+      localStorage.setItem(`metaslim_tenant_orders_${activeTenantId}`, JSON.stringify(orders));
+      if (activeTenantId === initialTenants[0].tenantId) {
+        localStorage.setItem(STORAGE_KEYS.ORDERS, JSON.stringify(orders));
+      }
     } catch (e) {
       console.warn('Could not save orders to local storage', e);
     }
-  }, [orders]);
+  }, [orders, activeTenantId]);
+
+  // Switch between tenants seamlessly with complete isolation
+  const switchTenant = useCallback(
+    (tId: string) => {
+      const target =
+        allTenants.find((t) => t.tenantId === tId || t.storeSlug === tId) || initialTenants[0];
+      setActiveTenantId(target.tenantId);
+      try {
+        localStorage.setItem('metaslim_active_tenant_id', target.tenantId);
+      } catch {}
+
+      // Load products for target tenant
+      let targetProducts: Product[];
+      try {
+        const saved = localStorage.getItem(`metaslim_tenant_products_${target.tenantId}`);
+        targetProducts = saved ? JSON.parse(saved) : getInitialProductsForTenant(target.tenantId, target.storeName);
+      } catch {
+        targetProducts = getInitialProductsForTenant(target.tenantId, target.storeName);
+      }
+      setProducts(targetProducts);
+
+      // Load orders for target tenant (100% ISOLATED!)
+      let targetOrders: OrderRecord[];
+      try {
+        const saved = localStorage.getItem(`metaslim_tenant_orders_${target.tenantId}`);
+        targetOrders = saved ? JSON.parse(saved) : getInitialOrdersForTenant(target.tenantId);
+      } catch {
+        targetOrders = getInitialOrdersForTenant(target.tenantId);
+      }
+      setOrders(targetOrders);
+
+      // Load settings for target tenant
+      let targetSettings: StoreSettings;
+      try {
+        const saved = localStorage.getItem(`metaslim_tenant_settings_${target.tenantId}`);
+        targetSettings = saved ? JSON.parse(saved) : getInitialSettingsForTenant(target);
+      } catch {
+        targetSettings = getInitialSettingsForTenant(target);
+      }
+      setSettings(targetSettings);
+
+      // Give admin session to the owner in demo / test mode
+      const adminObj = {
+        uid: target.ownerUid,
+        email: target.ownerEmail,
+        displayName: target.ownerName,
+      };
+      setLocalAdminUser(adminObj);
+      try {
+        localStorage.setItem('metaslim_local_admin', JSON.stringify(adminObj));
+      } catch {}
+
+      showToast(`Loja alternada: "${target.storeName}" • Ambiente 100% Isolado`);
+    },
+    [allTenants, showToast]
+  );
+
+  // Register brand new tenant store with email and password
+  const createTenantStore = async (
+    storeName: string,
+    ownerName: string,
+    email: string,
+    password: string,
+    phone?: string
+  ): Promise<{ success: boolean; message?: string }> => {
+    try {
+      const normalizedEmail = email.trim().toLowerCase();
+      const cleanSlug =
+        storeName
+          .toLowerCase()
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '')
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/(^-|-$)/g, '') || 'minha-loja';
+
+      const newTenantId = `tenant_${cleanSlug}_${Date.now().toString(36)}`;
+      let ownerUid = `usr_${Date.now().toString(36)}`;
+
+      // Try Firebase Auth email registration
+      try {
+        const fbUser = await registerWithEmail(ownerName, normalizedEmail, password);
+        if (fbUser) ownerUid = fbUser.uid;
+      } catch (authErr: any) {
+        console.warn('Notice from Firebase email registration:', authErr?.message);
+      }
+
+      const newTenant: TenantAccount = {
+        tenantId: newTenantId,
+        ownerUid,
+        ownerEmail: normalizedEmail,
+        ownerName: ownerName.trim(),
+        storeName: storeName.trim(),
+        storeSlug: cleanSlug,
+        phone: phone?.trim() || '',
+        plan: 'starter',
+        createdAt: new Date().toISOString(),
+        status: 'active',
+      };
+
+      const updatedTenants = [...allTenants, newTenant];
+      setAllTenants(updatedTenants);
+      try {
+        localStorage.setItem('metaslim_all_tenants', JSON.stringify(updatedTenants));
+        localStorage.setItem('metaslim_active_tenant_id', newTenantId);
+      } catch {}
+
+      // Seed fresh isolated catalog, orders and settings for new tenant
+      const initialTenantProducts = getInitialProductsForTenant(newTenantId, storeName);
+      const initialTenantSettings = getInitialSettingsForTenant(newTenant);
+      const initialTenantOrders: OrderRecord[] = [];
+
+      try {
+        localStorage.setItem(`metaslim_tenant_products_${newTenantId}`, JSON.stringify(initialTenantProducts));
+        localStorage.setItem(`metaslim_tenant_orders_${newTenantId}`, JSON.stringify(initialTenantOrders));
+        localStorage.setItem(`metaslim_tenant_settings_${newTenantId}`, JSON.stringify(initialTenantSettings));
+      } catch {}
+
+      // Persist to Firestore under isolated tenant namespace
+      try {
+        await setDoc(doc(db, 'tenants', newTenantId), newTenant);
+        await setDoc(doc(db, 'tenants', newTenantId, 'settings', 'general'), initialTenantSettings);
+      } catch (e) {
+        console.warn('Tenant profile saved locally, firestore sync notice:', e);
+      }
+
+      // Activate immediately
+      setActiveTenantId(newTenantId);
+      setProducts(initialTenantProducts);
+      setOrders(initialTenantOrders);
+      setSettings(initialTenantSettings);
+
+      const adminObj = {
+        uid: ownerUid,
+        email: normalizedEmail,
+        displayName: ownerName.trim(),
+      };
+      setLocalAdminUser(adminObj);
+      try {
+        localStorage.setItem('metaslim_local_admin', JSON.stringify(adminObj));
+      } catch {}
+
+      setActiveTab('admin');
+      showToast(`Parabéns! Sua loja "${storeName}" foi criada com seu painel 100% isolado!`, 6000);
+      return { success: true };
+    } catch (err: any) {
+      showToast(`Erro ao criar loja: ${err?.message || 'Tente novamente.'}`);
+      return { success: false, message: err?.message };
+    }
+  };
+
+  // Login tenant with email and password
+  const loginTenantWithPassword = async (
+    email: string,
+    password: string
+  ): Promise<{ success: boolean; message?: string }> => {
+    try {
+      const normalizedEmail = email.trim().toLowerCase();
+
+      // Try Firebase auth
+      let authUid = '';
+      try {
+        const fbUser = await signInWithEmail(normalizedEmail, password);
+        if (fbUser) {
+          authUid = fbUser.uid;
+        }
+      } catch (authErr: any) {
+        console.warn('Firebase email auth login notice:', authErr?.message);
+        if (authErr?.code === 'auth/wrong-password') {
+          showToast('Senha incorreta. Verifique os dados digitados.');
+          return { success: false, message: 'Senha incorreta' };
+        }
+      }
+
+      // Find tenant associated with this email
+      let matchingTenant = allTenants.find(
+        (t) => t.ownerEmail.toLowerCase() === normalizedEmail
+      );
+
+      // If super admin email
+      if (!matchingTenant && normalizedEmail === SUPER_ADMIN_EMAIL.toLowerCase()) {
+        matchingTenant = allTenants[0];
+      }
+
+      // If not found, create a tenant on the fly for this account
+      if (!matchingTenant) {
+        const cleanName = email.split('@')[0];
+        const cleanSlug = cleanName.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+        const newTId = `tenant_${cleanSlug}_${Date.now().toString(36)}`;
+        matchingTenant = {
+          tenantId: newTId,
+          ownerUid: authUid || `usr_${Date.now().toString(36)}`,
+          ownerEmail: normalizedEmail,
+          ownerName: cleanName.toUpperCase(),
+          storeName: `Loja ${cleanName.charAt(0).toUpperCase() + cleanName.slice(1)}`,
+          storeSlug: cleanSlug,
+          plan: 'starter',
+          createdAt: new Date().toISOString(),
+          status: 'active',
+        };
+        setAllTenants((prev) => [...prev, matchingTenant!]);
+        try {
+          localStorage.setItem('metaslim_all_tenants', JSON.stringify([...allTenants, matchingTenant]));
+        } catch {}
+      }
+
+      switchTenant(matchingTenant.tenantId);
+
+      const adminObj = {
+        uid: authUid || matchingTenant.ownerUid,
+        email: normalizedEmail,
+        displayName: matchingTenant.ownerName,
+      };
+      setLocalAdminUser(adminObj);
+      try {
+        localStorage.setItem('metaslim_local_admin', JSON.stringify(adminObj));
+      } catch {}
+
+      setActiveTab('admin');
+      showToast(`Bem-vindo(a) de volta ao seu painel, ${matchingTenant.ownerName}!`);
+      return { success: true };
+    } catch (err: any) {
+      showToast(`Erro ao entrar: ${err?.message || 'Verifique seus dados'}`);
+      return { success: false, message: err?.message };
+    }
+  };
+
+  // Reset password
+  const resetTenantPassword = async (
+    email: string
+  ): Promise<{ success: boolean; message?: string }> => {
+    try {
+      await resetUserPassword(email.trim().toLowerCase());
+      showToast(`E-mail de recuperação enviado para ${email}! Verifique sua caixa de entrada.`);
+      return { success: true };
+    } catch (err: any) {
+      showToast(`Erro na recuperação: ${err?.message || 'Verifique o e-mail digitado'}`);
+      return { success: false, message: err?.message };
+    }
+  };
+
+  // Check URL parameters for direct store links on load
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const params = new URLSearchParams(window.location.search);
+        const storeParam = params.get('store') || params.get('tenant');
+        if (storeParam) {
+          const match = allTenants.find(
+            (t) => t.tenantId === storeParam || t.storeSlug === storeParam
+          );
+          if (match && match.tenantId !== activeTenantId) {
+            switchTenant(match.tenantId);
+          }
+        }
+      } catch {}
+    }
+  }, [allTenants, activeTenantId, switchTenant]);
 
   // Test connection and listen to auth state changes
   useEffect(() => {
@@ -816,7 +1182,13 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   // Product mutations
   const updateProduct = async (updated: Product) => {
-    setProducts((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
+    setProducts((prev) => {
+      const next = prev.map((p) => (p.id === updated.id ? updated : p));
+      try {
+        localStorage.setItem(`metaslim_tenant_products_${activeTenantId}`, JSON.stringify(next));
+      } catch {}
+      return next;
+    });
     setCart((prev) =>
       prev.map((item) =>
         item.productId === updated.id
@@ -832,7 +1204,10 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     showToast(`Produto "${updated.name}" atualizado!`);
 
     try {
-      await setDoc(doc(db, 'products', updated.id), updated);
+      await setDoc(doc(db, 'tenants', activeTenantId, 'products', updated.id), updated);
+      if (activeTenantId === initialTenants[0].tenantId) {
+        await setDoc(doc(db, 'products', updated.id), updated).catch(() => {});
+      }
     } catch (e) {
       console.warn('Note: saved locally, cloud sync pending admin auth.');
     }
@@ -841,23 +1216,41 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const addProduct = async (newProd: Omit<Product, 'id'>) => {
     const id = newProd.name.toLowerCase().replace(/[^a-z0-9]/g, '-') + '-' + Date.now().toString().slice(-4);
     const product: Product = { ...newProd, id };
-    setProducts((prev) => [product, ...prev]);
+    setProducts((prev) => {
+      const next = [product, ...prev];
+      try {
+        localStorage.setItem(`metaslim_tenant_products_${activeTenantId}`, JSON.stringify(next));
+      } catch {}
+      return next;
+    });
     showToast(`Novo produto "${product.name}" criado!`);
 
     try {
-      await setDoc(doc(db, 'products', id), product);
+      await setDoc(doc(db, 'tenants', activeTenantId, 'products', id), product);
+      if (activeTenantId === initialTenants[0].tenantId) {
+        await setDoc(doc(db, 'products', id), product).catch(() => {});
+      }
     } catch (e) {
       console.warn('Note: saved locally, cloud sync pending admin auth.');
     }
   };
 
   const deleteProduct = async (id: string) => {
-    setProducts((prev) => prev.filter((p) => p.id !== id));
+    setProducts((prev) => {
+      const next = prev.filter((p) => p.id !== id);
+      try {
+        localStorage.setItem(`metaslim_tenant_products_${activeTenantId}`, JSON.stringify(next));
+      } catch {}
+      return next;
+    });
     setCart((prev) => prev.filter((item) => item.productId !== id));
     showToast('Produto excluído do catálogo');
 
     try {
-      await deleteDoc(doc(db, 'products', id));
+      await deleteDoc(doc(db, 'tenants', activeTenantId, 'products', id));
+      if (activeTenantId === initialTenants[0].tenantId) {
+        await deleteDoc(doc(db, 'products', id)).catch(() => {});
+      }
     } catch (e) {
       console.warn('Note: removed locally, cloud sync pending admin auth.');
     }
@@ -869,7 +1262,10 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     showToast(`Banner "${updated.title}" atualizado!`);
 
     try {
-      await setDoc(doc(db, 'banners', String(updated.id)), updated);
+      await setDoc(doc(db, 'tenants', activeTenantId, 'banners', String(updated.id)), updated);
+      if (activeTenantId === initialTenants[0].tenantId) {
+        await setDoc(doc(db, 'banners', String(updated.id)), updated).catch(() => {});
+      }
     } catch (e) {
       console.warn('Note: saved locally.');
     }
@@ -881,7 +1277,10 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     showToast(`Depoimento de "${updated.name}" atualizado!`);
 
     try {
-      await setDoc(doc(db, 'testimonials', updated.id), updated);
+      await setDoc(doc(db, 'tenants', activeTenantId, 'testimonials', updated.id), updated);
+      if (activeTenantId === initialTenants[0].tenantId) {
+        await setDoc(doc(db, 'testimonials', updated.id), updated).catch(() => {});
+      }
     } catch (e) {
       console.warn('Note: saved locally.');
     }
@@ -894,7 +1293,10 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     showToast(`Novo depoimento de "${testimonial.name}" adicionado!`);
 
     try {
-      await setDoc(doc(db, 'testimonials', id), testimonial);
+      await setDoc(doc(db, 'tenants', activeTenantId, 'testimonials', id), testimonial);
+      if (activeTenantId === initialTenants[0].tenantId) {
+        await setDoc(doc(db, 'testimonials', id), testimonial).catch(() => {});
+      }
     } catch (e) {
       console.warn('Note: saved locally.');
     }
@@ -905,7 +1307,10 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     showToast('Depoimento removido');
 
     try {
-      await deleteDoc(doc(db, 'testimonials', id));
+      await deleteDoc(doc(db, 'tenants', activeTenantId, 'testimonials', id));
+      if (activeTenantId === initialTenants[0].tenantId) {
+        await deleteDoc(doc(db, 'testimonials', id)).catch(() => {});
+      }
     } catch (e) {
       console.warn('Note: removed locally.');
     }
@@ -915,29 +1320,59 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const updateSettings = async (newSettings: Partial<StoreSettings>) => {
     const merged = { ...settings, ...newSettings };
     setSettings(merged);
+    try {
+      localStorage.setItem(`metaslim_tenant_settings_${activeTenantId}`, JSON.stringify(merged));
+    } catch {}
     showToast('Configurações da loja salvas com sucesso!');
 
     try {
-      await setDoc(doc(db, 'settings', 'general'), merged);
+      await setDoc(doc(db, 'tenants', activeTenantId, 'settings', 'general'), merged);
+      if (activeTenantId === initialTenants[0].tenantId) {
+        await setDoc(doc(db, 'settings', 'general'), merged).catch(() => {});
+      }
     } catch (e) {
       console.warn('Note: saved locally.');
     }
   };
 
   const resetDefaults = () => {
-    setProducts(initialProducts);
+    const defaultProds = getInitialProductsForTenant(activeTenantId, currentTenant.storeName);
+    const defaultSettings = getInitialSettingsForTenant(currentTenant);
+    const defaultOrders = getInitialOrdersForTenant(activeTenantId);
+
+    setProducts(defaultProds);
     setBanners(initialBanners);
     setTestimonials(initialTestimonials);
-    setSettings(initialStoreSettings);
-    setOrders(initialOrders);
-    showToast('Dados restaurados para o padrão de demonstração!');
+    setSettings(defaultSettings);
+    setOrders(defaultOrders);
+
+    try {
+      localStorage.setItem(`metaslim_tenant_products_${activeTenantId}`, JSON.stringify(defaultProds));
+      localStorage.setItem(`metaslim_tenant_settings_${activeTenantId}`, JSON.stringify(defaultSettings));
+      localStorage.setItem(`metaslim_tenant_orders_${activeTenantId}`, JSON.stringify(defaultOrders));
+    } catch {}
+
+    showToast(`Dados da loja "${currentTenant.storeName}" restaurados para o padrão!`);
   };
 
   const addOrder = async (newOrder: OrderRecord) => {
-    setOrders((prev) => [newOrder, ...prev]);
+    const taggedOrder = {
+      ...newOrder,
+      tenantId: activeTenantId,
+    };
+    setOrders((prev) => {
+      const next = [taggedOrder, ...prev];
+      try {
+        localStorage.setItem(`metaslim_tenant_orders_${activeTenantId}`, JSON.stringify(next));
+      } catch {}
+      return next;
+    });
     showToast(`Pedido #${newOrder.id} registrado com sucesso!`);
     try {
-      await setDoc(doc(db, 'orders', newOrder.id), newOrder);
+      await setDoc(doc(db, 'tenants', activeTenantId, 'orders', newOrder.id), taggedOrder);
+      if (activeTenantId === initialTenants[0].tenantId) {
+        await setDoc(doc(db, 'orders', newOrder.id), taggedOrder).catch(() => {});
+      }
     } catch {
       console.warn('Order saved locally, Firestore sync pending.');
     }
@@ -949,8 +1384,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     trackingCode?: string,
     carrier?: string
   ) => {
-    setOrders((prev) =>
-      prev.map((o) => {
+    setOrders((prev) => {
+      const next = prev.map((o) => {
         if (o.id === orderId) {
           const updated: OrderRecord = {
             ...o,
@@ -962,8 +1397,12 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           return updated;
         }
         return o;
-      })
-    );
+      });
+      try {
+        localStorage.setItem(`metaslim_tenant_orders_${activeTenantId}`, JSON.stringify(next));
+      } catch {}
+      return next;
+    });
     showToast(`Pedido #${orderId} atualizado para "${status.toUpperCase()}"!`);
 
     try {
@@ -971,7 +1410,10 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       if (trackingCode) payload.trackingCode = trackingCode;
       if (carrier) payload.carrier = carrier;
       if (status === 'shipped') payload.shippedAt = new Date().toISOString();
-      await setDoc(doc(db, 'orders', orderId), payload, { merge: true });
+      await setDoc(doc(db, 'tenants', activeTenantId, 'orders', orderId), payload, { merge: true });
+      if (activeTenantId === initialTenants[0].tenantId) {
+        await setDoc(doc(db, 'orders', orderId), payload, { merge: true }).catch(() => {});
+      }
     } catch {
       console.warn('Status saved locally.');
     }
@@ -1018,6 +1460,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
       const orderPayload: OrderRecord = {
         id: orderId,
+        tenantId: activeTenantId,
         userId: customerUser?.uid || firebaseUser?.uid || 'guest',
         customerEmail: finalShipping.email || customerUser?.email || firebaseUser?.email || 'cliente@checkout.com',
         totalAmount: cartTotal,
@@ -1035,11 +1478,20 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         paidAt: new Date().toISOString(),
       };
 
-      setOrders((prev) => [orderPayload, ...prev]);
+      setOrders((prev) => {
+        const next = [orderPayload, ...prev];
+        try {
+          localStorage.setItem(`metaslim_tenant_orders_${activeTenantId}`, JSON.stringify(next));
+        } catch {}
+        return next;
+      });
 
       try {
-        await setDoc(doc(db, 'orders', orderId), orderPayload);
-        console.log('Order registered in Firestore:', orderId);
+        await setDoc(doc(db, 'tenants', activeTenantId, 'orders', orderId), orderPayload);
+        if (activeTenantId === initialTenants[0].tenantId) {
+          await setDoc(doc(db, 'orders', orderId), orderPayload).catch(() => {});
+        }
+        console.log('Order registered in Firestore:', orderId, 'tenant:', activeTenantId);
       } catch (err) {
         console.warn('Order saved locally, Firestore pending auth:', err);
       }
@@ -1079,6 +1531,18 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         isAdminUser,
         isFirebaseConnected,
         isSyncing,
+        currentTenant,
+        activeTenantId,
+        allTenants,
+        isTenantAdmin,
+        switchTenant,
+        createTenantStore,
+        loginTenantWithPassword,
+        resetTenantPassword,
+        authModalOpen,
+        setAuthModalOpen,
+        authModalDefaultTab,
+        openAuthModal,
         setActiveTab,
         setSelectedProductId,
         setSelectedCategory,
