@@ -122,6 +122,37 @@
       },
       "required": ["id", "totalAmount", "status"]
     },
+    "ChatConversation": {
+      "title": "ChatConversation",
+      "description": "Individual client WhatsApp-like direct chat conversation",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "customerName": { "type": "string", "maxLength": 150 },
+        "customerContact": { "type": "string", "maxLength": 150 },
+        "lastMessage": { "type": "string", "maxLength": 1000 },
+        "lastMessageAt": { "type": "string", "maxLength": 60 },
+        "unreadByAdmin": { "type": "number" },
+        "unreadByCustomer": { "type": "number" },
+        "createdAt": { "type": "string", "maxLength": 60 }
+      },
+      "required": ["id", "customerName", "customerContact"]
+    },
+    "ChatMessage": {
+      "title": "ChatMessage",
+      "description": "Message within a customer-admin direct WhatsApp chat conversation",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "chatId": { "type": "string", "maxLength": 128 },
+        "sender": { "type": "string", "enum": ["customer", "admin"] },
+        "senderName": { "type": "string", "maxLength": 100 },
+        "text": { "type": "string", "maxLength": 4000 },
+        "timestamp": { "type": "string", "maxLength": 60 },
+        "status": { "type": "string", "enum": ["sent", "delivered", "read"] }
+      },
+      "required": ["id", "chatId", "sender", "text", "timestamp"]
+    },
     "Tenant": {
       "title": "Tenant",
       "description": "Multi-tenant SaaS store account profile and isolated workspace",
@@ -189,6 +220,14 @@
     "/orders/{orderId}": {
       "schema": "#/entities/Order",
       "description": "Customer orders and checkout intents"
+    },
+    "/chats/{chatId}": {
+      "schema": "#/entities/ChatConversation",
+      "description": "Individual client WhatsApp direct conversation"
+    },
+    "/chats/{chatId}/messages/{messageId}": {
+      "schema": "#/entities/ChatMessage",
+      "description": "Messages exchanged in client direct WhatsApp conversation"
     }
   }
 }

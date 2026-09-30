@@ -189,5 +189,34 @@ service cloud.firestore {
       allow update: if isAdmin() && isValidId(orderId) && isValidOrder(incoming());
       allow delete: if isAdmin() && isValidId(orderId);
     }
+
+    // Validation for Chat Conversation
+    function isValidChat(data) {
+      return data.id is string && data.id.size() <= 128 &&
+             data.customerName is string && data.customerName.size() <= 150 &&
+             data.customerContact is string && data.customerContact.size() <= 150;
+    }
+
+    // Validation for Chat Message
+    function isValidChatMessage(data) {
+      return data.id is string && data.id.size() <= 128 &&
+             data.chatId is string && data.chatId.size() <= 128 &&
+             data.sender in ['customer', 'admin'] &&
+             data.text is string && data.text.size() <= 4000;
+    }
+
+    // WhatsApp Direct Client Chats
+    match /chats/{chatId} {
+      allow get: if isValidId(chatId);
+      allow list: if isAdmin();
+      allow create, update: if isValidId(chatId) && isValidChat(incoming());
+      allow delete: if isAdmin() && isValidId(chatId);
+
+      match /messages/{messageId} {
+        allow read: if isValidId(messageId);
+        allow create, update: if isValidId(messageId) && isValidChatMessage(incoming());
+        allow delete: if isAdmin() && isValidId(messageId);
+      }
+    }
   }
 }

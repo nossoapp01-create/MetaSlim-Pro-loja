@@ -1,9 +1,9 @@
 import React from 'react';
 import { useStore } from '../context/StoreContext';
-import { Home, Grid, Users, ShoppingBag, ShieldCheck } from 'lucide-react';
+import { Home, Grid, Users, ShoppingBag, ShieldCheck, MessageSquare } from 'lucide-react';
 
 interface NavItem {
-  id: 'inicio' | 'produtos' | 'resultados' | 'carrinho' | 'admin';
+  id: 'inicio' | 'produtos' | 'chat' | 'carrinho' | 'admin';
   label: string;
   icon: React.ElementType;
   badge?: number;
@@ -15,7 +15,7 @@ export const BottomNav: React.FC = () => {
   const navItems: NavItem[] = [
     { id: 'inicio', label: 'Início', icon: Home },
     { id: 'produtos', label: 'Peptídeos', icon: Grid },
-    { id: 'resultados', label: 'Resultados', icon: Users },
+    { id: 'chat', label: 'WhatsApp', icon: MessageSquare },
     { id: 'carrinho', label: 'Carrinho', icon: ShoppingBag, badge: cartItemsCount },
     { id: 'admin', label: 'Admin', icon: ShieldCheck },
   ];

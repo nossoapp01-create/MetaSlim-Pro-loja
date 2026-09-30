@@ -191,3 +191,30 @@ export interface TenantAccount {
   status: 'active' | 'pending' | 'suspended';
   notes?: string;
 }
+
+export interface ChatMessage {
+  id: string;
+  chatId: string;
+  sender: 'customer' | 'admin';
+  senderName: string;
+  text: string;
+  timestamp: string;
+  status?: 'sent' | 'delivered' | 'read';
+  attachmentUrl?: string;
+}
+
+export interface ChatConversation {
+  id: string;
+  customerName: string;
+  customerContact: string; // phone or email
+  customerPhone?: string;
+  customerEmail?: string;
+  lastMessage: string;
+  lastMessageAt: string;
+  unreadByAdmin: number;
+  unreadByCustomer: number;
+  createdAt: string;
+  updatedAt: string;
+  tenantId?: string;
+}
+

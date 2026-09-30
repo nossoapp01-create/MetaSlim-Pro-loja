@@ -55,7 +55,7 @@ interface StoreContextType {
   settings: StoreSettings;
   cart: CartItem[];
   orders: OrderRecord[];
-  activeTab: 'inicio' | 'produtos' | 'produto-detalhe' | 'resultados' | 'carrinho' | 'admin' | 'prazos-entrega' | 'revenda' | 'super-admin';
+  activeTab: 'inicio' | 'produtos' | 'produto-detalhe' | 'resultados' | 'carrinho' | 'admin' | 'prazos-entrega' | 'revenda' | 'super-admin' | 'chat';
   selectedProductId: string;
   currency: 'EUR' | 'BRL';
   selectedCategory: string;
@@ -104,7 +104,7 @@ interface StoreContextType {
   setAuthModalOpen: (open: boolean) => void;
   authModalDefaultTab: 'login' | 'register' | 'demo';
   openAuthModal: (tab?: 'login' | 'register' | 'demo') => void;
-  setActiveTab: (tab: 'inicio' | 'produtos' | 'produto-detalhe' | 'resultados' | 'carrinho' | 'admin' | 'prazos-entrega' | 'revenda' | 'super-admin') => void;
+  setActiveTab: (tab: 'inicio' | 'produtos' | 'produto-detalhe' | 'resultados' | 'carrinho' | 'admin' | 'prazos-entrega' | 'revenda' | 'super-admin' | 'chat') => void;
   setSelectedProductId: (id: string) => void;
   setSelectedCategory: (cat: string) => void;
   setSearchQuery: (query: string) => void;
@@ -326,7 +326,34 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   });
 
-  const [activeTab, setActiveTab] = useState<'inicio' | 'produtos' | 'produto-detalhe' | 'resultados' | 'carrinho' | 'admin' | 'prazos-entrega' | 'revenda' | 'super-admin'>('inicio');
+  const [activeTab, setActiveTab] = useState<
+    | 'inicio'
+    | 'produtos'
+    | 'produto-detalhe'
+    | 'resultados'
+    | 'carrinho'
+    | 'admin'
+    | 'prazos-entrega'
+    | 'revenda'
+    | 'super-admin'
+    | 'chat'
+  >(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const params = new URLSearchParams(window.location.search);
+        if (
+          params.get('chat') === '1' ||
+          params.get('chat') === 'true' ||
+          params.get('atendimento') === '1' ||
+          params.get('whatsapp') === '1' ||
+          window.location.hash === '#chat'
+        ) {
+          return 'chat';
+        }
+      } catch {}
+    }
+    return 'inicio';
+  });
   const [selectedProductId, setSelectedProductId] = useState<string>('retatrutide-10mg');
   const [selectedCategory, setSelectedCategory] = useState<string>('todos');
   const [searchQuery, setSearchQuery] = useState<string>('');

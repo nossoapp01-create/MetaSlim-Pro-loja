@@ -13,6 +13,7 @@ import {
 import { initialResaleSettings } from '../data/initialData';
 import { StripeSalesDashboard } from './StripeSalesDashboard';
 import { SaaSTenantsManager } from './SaaSTenantsManager';
+import { WhatsAppAdminDashboard } from './WhatsAppAdminDashboard';
 import { ImageUploadField } from './ImageUploadField';
 import {
   testStripeConnection,
@@ -107,6 +108,7 @@ export const AdminPanel: React.FC = () => {
   const [activeAdminTab, setActiveAdminTab] = useState<
     | 'saas-tenants'
     | 'vendas-stripe'
+    | 'whatsapp-chat'
     | 'produtos'
     | 'banners'
     | 'depoimentos'
@@ -687,6 +689,21 @@ export const AdminPanel: React.FC = () => {
         </button>
 
         <button
+          onClick={() => setActiveAdminTab('whatsapp-chat')}
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
+            activeAdminTab === 'whatsapp-chat'
+              ? 'bg-[#008069] text-white shadow-md shadow-emerald-950/20'
+              : 'bg-white text-slate-700 hover:bg-emerald-50 border border-slate-200/70 hover:border-emerald-400'
+          }`}
+        >
+          <MessageCircle className="w-3.5 h-3.5 text-emerald-400" />
+          <span>WhatsApp VIP (Clientes)</span>
+          <span className="text-[10px] font-mono px-2 py-0.5 rounded-full font-bold bg-emerald-100 text-[#008069]">
+            Direto
+          </span>
+        </button>
+
+        <button
           onClick={() => setActiveAdminTab('produtos')}
           className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
             activeAdminTab === 'produtos'
@@ -787,6 +804,11 @@ export const AdminPanel: React.FC = () => {
       {/* TAB 0: Stripe Sales & Shipping Labels Dashboard */}
       {activeAdminTab === 'vendas-stripe' && (
         <StripeSalesDashboard />
+      )}
+
+      {/* TAB WHATSAPP: Dedicated WhatsApp Client Support Dashboard */}
+      {activeAdminTab === 'whatsapp-chat' && (
+        <WhatsAppAdminDashboard />
       )}
 
       {/* TAB 1: Product Editor */}

@@ -11,6 +11,7 @@ import { AdminPanel } from './components/AdminPanel';
 import { SuperAdminPanel } from './components/SuperAdminPanel';
 import { DeliveryPolicy } from './components/DeliveryPolicy';
 import { ResaleWholesale } from './components/ResaleWholesale';
+import { WhatsAppClientChat } from './components/WhatsAppClientChat';
 import { Footer } from './components/Footer';
 import { BottomNav } from './components/BottomNav';
 import { DosageCalculatorModal } from './components/DosageCalculatorModal';
@@ -273,6 +274,9 @@ const MainContent: React.FC = () => {
 
         {/* VIEW 8: PROGRAMA DE REVENDA E ATACADO */}
         {activeTab === 'revenda' && <ResaleWholesale />}
+
+        {/* VIEW 9: WHATSAPP ATENDIMENTO INDIVIDUAL VIP */}
+        {activeTab === 'chat' && <WhatsAppClientChat />}
       </main>
 
       {/* Dosage Reconstitution Modal */}
@@ -285,7 +289,7 @@ const MainContent: React.FC = () => {
       <Footer />
 
       {/* Floating Free Medical Consultation Button */}
-      {activeTab !== 'admin' && (
+      {activeTab !== 'admin' && activeTab !== 'chat' && (
         <FloatingConsultationButton
           consultationUrl={settings.consultationUrl || 'https://consulta.metaslim-pro.shop/'}
         />
