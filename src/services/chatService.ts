@@ -373,6 +373,13 @@ export async function sendChatMessage(
   return message;
 }
 
+export function getChatSortTime(c: Partial<ChatConversation>): number {
+  const d = c.lastMessageAt || c.updatedAt || c.createdAt;
+  if (!d) return 0;
+  const t = new Date(d).getTime();
+  return isNaN(t) ? 0 : t;
+}
+
 // Subscribe to all conversations for Admin
 export function subscribeToAllConversations(
   onUpdate: (conversations: ChatConversation[]) => void
@@ -403,8 +410,8 @@ export function subscribeToAllConversations(
           }
         });
 
-        // Sort descending by last message
-        chats.sort((a, b) => new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime());
+        // Sort descending by most recent message timestamp
+        chats.sort((a, b) => getChatSortTime(b) - getChatSortTime(a));
 
         // Cache
         try {
@@ -481,20 +488,25 @@ function saveMessageToLocal(chatId: string, message: ChatMessage) {
 function getAllLocalChats(): ChatConversation[] {
   try {
     const raw = localStorage.getItem(LOCAL_STORAGE_ALL_CHATS);
-    if (raw) return JSON.parse(raw);
+    if (raw) {
+      const parsed: ChatConversation[] = JSON.parse(raw);
+      parsed.sort((a, b) => getChatSortTime(b) - getChatSortTime(a));
+      return parsed;
+    }
   } catch {}
   return [];
 }
 
 function saveChatToLocal(chat: ChatConversation) {
   try {
-    const all = getAllLocalChats();
+    let all = getAllLocalChats();
     const idx = all.findIndex((c) => c.id === chat.id);
     if (idx >= 0) {
       all[idx] = { ...all[idx], ...chat };
     } else {
       all.unshift(chat);
     }
+    all.sort((a, b) => getChatSortTime(b) - getChatSortTime(a));
     localStorage.setItem(LOCAL_STORAGE_ALL_CHATS, JSON.stringify(all));
     localStorage.setItem(`${LOCAL_STORAGE_CHATS_PREFIX}info_${chat.id}`, JSON.stringify(chat));
   } catch {}
@@ -502,11 +514,27 @@ function saveChatToLocal(chat: ChatConversation) {
 
 function updateLocalChatMeta(chatId: string, partial: Partial<ChatConversation>) {
   try {
-    const all = getAllLocalChats();
+    let all = getAllLocalChats();
     const idx = all.findIndex((c) => c.id === chatId);
     if (idx >= 0) {
-      all[idx] = { ...all[idx], ...partial };
-      localStorage.setItem(LOCAL_STORAGE_ALL_CHATS, JSON.stringify(all));
+      const updated = { ...all[idx], ...partial };
+      all.splice(idx, 1);
+      all.unshift(updated);
+    } else {
+      all.unshift({
+        id: chatId,
+        customerName: partial.customerName || 'Contato WhatsApp',
+        customerContact: partial.customerContact || chatId.replace('chat_', ''),
+        lastMessage: partial.lastMessage || '',
+        lastMessageAt: partial.lastMessageAt || new Date().toISOString(),
+        unreadByAdmin: partial.unreadByAdmin || 0,
+        unreadByCustomer: partial.unreadByCustomer || 0,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        ...partial,
+      } as ChatConversation);
     }
+    all.sort((a, b) => getChatSortTime(b) - getChatSortTime(a));
+    localStorage.setItem(LOCAL_STORAGE_ALL_CHATS, JSON.stringify(all));
   } catch {}
 }

@@ -12,6 +12,7 @@ import { SuperAdminPanel } from './components/SuperAdminPanel';
 import { DeliveryPolicy } from './components/DeliveryPolicy';
 import { ResaleWholesale } from './components/ResaleWholesale';
 import { WhatsAppClientChat } from './components/WhatsAppClientChat';
+import { WhatsAppAdminDashboard } from './components/WhatsAppAdminDashboard';
 import { GlobalChatNotifier } from './components/GlobalChatNotifier';
 import { Footer } from './components/Footer';
 import { BottomNav } from './components/BottomNav';
@@ -53,7 +54,7 @@ const MainContent: React.FC = () => {
   // Dedicated Full-Screen WhatsApp VIP Chat Mode (Zero Store Header, Zero Footer, 100% WhatsApp Web)
   if (activeTab === 'chat') {
     return (
-      <div className="fixed inset-0 w-screen h-screen z-50 bg-[#efeae2] overflow-hidden font-sans">
+      <div className="fixed inset-0 w-screen h-screen z-50 bg-[#efeae2] overflow-y-auto font-sans p-2 sm:p-4 flex flex-col">
         {/* Floating Toast Notification */}
         {toast && (
           <div className="fixed top-4 right-4 left-4 sm:left-auto sm:max-w-lg z-[100] bg-[#131b2e] text-white p-3.5 rounded-2xl shadow-2xl border border-slate-700/80 flex items-start gap-3 text-xs font-medium animate-in slide-in-from-top duration-200 backdrop-blur-md">
@@ -71,8 +72,10 @@ const MainContent: React.FC = () => {
           </div>
         )}
 
-        {/* WhatsApp Client Chat Component (Pure WhatsApp Web View) */}
-        <WhatsAppClientChat />
+        {/* WhatsApp Web Unified Interface */}
+        <div className="max-w-7xl mx-auto w-full flex-1 flex flex-col">
+          <WhatsAppAdminDashboard />
+        </div>
       </div>
     );
   }

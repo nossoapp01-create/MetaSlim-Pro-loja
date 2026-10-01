@@ -8,6 +8,7 @@ import {
   deleteChat,
   generateChatId,
   playIncomingWhatsAppChime,
+  getChatSortTime,
 } from '../services/chatService';
 import { ChatConversation, ChatMessage } from '../types';
 import {
@@ -39,6 +40,7 @@ import {
   MessageSquarePlus,
   ChevronDown,
   Pin,
+  ArrowLeft,
 } from 'lucide-react';
 import { PWAInstallPrompt } from './PWAInstallPrompt';
 
@@ -58,6 +60,7 @@ export const WhatsAppAdminDashboard: React.FC = () => {
   const [showNewChatModal, setShowNewChatModal] = useState(false);
   const [newClientName, setNewClientName] = useState('');
   const [newClientContact, setNewClientContact] = useState('');
+  const [mobileChatOpen, setMobileChatOpen] = useState(false);
 
   // Sound alert settings
   const [soundEnabled, setSoundEnabled] = useState<boolean>(() => {
@@ -125,18 +128,20 @@ export const WhatsAppAdminDashboard: React.FC = () => {
 
   const activeConversation = conversations.find((c) => c.id === selectedChatId) || null;
 
-  // Filter conversations
-  const filteredConversations = conversations.filter((c) => {
-    const matchesSearch =
-      !searchTerm ||
-      c.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      c.customerContact.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      c.lastMessage.toLowerCase().includes(searchTerm.toLowerCase());
+  // Filter and strictly sort conversations by latest message timestamp descending
+  const filteredConversations = conversations
+    .filter((c) => {
+      const matchesSearch =
+        !searchTerm ||
+        c.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        c.customerContact.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        c.lastMessage.toLowerCase().includes(searchTerm.toLowerCase());
 
-    const matchesFilter = filterType === 'all' || (filterType === 'unread' && c.unreadByAdmin > 0);
+      const matchesFilter = filterType === 'all' || (filterType === 'unread' && (c.unreadByAdmin || 0) > 0);
 
-    return matchesSearch && matchesFilter;
-  });
+      return matchesSearch && matchesFilter;
+    })
+    .sort((a, b) => getChatSortTime(b) - getChatSortTime(a));
 
   const totalUnreadCount = conversations.reduce((acc, c) => acc + (c.unreadByAdmin || 0), 0);
 
@@ -151,6 +156,18 @@ export const WhatsAppAdminDashboard: React.FC = () => {
     try {
       await sendChatMessage(selectedChatId, 'admin', 'Dra. Valéria Prado', text);
       markChatAsRead(selectedChatId, 'admin');
+
+      // Update conversations locally and bring replied chat to top
+      setConversations((prev) => {
+        const now = new Date().toISOString();
+        const updated = prev.map((c) =>
+          c.id === selectedChatId
+            ? { ...c, unreadByAdmin: 0, lastMessage: text, lastMessageAt: now }
+            : c
+        );
+        return updated.sort((a, b) => getChatSortTime(b) - getChatSortTime(a));
+      });
+
       setTimeout(() => scrollToBottom(true), 50);
     } catch (e) {
       console.error('Erro ao enviar resposta do admin:', e);
@@ -301,12 +318,12 @@ export const WhatsAppAdminDashboard: React.FC = () => {
           </button>
 
           <button
-            onClick={() => setActiveTab('chat')}
-            className="px-3.5 py-2.5 rounded-xl bg-emerald-950/40 hover:bg-emerald-950/60 text-white font-bold text-xs border border-white/30 transition-all flex items-center gap-1.5 cursor-pointer"
-            title="Abrir como cliente para testar"
+            onClick={() => setActiveTab('inicio')}
+            className="px-3.5 py-2.5 rounded-xl bg-white/15 hover:bg-white/25 text-white font-bold text-xs border border-white/30 transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
+            title="Voltar para a Loja de Peptídeos"
           >
-            <ExternalLink className="w-4 h-4" />
-            <span>Ver como Cliente</span>
+            <ArrowLeft className="w-4 h-4" />
+            <span>Voltar à Loja</span>
           </button>
 
           <button
@@ -323,7 +340,11 @@ export const WhatsAppAdminDashboard: React.FC = () => {
       {/* 2. MAIN WHATSAPP WEB TWO-COLUMN DASHBOARD */}
       <div className="bg-white rounded-2xl shadow-xl border border-slate-200/90 overflow-hidden flex flex-col md:flex-row h-[78vh] max-h-[820px]">
         {/* LEFT COLUMN: CLIENT LIST (WHATSAPP AUTHENTIC STRUCTURE) */}
-        <div className="w-full md:w-84 lg:w-96 border-r border-slate-200 flex flex-col shrink-0 bg-white">
+        <div
+          className={`w-full md:w-84 lg:w-96 border-r border-slate-200 flex flex-col shrink-0 bg-white ${
+            mobileChatOpen ? 'hidden md:flex' : 'flex'
+          }`}
+        >
           {/* Authentic WhatsApp Top Header */}
           <div className="px-4 py-3 bg-white flex items-center justify-between border-b border-slate-100">
             <h1 className="text-xl font-black text-slate-900 tracking-tight font-sans">
@@ -443,6 +464,7 @@ export const WhatsAppAdminDashboard: React.FC = () => {
                     key={conv.id}
                     onClick={() => {
                       setSelectedChatId(conv.id);
+                      setMobileChatOpen(true);
                       markChatAsRead(conv.id, 'admin');
                       setConversations((prev) =>
                         prev.map((c) => (c.id === conv.id ? { ...c, unreadByAdmin: 0 } : c))
@@ -532,12 +554,23 @@ export const WhatsAppAdminDashboard: React.FC = () => {
         </div>
 
         {/* RIGHT COLUMN: ACTIVE CONVERSATION MESSAGES & REPLY */}
-        <div className="flex-1 flex flex-col bg-[#efeae2] relative">
+        <div
+          className={`flex-1 flex flex-col bg-[#efeae2] relative ${
+            !mobileChatOpen ? 'hidden md:flex' : 'flex'
+          }`}
+        >
           {activeConversation ? (
             <>
               {/* Active Conversation Top Bar */}
               <div className="p-3 bg-[#f0f2f5] border-b border-slate-200/80 flex items-center justify-between shadow-2xs shrink-0">
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 sm:gap-3">
+                  <button
+                    onClick={() => setMobileChatOpen(false)}
+                    className="md:hidden p-1.5 -ml-1 text-slate-700 hover:bg-slate-200/80 rounded-full transition-colors cursor-pointer"
+                    title="Voltar à lista de conversas"
+                  >
+                    <ArrowLeft className="w-5 h-5" />
+                  </button>
                   <div className="w-10 h-10 rounded-full bg-emerald-600 text-white font-bold text-xs flex items-center justify-center shadow-xs">
                     {activeConversation.customerName.slice(0, 2).toUpperCase()}
                   </div>
