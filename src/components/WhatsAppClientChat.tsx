@@ -38,7 +38,6 @@ import {
   startAudioRecording,
   AudioRecordingSession,
   formatAudioDuration,
-  generateSyntheticClinicalAudio,
 } from '../utils/audioUtils';
 
 const STORAGE_CLIENT_IDENTITY = 'metaslim_client_chat_identity';

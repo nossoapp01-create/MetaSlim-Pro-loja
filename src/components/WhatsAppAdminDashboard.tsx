@@ -45,7 +45,6 @@ import {
   Users,
   Mic,
   Square,
-  Headphones,
 } from 'lucide-react';
 import { PWAInstallPrompt } from './PWAInstallPrompt';
 import { WhatsAppAudioBubble } from './WhatsAppAudioBubble';
@@ -53,7 +52,6 @@ import {
   startAudioRecording,
   AudioRecordingSession,
   formatAudioDuration,
-  generateSyntheticClinicalAudio,
 } from '../utils/audioUtils';
 
 export const WhatsAppAdminDashboard: React.FC = () => {
@@ -303,67 +301,6 @@ export const WhatsAppAdminDashboard: React.FC = () => {
     setIsRecordingAudio(false);
     setRecordingDuration(0);
     showToast('Gravação de áudio cancelada.');
-  };
-
-  // Send a pre-configured clinical voice note from Dra. Valéria Prado
-  const handleSendPresetAudio = async (title: string, durationSec = 7) => {
-    if (!selectedChatId) return;
-    try {
-      setIsSending(true);
-      const audioUrl = generateSyntheticClinicalAudio(durationSec);
-      await sendChatMessage(
-        selectedChatId,
-        'admin',
-        'Dra. Valéria Prado',
-        `🎙️ ${title}`,
-        {
-          audioUrl,
-          audioDuration: durationSec,
-          messageType: 'audio',
-        }
-      );
-      markChatAsRead(selectedChatId, 'admin');
-
-      setConversations((prev) => {
-        const now = new Date().toISOString();
-        const updated = prev.map((c) =>
-          c.id === selectedChatId
-            ? { ...c, unreadByAdmin: 0, lastMessage: `🎙️ Áudio (${durationSec}s)`, lastMessageAt: now }
-            : c
-        );
-        return updated.sort((a, b) => getChatSortTime(b) - getChatSortTime(a));
-      });
-
-      showToast(`Áudio clínico "${title}" enviado!`);
-      setTimeout(() => scrollToBottom(true), 50);
-    } catch (e) {
-      showToast('Erro ao enviar áudio clínico.');
-    } finally {
-      setIsSending(false);
-    }
-  };
-
-  // Simulate receiving an incoming voice note from the client/patient
-  const handleSimulateIncomingAudio = async () => {
-    if (!selectedChatId) return;
-    try {
-      const audioUrl = generateSyntheticClinicalAudio(5);
-      await sendChatMessage(
-        selectedChatId,
-        'customer',
-        activeConversation?.customerName || 'Paciente',
-        '🎙️ Áudio com dúvida sobre aplicação',
-        {
-          audioUrl,
-          audioDuration: 5,
-          messageType: 'audio',
-        }
-      );
-      showToast('Áudio do paciente recebido na conversa!');
-      setTimeout(() => scrollToBottom(true), 50);
-    } catch (e) {
-      showToast('Erro ao simular áudio do paciente.');
-    }
   };
 
   // Quick Clinical Macros
@@ -882,43 +819,12 @@ export const WhatsAppAdminDashboard: React.FC = () => {
                 </button>
               </div>
 
-              {/* Quick Macro Suggestions Bar with Audio Presets */}
-              <div className="bg-[#f0f2f5] border-t border-slate-200/80 px-3 py-2 flex items-center gap-1.5 overflow-x-auto scrollbar-none shrink-0">
+              {/* Quick Macro Suggestions Bar */}
+              <div className="bg-[#f0f2f5] border-t border-slate-200/80 px-3 py-1.5 flex items-center gap-1.5 overflow-x-auto scrollbar-none shrink-0">
                 <span className="text-[10px] uppercase font-bold text-slate-400 shrink-0 flex items-center gap-1">
                   <Sparkles className="w-3 h-3 text-emerald-600" />
-                  Macros:
+                  Respostas Rápidas:
                 </span>
-
-                {/* Preset Voice Notes */}
-                <button
-                  type="button"
-                  onClick={() => handleSendPresetAudio('Boas-vindas da Dra. Valéria Prado', 6)}
-                  className="px-2.5 py-1 rounded-full bg-emerald-100 hover:bg-emerald-200 border border-emerald-300 text-[#006750] text-xs font-bold whitespace-nowrap transition-colors cursor-pointer shadow-2xs flex items-center gap-1"
-                  title="Enviar áudio de boas-vindas"
-                >
-                  <Mic className="w-3 h-3" />
-                  <span>🎙️ Áudio Boas-Vindas</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => handleSendPresetAudio('Instruções de Reconstituição BAC', 8)}
-                  className="px-2.5 py-1 rounded-full bg-emerald-100 hover:bg-emerald-200 border border-emerald-300 text-[#006750] text-xs font-bold whitespace-nowrap transition-colors cursor-pointer shadow-2xs flex items-center gap-1"
-                  title="Enviar áudio sobre reconstituição BAC"
-                >
-                  <Mic className="w-3 h-3" />
-                  <span>🎙️ Áudio Reconstituição</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={handleSimulateIncomingAudio}
-                  className="px-2.5 py-1 rounded-full bg-amber-100 hover:bg-amber-200 border border-amber-300 text-amber-900 text-xs font-bold whitespace-nowrap transition-colors cursor-pointer shadow-2xs flex items-center gap-1"
-                  title="Simular um áudio de voz recebido do paciente para testar a escuta"
-                >
-                  <Headphones className="w-3 h-3" />
-                  <span>🎧 Simular Áudio Recebido</span>
-                </button>
 
                 {clinicalMacros.map((macro, idx) => (
                   <button

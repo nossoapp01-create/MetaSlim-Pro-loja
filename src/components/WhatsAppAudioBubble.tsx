@@ -23,6 +23,8 @@ export const WhatsAppAudioBubble: React.FC<WhatsAppAudioBubbleProps> = ({
     const audio = audioRef.current;
     if (!audio) return;
 
+    audio.load();
+
     const handleLoadedMetadata = () => {
       if (audio.duration && !isNaN(audio.duration) && isFinite(audio.duration)) {
         setTotalDuration(Math.round(audio.duration));
@@ -58,11 +60,25 @@ export const WhatsAppAudioBubble: React.FC<WhatsAppAudioBubbleProps> = ({
       setIsPlaying(false);
     } else {
       audio.playbackRate = playbackRate;
-      audio.play().then(() => {
-        setIsPlaying(true);
-      }).catch((e) => {
-        console.warn('Playback error:', e);
-      });
+      if (audio.ended || (audio.duration && audio.currentTime >= audio.duration)) {
+        audio.currentTime = 0;
+      }
+      const playPromise = audio.play();
+      if (playPromise !== undefined) {
+        playPromise
+          .then(() => {
+            setIsPlaying(true);
+          })
+          .catch((e) => {
+            console.warn('Playback error, reloading buffer:', e);
+            audio.load();
+            audio.play().then(() => {
+              setIsPlaying(true);
+            }).catch((e2) => {
+              console.error('Unable to play audio:', e2);
+            });
+          });
+      }
     }
   };
 
@@ -86,7 +102,7 @@ export const WhatsAppAudioBubble: React.FC<WhatsAppAudioBubbleProps> = ({
 
   return (
     <div className="flex items-center gap-3 py-1 px-1 min-w-[240px] sm:min-w-[280px]">
-      <audio ref={audioRef} src={audioUrl} preload="metadata" />
+      <audio ref={audioRef} src={audioUrl} preload="auto" playsInline />
 
       {/* WhatsApp Play/Pause Button */}
       <button
