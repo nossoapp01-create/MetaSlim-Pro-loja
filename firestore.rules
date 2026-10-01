@@ -192,9 +192,7 @@ service cloud.firestore {
 
     // Validation for Chat Conversation
     function isValidChat(data) {
-      return data.id is string && data.id.size() <= 128 &&
-             data.customerName is string && data.customerName.size() <= 150 &&
-             data.customerContact is string && data.customerContact.size() <= 150;
+      return data.id is string && data.id.size() <= 128;
     }
 
     // Validation for Chat Message
@@ -208,13 +206,14 @@ service cloud.firestore {
     // WhatsApp Direct Client Chats
     match /chats/{chatId} {
       allow get: if isValidId(chatId);
-      allow list: if isAdmin();
+      allow list: if true;
       allow create, update: if isValidId(chatId) && isValidChat(incoming());
       allow delete: if isAdmin() && isValidId(chatId);
 
       match /messages/{messageId} {
-        allow read: if isValidId(messageId);
-        allow create, update: if isValidId(messageId) && isValidChatMessage(incoming());
+        allow get: if isValidId(messageId);
+        allow list: if isValidId(chatId);
+        allow create, update: if isValidId(chatId) && isValidId(messageId) && isValidChatMessage(incoming());
         allow delete: if isAdmin() && isValidId(messageId);
       }
     }

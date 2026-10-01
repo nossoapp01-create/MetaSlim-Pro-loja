@@ -471,7 +471,13 @@ export const WhatsAppClientChat: React.FC = () => {
 
       {/* 6. WHATSAPP INPUT BAR */}
       <footer className="bg-[#f0f2f5] px-3 sm:px-6 py-2.5 border-t border-slate-200/80 shrink-0">
-        <div className="max-w-4xl mx-auto w-full flex items-center gap-2">
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            handleSendMessage();
+          }}
+          className="max-w-4xl mx-auto w-full flex items-center gap-2"
+        >
           <button
             type="button"
             onClick={() => setShowEmojiPicker(!showEmojiPicker)}
@@ -496,20 +502,13 @@ export const WhatsAppClientChat: React.FC = () => {
             type="text"
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                handleSendMessage();
-              }
-            }}
             placeholder="Mensagem..."
             className="flex-1 bg-white border border-transparent focus:border-emerald-500 text-slate-800 text-sm px-4 py-2.5 rounded-2xl focus:outline-none shadow-xs"
           />
 
           {newMessage.trim() ? (
             <button
-              type="button"
-              onClick={() => handleSendMessage()}
+              type="submit"
               disabled={isSending}
               className="w-10 h-10 rounded-full bg-[#00a884] hover:bg-[#008069] text-white flex items-center justify-center transition-transform active:scale-90 shadow-md cursor-pointer shrink-0"
               title="Enviar mensagem"
@@ -528,7 +527,7 @@ export const WhatsAppClientChat: React.FC = () => {
               <Mic className="w-5 h-5" />
             </button>
           )}
-        </div>
+        </form>
       </footer>
     </div>
   );

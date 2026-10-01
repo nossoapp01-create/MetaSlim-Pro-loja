@@ -92,10 +92,10 @@ export const WhatsAppAdminDashboard: React.FC = () => {
   useEffect(() => {
     const unsubscribe = subscribeToAllConversations((updated) => {
       setConversations(updated);
-      // Auto-select first conversation if none selected
-      if (!selectedChatId && updated.length > 0) {
-        setSelectedChatId(updated[0].id);
-      }
+      setSelectedChatId((curr) => {
+        if (curr && updated.some((c) => c.id === curr)) return curr;
+        return updated.length > 0 ? updated[0].id : null;
+      });
     });
 
     return () => unsubscribe();
@@ -138,7 +138,7 @@ export const WhatsAppAdminDashboard: React.FC = () => {
   // Send admin response to the active client
   const handleSendReply = async (textToSend?: string) => {
     const text = (textToSend || replyText).trim();
-    if (!text || !selectedChatId || !activeConversation) return;
+    if (!text || !selectedChatId) return;
 
     setIsSending(true);
     setReplyText('');
@@ -597,30 +597,35 @@ export const WhatsAppAdminDashboard: React.FC = () => {
               </div>
 
               {/* Admin Input Bar */}
-              <footer className="bg-[#f0f2f5] px-3 sm:px-4 py-2.5 flex items-center gap-2 border-t border-slate-200/80 shrink-0">
-                <input
-                  type="text"
-                  value={replyText}
-                  onChange={(e) => setReplyText(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                      e.preventDefault();
-                      handleSendReply();
-                    }
+              <footer className="bg-[#f0f2f5] px-3 sm:px-4 py-2.5 border-t border-slate-200/80 shrink-0">
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    handleSendReply();
                   }}
-                  placeholder={`Responder para ${activeConversation.customerName}...`}
-                  className="flex-1 bg-white border border-transparent focus:border-emerald-500 text-slate-800 text-sm px-4 py-2.5 rounded-2xl focus:outline-none shadow-xs"
-                />
-
-                <button
-                  type="button"
-                  onClick={() => handleSendReply()}
-                  disabled={!replyText.trim() || isSending}
-                  className="w-10 h-10 rounded-full bg-[#00a884] hover:bg-[#008069] text-white flex items-center justify-center transition-transform active:scale-95 shadow-md disabled:opacity-40 cursor-pointer shrink-0"
-                  title="Enviar resposta"
+                  className="flex items-center gap-2 w-full"
                 >
-                  <Send className="w-4 h-4 ml-0.5" />
-                </button>
+                  <input
+                    type="text"
+                    value={replyText}
+                    onChange={(e) => setReplyText(e.target.value)}
+                    placeholder={
+                      activeConversation
+                        ? `Responder para ${activeConversation.customerName}...`
+                        : 'Digite sua mensagem de resposta...'
+                    }
+                    className="flex-1 bg-white border border-transparent focus:border-emerald-500 text-slate-800 text-sm px-4 py-2.5 rounded-2xl focus:outline-none shadow-xs"
+                  />
+
+                  <button
+                    type="submit"
+                    disabled={!replyText.trim() || isSending}
+                    className="w-10 h-10 rounded-full bg-[#00a884] hover:bg-[#008069] text-white flex items-center justify-center transition-transform active:scale-95 shadow-md disabled:opacity-40 cursor-pointer shrink-0"
+                    title="Enviar resposta"
+                  >
+                    <Send className="w-4 h-4 ml-0.5" />
+                  </button>
+                </form>
               </footer>
             </>
           ) : (

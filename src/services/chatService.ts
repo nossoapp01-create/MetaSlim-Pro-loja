@@ -160,6 +160,16 @@ export function flashPageTitle(alertText: string, originalTitle = 'MetaSlim-Pro-
   }, 900);
 }
 
+function cleanObject<T extends Record<string, any>>(obj: T): T {
+  const result: any = {};
+  for (const [key, val] of Object.entries(obj)) {
+    if (val !== undefined) {
+      result[key] = val;
+    }
+  }
+  return result;
+}
+
 // Get or initialize a client conversation
 export async function getOrCreateChat(
   customerName: string,
@@ -174,8 +184,6 @@ export async function getOrCreateChat(
     id: chatId,
     customerName: customerName.trim(),
     customerContact: customerContact.trim(),
-    customerEmail: isEmail ? customerContact.trim() : undefined,
-    customerPhone: !isEmail ? customerContact.trim() : undefined,
     lastMessage: 'Atendimento individual iniciado com Dra. Valéria Prado.',
     lastMessageAt: now,
     unreadByAdmin: 1,
@@ -185,6 +193,12 @@ export async function getOrCreateChat(
     tenantId: tenantId || 'metaslim-pro-official',
   };
 
+  if (isEmail) {
+    chatData.customerEmail = customerContact.trim();
+  } else {
+    chatData.customerPhone = customerContact.trim();
+  }
+
   // 1. Save locally first
   saveChatToLocal(chatData);
 
@@ -193,7 +207,7 @@ export async function getOrCreateChat(
     const chatDocRef = doc(db, CHATS_COLLECTION, chatId);
     const existing = await getDoc(chatDocRef);
     if (!existing.exists()) {
-      await setDoc(chatDocRef, chatData);
+      await setDoc(chatDocRef, cleanObject(chatData));
 
       // Create initial welcoming message from Dra. Valéria Prado
       const welcomeMsg: ChatMessage = {
@@ -207,22 +221,22 @@ export async function getOrCreateChat(
       };
 
       const msgDocRef = doc(db, CHATS_COLLECTION, chatId, MESSAGES_SUBCOLLECTION, welcomeMsg.id);
-      await setDoc(msgDocRef, welcomeMsg);
+      await setDoc(msgDocRef, cleanObject(welcomeMsg));
       saveMessageToLocal(chatId, welcomeMsg);
     } else {
       const data = existing.data() as ChatConversation;
       // Update contact name if changed
       if (data.customerName !== customerName || data.customerContact !== customerContact) {
-        await updateDoc(chatDocRef, {
+        await updateDoc(chatDocRef, cleanObject({
           customerName: customerName.trim(),
           customerContact: customerContact.trim(),
           updatedAt: now,
-        });
+        }));
       }
       return { ...data, ...chatData, createdAt: data.createdAt || now };
     }
   } catch (err) {
-    console.warn('Firestore chat sync offline, running with local storage fallback:', err);
+    console.error('Firestore chat initialization error:', err);
     // Ensure initial welcome message exists locally
     const localMsgs = getLocalMessages(chatId);
     if (localMsgs.length === 0) {
@@ -265,15 +279,23 @@ export function subscribeToChatMessages(
           msgs.push(docSnap.data() as ChatMessage);
         });
 
-        if (msgs.length > 0) {
-          // Cache to local storage
+        // Merge with local cached messages that may not be in Firestore snapshot yet
+        const msgMap = new Map<string, ChatMessage>();
+        localCached.forEach((m) => msgMap.set(m.id, m));
+        msgs.forEach((m) => msgMap.set(m.id, m));
+
+        const merged = Array.from(msgMap.values()).sort(
+          (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+        );
+
+        if (merged.length > 0) {
           try {
             localStorage.setItem(
               `${LOCAL_STORAGE_CHATS_PREFIX}messages_${chatId}`,
-              JSON.stringify(msgs)
+              JSON.stringify(merged)
             );
           } catch {}
-          onUpdate(msgs);
+          onUpdate(merged);
         } else if (localCached.length > 0) {
           onUpdate(localCached);
         }
@@ -318,10 +340,11 @@ export async function sendChatMessage(
   // 2. Persist to Firestore
   try {
     const msgDocRef = doc(db, CHATS_COLLECTION, chatId, MESSAGES_SUBCOLLECTION, messageId);
-    await setDoc(msgDocRef, message);
+    await setDoc(msgDocRef, cleanObject(message));
 
     const chatDocRef = doc(db, CHATS_COLLECTION, chatId);
     const updates: Record<string, any> = {
+      id: chatId,
       lastMessage: text.trim().slice(0, 150),
       lastMessageAt: now,
       updatedAt: now,
@@ -333,9 +356,10 @@ export async function sendChatMessage(
       updates.unreadByCustomer = increment(1);
     }
 
-    await updateDoc(chatDocRef, updates);
+    // setDoc with merge: true ensures document is created if missing, or merged if present
+    await setDoc(chatDocRef, updates, { merge: true });
   } catch (err) {
-    console.warn('Error saving message to Firestore, kept in local state:', err);
+    console.error('Error saving message to Firestore:', err);
   }
 
   // Update local chat conversation meta
