@@ -49,6 +49,33 @@ const MainContent: React.FC = () => {
     return matchesCategory && matchesSearch;
   });
 
+  // Dedicated Full-Screen WhatsApp VIP Chat Mode (Zero Store Header, Zero Footer, 100% WhatsApp Web)
+  if (activeTab === 'chat') {
+    return (
+      <div className="fixed inset-0 w-screen h-screen z-50 bg-[#efeae2] overflow-hidden font-sans">
+        {/* Floating Toast Notification */}
+        {toast && (
+          <div className="fixed top-4 right-4 left-4 sm:left-auto sm:max-w-lg z-[100] bg-[#131b2e] text-white p-3.5 rounded-2xl shadow-2xl border border-slate-700/80 flex items-start gap-3 text-xs font-medium animate-in slide-in-from-top duration-200 backdrop-blur-md">
+            <span className="w-2.5 h-2.5 rounded-full bg-[#71face] shrink-0 mt-1 animate-ping" />
+            <div className="flex-1 leading-relaxed text-slate-100 break-words font-sans">
+              {toast}
+            </div>
+            <button
+              onClick={() => setToast && setToast(null)}
+              className="text-slate-400 hover:text-white p-0.5 ml-1 shrink-0 cursor-pointer"
+              title="Fechar aviso"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        )}
+
+        {/* WhatsApp Client Chat Component (Pure WhatsApp Web View) */}
+        <WhatsAppClientChat />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#f8fafc] text-[#131b2e] flex flex-col font-sans selection:bg-[#71face] selection:text-[#002117]">
       {/* Top Header */}
@@ -274,9 +301,6 @@ const MainContent: React.FC = () => {
 
         {/* VIEW 8: PROGRAMA DE REVENDA E ATACADO */}
         {activeTab === 'revenda' && <ResaleWholesale />}
-
-        {/* VIEW 9: WHATSAPP ATENDIMENTO INDIVIDUAL VIP */}
-        {activeTab === 'chat' && <WhatsAppClientChat />}
       </main>
 
       {/* Dosage Reconstitution Modal */}
@@ -289,7 +313,7 @@ const MainContent: React.FC = () => {
       <Footer />
 
       {/* Floating Free Medical Consultation Button */}
-      {activeTab !== 'admin' && activeTab !== 'chat' && (
+      {activeTab !== 'admin' && (
         <FloatingConsultationButton
           consultationUrl={settings.consultationUrl || 'https://consulta.metaslim-pro.shop/'}
         />
