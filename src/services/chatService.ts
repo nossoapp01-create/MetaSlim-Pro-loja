@@ -431,9 +431,9 @@ export async function markChatAsRead(chatId: string, by: 'customer' | 'admin'): 
   try {
     const chatDocRef = doc(db, CHATS_COLLECTION, chatId);
     if (by === 'admin') {
-      await updateDoc(chatDocRef, { unreadByAdmin: 0 });
+      await setDoc(chatDocRef, { unreadByAdmin: 0 }, { merge: true });
     } else {
-      await updateDoc(chatDocRef, { unreadByCustomer: 0 });
+      await setDoc(chatDocRef, { unreadByCustomer: 0 }, { merge: true });
     }
   } catch (e) {
     // Ignore offline error

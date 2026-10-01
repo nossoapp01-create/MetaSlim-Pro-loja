@@ -9,6 +9,7 @@ import {
   playIncomingWhatsAppChime,
 } from '../services/chatService';
 import { ChatMessage, ChatConversation } from '../types';
+import { PWAInstallPrompt } from './PWAInstallPrompt';
 import {
   MessageSquare,
   Send,
@@ -213,8 +214,11 @@ export const WhatsAppClientChat: React.FC = () => {
             </p>
           </div>
 
+          {/* Quick PWA App Installation Option for Client Phone */}
+          <PWAInstallPrompt variant="banner" className="mt-4" />
+
           {/* Form to enter Name + Phone/Email */}
-          <form onSubmit={handleStartChat} className="mt-6 flex flex-col gap-4">
+          <form onSubmit={handleStartChat} className="mt-5 flex flex-col gap-4">
             <div>
               <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
                 Seu Nome Completo *
@@ -327,6 +331,8 @@ export const WhatsAppClientChat: React.FC = () => {
 
           {/* Action controls */}
           <div className="flex items-center gap-1 sm:gap-2 text-emerald-100">
+            <PWAInstallPrompt title="Baixar App" variant="button" />
+
             <button
               onClick={handleCopyChatLink}
               className="px-3 py-1.5 hover:bg-emerald-700/60 rounded-full transition-colors text-xs flex items-center gap-1.5 text-white bg-emerald-700/40 border border-emerald-500/40 cursor-pointer"

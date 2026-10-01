@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useStore } from '../context/StoreContext';
 import { Search, ShoppingBag, ShieldCheck, Dna, X, LogIn, LogOut, CloudCheck, UserCheck, User, Truck, TrendingUp, Stethoscope, Building2, Store, MessageSquare } from 'lucide-react';
+import { PWAInstallPrompt } from './PWAInstallPrompt';
 
 interface HeaderProps {
   onOpenCalculator?: () => void;
@@ -161,6 +162,9 @@ export const Header: React.FC<HeaderProps> = ({ onOpenCalculator }) => {
             <span className="sm:hidden font-bold">WhatsApp</span>
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
           </button>
+
+          {/* Quick PWA App Installation Button */}
+          <PWAInstallPrompt variant="pill" title="Baixar App" className="hidden lg:inline-flex" />
 
           {/* Delivery Policy Link */}
           <button
