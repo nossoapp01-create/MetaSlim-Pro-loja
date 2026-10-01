@@ -346,7 +346,11 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           params.get('chat') === 'true' ||
           params.get('atendimento') === '1' ||
           params.get('whatsapp') === '1' ||
-          window.location.hash === '#chat'
+          params.get('admin_whatsapp') === '1' ||
+          params.get('admin-whatsapp') === '1' ||
+          params.get('admin_chat') === '1' ||
+          window.location.hash === '#chat' ||
+          window.location.hash === '#whatsapp'
         ) {
           return 'chat';
         }

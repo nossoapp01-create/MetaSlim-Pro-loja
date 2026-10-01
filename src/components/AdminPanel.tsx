@@ -808,7 +808,9 @@ export const AdminPanel: React.FC = () => {
 
       {/* TAB WHATSAPP: Dedicated WhatsApp Client Support Dashboard */}
       {activeAdminTab === 'whatsapp-chat' && (
-        <WhatsAppAdminDashboard />
+        <div className="h-[760px] w-full rounded-2xl overflow-hidden shadow-xl border border-slate-200/90 bg-white">
+          <WhatsAppAdminDashboard />
+        </div>
       )}
 
       {/* TAB 1: Product Editor */}

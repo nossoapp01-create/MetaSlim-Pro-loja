@@ -41,6 +41,7 @@ import {
   ChevronDown,
   Pin,
   ArrowLeft,
+  Users,
 } from 'lucide-react';
 import { PWAInstallPrompt } from './PWAInstallPrompt';
 
@@ -55,8 +56,23 @@ export const WhatsAppAdminDashboard: React.FC = () => {
   const [filterType, setFilterType] = useState<'all' | 'unread'>('all');
   const [isSending, setIsSending] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
+  const [copiedAdminLink, setCopiedAdminLink] = useState(false);
 
-  // New simulated customer chat modal
+  const handleCopyAdminLink = () => {
+    const link = `${window.location.origin}/?admin_whatsapp=1`;
+    navigator.clipboard.writeText(link);
+    setCopiedAdminLink(true);
+    showToast('Link do WhatsApp do Administrador copiado! Use para abrir ou instalar no seu celular.');
+    setTimeout(() => setCopiedAdminLink(false), 3000);
+  };
+
+  const handleCopyClientLink = () => {
+    const link = `${window.location.origin}/?chat=1`;
+    navigator.clipboard.writeText(link);
+    setCopiedLink(true);
+    showToast('Link de Atendimento para Clientes copiado com sucesso!');
+    setTimeout(() => setCopiedLink(false), 3000);
+  };
   const [showNewChatModal, setShowNewChatModal] = useState(false);
   const [newClientName, setNewClientName] = useState('');
   const [newClientContact, setNewClientContact] = useState('');
@@ -197,14 +213,6 @@ export const WhatsAppAdminDashboard: React.FC = () => {
     },
   ];
 
-  const handleCopyClientLink = () => {
-    const link = `${window.location.origin}${window.location.pathname}?chat=1`;
-    navigator.clipboard.writeText(link);
-    setCopiedLink(true);
-    showToast('Link do WhatsApp de Atendimento copiado com sucesso!');
-    setTimeout(() => setCopiedLink(false), 3000);
-  };
-
   const handleDeleteConversation = async (chatId: string, name: string) => {
     if (window.confirm(`Deseja realmente apagar todo o histórico de conversa com ${name}?`)) {
       await deleteChat(chatId);
@@ -248,97 +256,75 @@ export const WhatsAppAdminDashboard: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col gap-4 font-sans">
-      {/* 1. TOP PROMOTIONAL & LINK SHARING CARD */}
-      <div className="bg-gradient-to-r from-[#008069] via-[#00a884] to-[#075e54] text-white rounded-2xl p-4 sm:p-5 shadow-lg flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="flex items-start gap-3">
-          <div className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center text-white shrink-0 border border-white/30">
-            <MessageSquare className="w-6 h-6" />
+    <div className="flex flex-col h-full w-full font-sans overflow-hidden bg-white select-none">
+      {/* 1. SLIM TOP UTILITY & ACTION BAR (ONLY 46px, NO OVERSIZED CARDS) */}
+      <header className="bg-[#008069] text-white px-3 sm:px-4 py-2 flex items-center justify-between shadow-xs shrink-0 z-20">
+        <div className="flex items-center gap-2.5 truncate">
+          <div className="w-8 h-8 rounded-full bg-white/20 p-0.5 border border-white/40 overflow-hidden flex items-center justify-center shrink-0">
+            <img
+              src="https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&q=80&w=200"
+              alt="Dra. Valéria"
+              className="w-full h-full object-cover rounded-full"
+            />
           </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="font-mono text-[10px] uppercase font-bold text-emerald-200 bg-black/20 px-2 py-0.5 rounded-full">
-                Canal Exclusivo Individual
-              </span>
-              <span className="text-[10px] bg-white text-[#008069] px-2 py-0.5 rounded-full font-bold">
-                WhatsApp Web Admin
-              </span>
-            </div>
-            <h2 className="text-lg sm:text-xl font-extrabold text-white mt-1">
-              Atendimento WhatsApp Direto aos Clientes
-            </h2>
-            <p className="text-xs text-emerald-100 max-w-xl leading-relaxed mt-0.5">
-              Cada cliente possui um histórico único e isolado. Você responde individualmente a cada paciente como <strong>Dra. Valéria Prado</strong>.
-            </p>
+          <div className="flex items-center gap-2 truncate">
+            <span className="font-bold text-sm leading-tight text-white truncate">
+              WhatsApp VIP • Dra. Valéria Prado
+            </span>
+            <span className="hidden md:inline-block text-[10px] bg-emerald-950/40 text-emerald-200 border border-emerald-400/40 px-2 py-0.5 rounded-full font-mono uppercase">
+              Admin
+            </span>
           </div>
         </div>
 
-        {/* Link Copy & Actions */}
-        <div className="flex flex-wrap items-center gap-2 shrink-0">
-          <PWAInstallPrompt title="Baixar WhatsApp VIP" variant="button" />
+        {/* Action Controls */}
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          {/* PWA Install Button for Admin Phone */}
+          <PWAInstallPrompt title="Baixar App" variant="pill" />
 
+          {/* Copy Admin Link */}
           <button
-            onClick={handleTestSound}
-            className="px-3 py-2 rounded-xl bg-white/15 hover:bg-white/25 text-white font-bold text-xs border border-white/30 transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
-            title="Ouvir e testar o toque sonoro de mensagem do WhatsApp"
+            onClick={handleCopyAdminLink}
+            className="px-2.5 py-1.5 rounded-full bg-white/15 hover:bg-white/25 text-white font-bold text-xs border border-white/30 transition-all flex items-center gap-1.5 cursor-pointer shadow-xs active:scale-95"
+            title="Copiar link direto para abrir ou instalar o WhatsApp do Administrador"
           >
-            <Volume2 className="w-4 h-4 text-emerald-300" />
-            <span>Testar Toque</span>
+            {copiedAdminLink ? <Check className="w-3.5 h-3.5 text-emerald-300" /> : <Copy className="w-3.5 h-3.5" />}
+            <span className="hidden sm:inline">{copiedAdminLink ? 'Copiado!' : 'Link Admin'}</span>
           </button>
 
-          <button
-            onClick={handleToggleSound}
-            className={`px-3 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer border ${
-              soundEnabled
-                ? 'bg-emerald-950/40 text-emerald-200 border-emerald-400/50 hover:bg-emerald-950/60'
-                : 'bg-red-950/40 text-red-200 border-red-400/50 hover:bg-red-950/60'
-            }`}
-            title="Ativar ou desativar som das mensagens"
-          >
-            {soundEnabled ? (
-              <>
-                <Bell className="w-3.5 h-3.5 text-emerald-300" />
-                <span>Som Ativo</span>
-              </>
-            ) : (
-              <>
-                <VolumeX className="w-3.5 h-3.5 text-red-300" />
-                <span>Som Mudo</span>
-              </>
-            )}
-          </button>
-
+          {/* Copy Client Link */}
           <button
             onClick={handleCopyClientLink}
-            className="px-4 py-2 rounded-xl bg-white hover:bg-emerald-50 text-[#008069] font-bold text-xs shadow-md transition-all active:scale-95 flex items-center gap-2 cursor-pointer"
-            title="Copiar o link direto para enviar para clientes no WhatsApp, Instagram ou E-mail"
+            className="px-2.5 py-1.5 rounded-full bg-white/15 hover:bg-white/25 text-white font-bold text-xs border border-white/30 transition-all flex items-center gap-1.5 cursor-pointer shadow-xs active:scale-95"
+            title="Copiar o link direto para enviar para clientes"
           >
-            {copiedLink ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
-            <span>{copiedLink ? 'Link Copiado!' : 'Copiar Link para Clientes'}</span>
+            {copiedLink ? <Check className="w-3.5 h-3.5 text-emerald-300" /> : <Users className="w-3.5 h-3.5" />}
+            <span className="hidden sm:inline">{copiedLink ? 'Copiado!' : 'Link Clientes'}</span>
           </button>
 
+          {/* Sound Toggle */}
+          <button
+            onClick={handleToggleSound}
+            className="p-1.5 rounded-full hover:bg-white/20 text-white transition-colors cursor-pointer"
+            title={soundEnabled ? 'Silenciar alertas' : 'Ativar som de mensagens'}
+          >
+            {soundEnabled ? <Volume2 className="w-4 h-4 text-emerald-300" /> : <VolumeX className="w-4 h-4 text-red-300" />}
+          </button>
+
+          {/* Return to Store */}
           <button
             onClick={() => setActiveTab('inicio')}
-            className="px-3.5 py-2.5 rounded-xl bg-white/15 hover:bg-white/25 text-white font-bold text-xs border border-white/30 transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
-            title="Voltar para a Loja de Peptídeos"
+            className="px-3 py-1.5 rounded-full bg-white text-[#008069] hover:bg-emerald-50 font-bold text-xs transition-all flex items-center gap-1 cursor-pointer shadow-xs active:scale-95"
+            title="Voltar para a loja de peptídeos"
           >
-            <ArrowLeft className="w-4 h-4" />
-            <span>Voltar à Loja</span>
-          </button>
-
-          <button
-            onClick={() => setShowNewChatModal(true)}
-            className="px-3.5 py-2.5 rounded-xl bg-emerald-700/60 hover:bg-emerald-700/90 text-white font-bold text-xs border border-white/30 transition-all flex items-center gap-1.5 cursor-pointer"
-            title="Iniciar atendimento manual com novo cliente"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Novo Cliente</span>
+            <ArrowLeft className="w-3.5 h-3.5" />
+            <span>Loja</span>
           </button>
         </div>
-      </div>
+      </header>
 
-      {/* 2. MAIN WHATSAPP WEB TWO-COLUMN DASHBOARD */}
-      <div className="bg-white rounded-2xl shadow-xl border border-slate-200/90 overflow-hidden flex flex-col md:flex-row h-[78vh] max-h-[820px]">
+      {/* 2. MAIN WHATSAPP WEB TWO-COLUMN BATE-PAPO (100% OF VIEWPORT) */}
+      <div className="flex-1 w-full flex flex-col md:flex-row overflow-hidden bg-white relative">
         {/* LEFT COLUMN: CLIENT LIST (WHATSAPP AUTHENTIC STRUCTURE) */}
         <div
           className={`w-full md:w-84 lg:w-96 border-r border-slate-200 flex flex-col shrink-0 bg-white ${
