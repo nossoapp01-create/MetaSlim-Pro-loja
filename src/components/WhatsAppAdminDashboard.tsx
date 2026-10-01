@@ -43,8 +43,18 @@ import {
   Pin,
   ArrowLeft,
   Users,
+  Mic,
+  Square,
+  Headphones,
 } from 'lucide-react';
 import { PWAInstallPrompt } from './PWAInstallPrompt';
+import { WhatsAppAudioBubble } from './WhatsAppAudioBubble';
+import {
+  startAudioRecording,
+  AudioRecordingSession,
+  formatAudioDuration,
+  generateSyntheticClinicalAudio,
+} from '../utils/audioUtils';
 
 export const WhatsAppAdminDashboard: React.FC = () => {
   const { showToast, setActiveTab, settings } = useStore();
@@ -58,6 +68,12 @@ export const WhatsAppAdminDashboard: React.FC = () => {
   const [isSending, setIsSending] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
   const [copiedAdminLink, setCopiedAdminLink] = useState(false);
+
+  // Audio recording state
+  const [isRecordingAudio, setIsRecordingAudio] = useState(false);
+  const [recordingDuration, setRecordingDuration] = useState(0);
+  const recordingSessionRef = useRef<AudioRecordingSession | null>(null);
+  const recordingTimerRef = useRef<any>(null);
 
   const handleCopyAdminLink = () => {
     const link = `${window.location.origin}/?admin_whatsapp=1`;
@@ -210,6 +226,143 @@ export const WhatsAppAdminDashboard: React.FC = () => {
       showToast('Erro ao enviar resposta.');
     } finally {
       setIsSending(false);
+    }
+  };
+
+  // Start live microphone recording
+  const handleStartRecording = async () => {
+    try {
+      const session = await startAudioRecording();
+      recordingSessionRef.current = session;
+      setIsRecordingAudio(true);
+      setRecordingDuration(0);
+
+      if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
+      recordingTimerRef.current = setInterval(() => {
+        setRecordingDuration((prev) => prev + 1);
+      }, 1000);
+    } catch (e: any) {
+      console.warn('Microphone permission error:', e);
+      showToast('Permissão de microfone não concedida no navegador. Você pode enviar áudios clínicos rápidos pelas opções abaixo!');
+    }
+  };
+
+  // Stop recording and send audio message
+  const handleStopAndSendRecording = async () => {
+    if (!recordingSessionRef.current || !selectedChatId) return;
+    if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
+
+    try {
+      setIsSending(true);
+      const { dataUrl, duration } = await recordingSessionRef.current.stop();
+      setIsRecordingAudio(false);
+      recordingSessionRef.current = null;
+
+      await sendChatMessage(
+        selectedChatId,
+        'admin',
+        'Dra. Valéria Prado',
+        '',
+        {
+          audioUrl: dataUrl,
+          audioDuration: duration,
+          messageType: 'audio',
+        }
+      );
+      markChatAsRead(selectedChatId, 'admin');
+
+      setConversations((prev) => {
+        const now = new Date().toISOString();
+        const updated = prev.map((c) =>
+          c.id === selectedChatId
+            ? { ...c, unreadByAdmin: 0, lastMessage: `🎙️ Áudio (${duration}s)`, lastMessageAt: now }
+            : c
+        );
+        return updated.sort((a, b) => getChatSortTime(b) - getChatSortTime(a));
+      });
+
+      showToast('Áudio gravado e enviado com sucesso!');
+      setTimeout(() => scrollToBottom(true), 50);
+    } catch (e) {
+      console.error('Error processing audio recording:', e);
+      showToast('Erro ao processar gravação de áudio.');
+    } finally {
+      setIsSending(false);
+      setIsRecordingAudio(false);
+      setRecordingDuration(0);
+    }
+  };
+
+  // Cancel recording without sending
+  const handleCancelRecording = () => {
+    if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
+    if (recordingSessionRef.current) {
+      recordingSessionRef.current.cancel();
+      recordingSessionRef.current = null;
+    }
+    setIsRecordingAudio(false);
+    setRecordingDuration(0);
+    showToast('Gravação de áudio cancelada.');
+  };
+
+  // Send a pre-configured clinical voice note from Dra. Valéria Prado
+  const handleSendPresetAudio = async (title: string, durationSec = 7) => {
+    if (!selectedChatId) return;
+    try {
+      setIsSending(true);
+      const audioUrl = generateSyntheticClinicalAudio(durationSec);
+      await sendChatMessage(
+        selectedChatId,
+        'admin',
+        'Dra. Valéria Prado',
+        `🎙️ ${title}`,
+        {
+          audioUrl,
+          audioDuration: durationSec,
+          messageType: 'audio',
+        }
+      );
+      markChatAsRead(selectedChatId, 'admin');
+
+      setConversations((prev) => {
+        const now = new Date().toISOString();
+        const updated = prev.map((c) =>
+          c.id === selectedChatId
+            ? { ...c, unreadByAdmin: 0, lastMessage: `🎙️ Áudio (${durationSec}s)`, lastMessageAt: now }
+            : c
+        );
+        return updated.sort((a, b) => getChatSortTime(b) - getChatSortTime(a));
+      });
+
+      showToast(`Áudio clínico "${title}" enviado!`);
+      setTimeout(() => scrollToBottom(true), 50);
+    } catch (e) {
+      showToast('Erro ao enviar áudio clínico.');
+    } finally {
+      setIsSending(false);
+    }
+  };
+
+  // Simulate receiving an incoming voice note from the client/patient
+  const handleSimulateIncomingAudio = async () => {
+    if (!selectedChatId) return;
+    try {
+      const audioUrl = generateSyntheticClinicalAudio(5);
+      await sendChatMessage(
+        selectedChatId,
+        'customer',
+        activeConversation?.customerName || 'Paciente',
+        '🎙️ Áudio com dúvida sobre aplicação',
+        {
+          audioUrl,
+          audioDuration: 5,
+          messageType: 'audio',
+        }
+      );
+      showToast('Áudio do paciente recebido na conversa!');
+      setTimeout(() => scrollToBottom(true), 50);
+    } catch (e) {
+      showToast('Erro ao simular áudio do paciente.');
     }
   };
 
@@ -677,7 +830,21 @@ export const WhatsAppAdminDashboard: React.FC = () => {
                           {isAdmin ? 'Você (Dra. Valéria Prado)' : msg.senderName || activeConversation.customerName}
                         </div>
 
-                        <div className="whitespace-pre-wrap break-words">{msg.text}</div>
+                        {/* Audio Voice Note Bubble or Text Message */}
+                        {msg.audioUrl ? (
+                          <div className="my-0.5">
+                            <WhatsAppAudioBubble
+                              audioUrl={msg.audioUrl}
+                              duration={msg.audioDuration}
+                              isAdmin={isAdmin}
+                            />
+                            {msg.text && !msg.text.startsWith('🎙️') && (
+                              <p className="mt-1 text-xs text-slate-700 whitespace-pre-wrap">{msg.text}</p>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="whitespace-pre-wrap break-words">{msg.text}</div>
+                        )}
 
                         <div className="flex items-center justify-end gap-1 mt-1 select-none">
                           <span className="text-[10px] text-slate-500">{time}</span>
@@ -715,12 +882,44 @@ export const WhatsAppAdminDashboard: React.FC = () => {
                 </button>
               </div>
 
-              {/* Quick Macro Suggestions Bar */}
+              {/* Quick Macro Suggestions Bar with Audio Presets */}
               <div className="bg-[#f0f2f5] border-t border-slate-200/80 px-3 py-2 flex items-center gap-1.5 overflow-x-auto scrollbar-none shrink-0">
                 <span className="text-[10px] uppercase font-bold text-slate-400 shrink-0 flex items-center gap-1">
                   <Sparkles className="w-3 h-3 text-emerald-600" />
-                  Macros Médicas Rápidas:
+                  Macros:
                 </span>
+
+                {/* Preset Voice Notes */}
+                <button
+                  type="button"
+                  onClick={() => handleSendPresetAudio('Boas-vindas da Dra. Valéria Prado', 6)}
+                  className="px-2.5 py-1 rounded-full bg-emerald-100 hover:bg-emerald-200 border border-emerald-300 text-[#006750] text-xs font-bold whitespace-nowrap transition-colors cursor-pointer shadow-2xs flex items-center gap-1"
+                  title="Enviar áudio de boas-vindas"
+                >
+                  <Mic className="w-3 h-3" />
+                  <span>🎙️ Áudio Boas-Vindas</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleSendPresetAudio('Instruções de Reconstituição BAC', 8)}
+                  className="px-2.5 py-1 rounded-full bg-emerald-100 hover:bg-emerald-200 border border-emerald-300 text-[#006750] text-xs font-bold whitespace-nowrap transition-colors cursor-pointer shadow-2xs flex items-center gap-1"
+                  title="Enviar áudio sobre reconstituição BAC"
+                >
+                  <Mic className="w-3 h-3" />
+                  <span>🎙️ Áudio Reconstituição</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleSimulateIncomingAudio}
+                  className="px-2.5 py-1 rounded-full bg-amber-100 hover:bg-amber-200 border border-amber-300 text-amber-900 text-xs font-bold whitespace-nowrap transition-colors cursor-pointer shadow-2xs flex items-center gap-1"
+                  title="Simular um áudio de voz recebido do paciente para testar a escuta"
+                >
+                  <Headphones className="w-3 h-3" />
+                  <span>🎧 Simular Áudio Recebido</span>
+                </button>
+
                 {clinicalMacros.map((macro, idx) => (
                   <button
                     key={idx}
@@ -733,36 +932,84 @@ export const WhatsAppAdminDashboard: React.FC = () => {
                 ))}
               </div>
 
-              {/* Admin Input Bar */}
+              {/* Admin Input Bar with Microphone & Voice Recording */}
               <footer className="bg-[#f0f2f5] px-3 sm:px-4 py-2.5 border-t border-slate-200/80 shrink-0">
-                <form
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    handleSendReply();
-                  }}
-                  className="flex items-center gap-2 w-full"
-                >
-                  <input
-                    type="text"
-                    value={replyText}
-                    onChange={(e) => setReplyText(e.target.value)}
-                    placeholder={
-                      activeConversation
-                        ? `Responder para ${activeConversation.customerName}...`
-                        : 'Digite sua mensagem de resposta...'
-                    }
-                    className="flex-1 bg-white border border-transparent focus:border-emerald-500 text-slate-800 text-sm px-4 py-2.5 rounded-2xl focus:outline-none shadow-xs"
-                  />
+                {isRecordingAudio ? (
+                  <div className="flex items-center justify-between gap-3 w-full bg-red-50 border border-red-300 px-3 sm:px-4 py-2 rounded-2xl shadow-xs animate-in fade-in">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="w-3 h-3 rounded-full bg-red-600 animate-ping shrink-0" />
+                      <span className="text-xs font-bold text-red-700 whitespace-nowrap">Gravando áudio...</span>
+                      <span className="text-xs font-mono font-bold text-red-900 bg-white px-2 py-0.5 rounded-full border border-red-200 shrink-0">
+                        {formatAudioDuration(recordingDuration)}
+                      </span>
+                    </div>
 
-                  <button
-                    type="submit"
-                    disabled={!replyText.trim() || isSending}
-                    className="w-10 h-10 rounded-full bg-[#00a884] hover:bg-[#008069] text-white flex items-center justify-center transition-transform active:scale-95 shadow-md disabled:opacity-40 cursor-pointer shrink-0"
-                    title="Enviar resposta"
+                    <div className="flex items-center gap-2 shrink-0">
+                      {/* Cancel Recording */}
+                      <button
+                        type="button"
+                        onClick={handleCancelRecording}
+                        className="px-3 py-1.5 rounded-xl text-red-600 hover:bg-red-100 font-bold text-xs flex items-center gap-1 transition-colors cursor-pointer"
+                        title="Cancelar gravação"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                        <span className="hidden sm:inline">Cancelar</span>
+                      </button>
+
+                      {/* Stop and Send Recording */}
+                      <button
+                        type="button"
+                        onClick={handleStopAndSendRecording}
+                        disabled={isSending}
+                        className="px-3.5 py-1.5 rounded-xl bg-[#00a884] hover:bg-[#008069] text-white font-bold text-xs flex items-center gap-1.5 transition-transform active:scale-95 shadow-md cursor-pointer disabled:opacity-50"
+                        title="Enviar áudio gravado"
+                      >
+                        <Send className="w-3.5 h-3.5" />
+                        <span>Enviar Áudio</span>
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <form
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      handleSendReply();
+                    }}
+                    className="flex items-center gap-2 w-full"
                   >
-                    <Send className="w-4 h-4 ml-0.5" />
-                  </button>
-                </form>
+                    <input
+                      type="text"
+                      value={replyText}
+                      onChange={(e) => setReplyText(e.target.value)}
+                      placeholder={
+                        activeConversation
+                          ? `Responder para ${activeConversation.customerName}...`
+                          : 'Digite sua mensagem ou grave um áudio...'
+                      }
+                      className="flex-1 bg-white border border-transparent focus:border-emerald-500 text-slate-800 text-sm px-4 py-2.5 rounded-2xl focus:outline-none shadow-xs"
+                    />
+
+                    {replyText.trim() ? (
+                      <button
+                        type="submit"
+                        disabled={isSending}
+                        className="w-10 h-10 rounded-full bg-[#00a884] hover:bg-[#008069] text-white flex items-center justify-center transition-transform active:scale-95 shadow-md cursor-pointer shrink-0"
+                        title="Enviar mensagem de texto"
+                      >
+                        <Send className="w-4 h-4 ml-0.5" />
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={handleStartRecording}
+                        className="w-10 h-10 rounded-full bg-[#00a884] hover:bg-[#008069] text-white flex items-center justify-center transition-transform active:scale-95 shadow-md cursor-pointer shrink-0"
+                        title="Clique para gravar um áudio de voz"
+                      >
+                        <Mic className="w-5 h-5" />
+                      </button>
+                    )}
+                  </form>
+                )}
               </footer>
             </>
           ) : (

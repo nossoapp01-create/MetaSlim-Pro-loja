@@ -201,6 +201,9 @@ export interface ChatMessage {
   timestamp: string;
   status?: 'sent' | 'delivered' | 'read';
   attachmentUrl?: string;
+  audioUrl?: string;
+  audioDuration?: number; // duration in seconds
+  messageType?: 'text' | 'audio' | 'image';
 }
 
 export interface ChatConversation {

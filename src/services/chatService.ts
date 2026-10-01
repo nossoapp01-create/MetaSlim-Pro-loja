@@ -318,19 +318,34 @@ export async function sendChatMessage(
   chatId: string,
   sender: 'customer' | 'admin',
   senderName: string,
-  text: string
+  text: string,
+  extra?: {
+    attachmentUrl?: string;
+    audioUrl?: string;
+    audioDuration?: number;
+    messageType?: 'text' | 'audio' | 'image';
+  }
 ): Promise<ChatMessage> {
   const now = new Date().toISOString();
   const messageId = `msg_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+
+  const isAudio = Boolean(extra?.audioUrl) || extra?.messageType === 'audio';
+  const displaySnippet = isAudio
+    ? `🎙️ Áudio (${Math.max(1, Math.round(extra?.audioDuration || 0))}s)`
+    : text.trim().slice(0, 150);
 
   const message: ChatMessage = {
     id: messageId,
     chatId,
     sender,
     senderName,
-    text: text.trim(),
+    text: text.trim() || (isAudio ? '🎙️ Mensagem de áudio' : ''),
     timestamp: now,
     status: 'sent',
+    attachmentUrl: extra?.attachmentUrl,
+    audioUrl: extra?.audioUrl,
+    audioDuration: extra?.audioDuration,
+    messageType: extra?.messageType || (isAudio ? 'audio' : 'text'),
   };
 
   // 1. Immediately store in local cache
@@ -345,7 +360,7 @@ export async function sendChatMessage(
     const chatDocRef = doc(db, CHATS_COLLECTION, chatId);
     const updates: Record<string, any> = {
       id: chatId,
-      lastMessage: text.trim().slice(0, 150),
+      lastMessage: displaySnippet,
       lastMessageAt: now,
       updatedAt: now,
     };
@@ -364,7 +379,7 @@ export async function sendChatMessage(
 
   // Update local chat conversation meta
   updateLocalChatMeta(chatId, {
-    lastMessage: text.trim().slice(0, 150),
+    lastMessage: displaySnippet,
     lastMessageAt: now,
     unreadByAdmin: sender === 'customer' ? 1 : 0,
     unreadByCustomer: sender === 'admin' ? 1 : 0,

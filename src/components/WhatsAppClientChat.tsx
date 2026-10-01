@@ -31,7 +31,15 @@ import {
   ExternalLink,
   Info,
   Dna,
+  Trash2,
 } from 'lucide-react';
+import { WhatsAppAudioBubble } from './WhatsAppAudioBubble';
+import {
+  startAudioRecording,
+  AudioRecordingSession,
+  formatAudioDuration,
+  generateSyntheticClinicalAudio,
+} from '../utils/audioUtils';
 
 const STORAGE_CLIENT_IDENTITY = 'metaslim_client_chat_identity';
 
@@ -64,6 +72,9 @@ export const WhatsAppClientChat: React.FC = () => {
   const [copiedLink, setCopiedLink] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [isRecordingAudio, setIsRecordingAudio] = useState(false);
+  const [recordingDuration, setRecordingDuration] = useState(0);
+  const recordingSessionRef = useRef<AudioRecordingSession | null>(null);
+  const recordingTimerRef = useRef<any>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -154,6 +165,66 @@ export const WhatsAppClientChat: React.FC = () => {
     } finally {
       setIsSending(false);
     }
+  };
+
+  const handleStartRecording = async () => {
+    try {
+      const session = await startAudioRecording();
+      recordingSessionRef.current = session;
+      setIsRecordingAudio(true);
+      setRecordingDuration(0);
+
+      if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
+      recordingTimerRef.current = setInterval(() => {
+        setRecordingDuration((prev) => prev + 1);
+      }, 1000);
+    } catch (e: any) {
+      console.warn('Microphone permission error:', e);
+      showToast('Permissão de microfone não concedida no navegador.');
+    }
+  };
+
+  const handleStopAndSendRecording = async () => {
+    if (!recordingSessionRef.current || !clientIdentity) return;
+    if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
+
+    try {
+      setIsSending(true);
+      const { dataUrl, duration } = await recordingSessionRef.current.stop();
+      setIsRecordingAudio(false);
+      recordingSessionRef.current = null;
+
+      await sendChatMessage(
+        clientIdentity.chatId,
+        'customer',
+        clientIdentity.name,
+        '',
+        {
+          audioUrl: dataUrl,
+          audioDuration: duration,
+          messageType: 'audio',
+        }
+      );
+      showToast('Áudio de voz enviado!');
+      setTimeout(() => scrollToBottom(true), 50);
+    } catch (e) {
+      console.error('Error sending audio:', e);
+      showToast('Erro ao processar gravação de áudio.');
+    } finally {
+      setIsSending(false);
+      setIsRecordingAudio(false);
+      setRecordingDuration(0);
+    }
+  };
+
+  const handleCancelRecording = () => {
+    if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
+    if (recordingSessionRef.current) {
+      recordingSessionRef.current.cancel();
+      recordingSessionRef.current = null;
+    }
+    setIsRecordingAudio(false);
+    setRecordingDuration(0);
   };
 
   // Quick Macro Chips for instant questions
@@ -422,7 +493,20 @@ export const WhatsAppClientChat: React.FC = () => {
                     </div>
                   )}
 
-                  <div className="whitespace-pre-wrap break-words">{msg.text}</div>
+                  {msg.audioUrl ? (
+                    <div className="my-0.5">
+                      <WhatsAppAudioBubble
+                        audioUrl={msg.audioUrl}
+                        duration={msg.audioDuration}
+                        isAdmin={!isCustomer}
+                      />
+                      {msg.text && !msg.text.startsWith('🎙️') && (
+                        <p className="mt-1 text-xs text-slate-700 whitespace-pre-wrap">{msg.text}</p>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="whitespace-pre-wrap break-words">{msg.text}</div>
+                  )}
 
                   <div className="flex items-center justify-end gap-1 mt-1 select-none">
                     <span className="text-[10px] text-slate-500 font-sans">{time}</span>
@@ -475,65 +559,98 @@ export const WhatsAppClientChat: React.FC = () => {
         </div>
       )}
 
-      {/* 6. WHATSAPP INPUT BAR */}
+      {/* 6. WHATSAPP INPUT BAR WITH MICROPHONE AUDIO */}
       <footer className="bg-[#f0f2f5] px-3 sm:px-6 py-2.5 border-t border-slate-200/80 shrink-0">
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            handleSendMessage();
-          }}
-          className="max-w-4xl mx-auto w-full flex items-center gap-2"
-        >
-          <button
-            type="button"
-            onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-            className="text-slate-500 hover:text-slate-700 p-1.5 rounded-full hover:bg-slate-200/60 transition-colors cursor-pointer"
-            title="Inserir emoji"
-          >
-            <Smile className="w-5 h-5" />
-          </button>
+        {isRecordingAudio ? (
+          <div className="max-w-4xl mx-auto flex items-center justify-between gap-3 w-full bg-red-50 border border-red-300 px-3 sm:px-4 py-2 rounded-2xl shadow-xs animate-in fade-in">
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="w-3 h-3 rounded-full bg-red-600 animate-ping shrink-0" />
+              <span className="text-xs font-bold text-red-700 whitespace-nowrap">Gravando áudio...</span>
+              <span className="text-xs font-mono font-bold text-red-900 bg-white px-2 py-0.5 rounded-full border border-red-200 shrink-0">
+                {formatAudioDuration(recordingDuration)}
+              </span>
+            </div>
 
-          <button
-            type="button"
-            onClick={() => {
-              handleSendMessage('Enviei meu comprovante / laudo para conferência médica.');
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={handleCancelRecording}
+                className="px-3 py-1.5 rounded-xl text-red-600 hover:bg-red-100 font-bold text-xs flex items-center gap-1 transition-colors cursor-pointer"
+                title="Cancelar gravação"
+              >
+                <Trash2 className="w-4 h-4" />
+                <span className="hidden sm:inline">Cancelar</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleStopAndSendRecording}
+                disabled={isSending}
+                className="px-3.5 py-1.5 rounded-xl bg-[#00a884] hover:bg-[#008069] text-white font-bold text-xs flex items-center gap-1.5 transition-transform active:scale-95 shadow-md cursor-pointer disabled:opacity-50"
+                title="Enviar áudio"
+              >
+                <Send className="w-3.5 h-3.5" />
+                <span>Enviar Áudio</span>
+              </button>
+            </div>
+          </div>
+        ) : (
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleSendMessage();
             }}
-            className="text-slate-500 hover:text-slate-700 p-1.5 rounded-full hover:bg-slate-200/60 transition-colors cursor-pointer"
-            title="Anexar arquivo / laudo"
+            className="max-w-4xl mx-auto w-full flex items-center gap-2"
           >
-            <Paperclip className="w-5 h-5" />
-          </button>
-
-          <input
-            type="text"
-            value={newMessage}
-            onChange={(e) => setNewMessage(e.target.value)}
-            placeholder="Mensagem..."
-            className="flex-1 bg-white border border-transparent focus:border-emerald-500 text-slate-800 text-sm px-4 py-2.5 rounded-2xl focus:outline-none shadow-xs"
-          />
-
-          {newMessage.trim() ? (
             <button
-              type="submit"
-              disabled={isSending}
-              className="w-10 h-10 rounded-full bg-[#00a884] hover:bg-[#008069] text-white flex items-center justify-center transition-transform active:scale-90 shadow-md cursor-pointer shrink-0"
-              title="Enviar mensagem"
+              type="button"
+              onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+              className="text-slate-500 hover:text-slate-700 p-1.5 rounded-full hover:bg-slate-200/60 transition-colors cursor-pointer"
+              title="Inserir emoji"
             >
-              <Send className="w-4 h-4 ml-0.5" />
+              <Smile className="w-5 h-5" />
             </button>
-          ) : (
+
             <button
               type="button"
               onClick={() => {
-                handleSendMessage('🎤 [Mensagem de áudio da paciente enviada]');
+                handleSendMessage('Enviei meu comprovante / laudo para conferência médica.');
               }}
-              className="w-10 h-10 rounded-full text-slate-600 hover:bg-slate-200/80 flex items-center justify-center transition-colors cursor-pointer shrink-0"
-              title="Gravar áudio"
+              className="text-slate-500 hover:text-slate-700 p-1.5 rounded-full hover:bg-slate-200/60 transition-colors cursor-pointer"
+              title="Anexar arquivo / laudo"
             >
-              <Mic className="w-5 h-5" />
+              <Paperclip className="w-5 h-5" />
             </button>
-          )}
-        </form>
+
+            <input
+              type="text"
+              value={newMessage}
+              onChange={(e) => setNewMessage(e.target.value)}
+              placeholder="Mensagem ou grave um áudio..."
+              className="flex-1 bg-white border border-transparent focus:border-emerald-500 text-slate-800 text-sm px-4 py-2.5 rounded-2xl focus:outline-none shadow-xs"
+            />
+
+            {newMessage.trim() ? (
+              <button
+                type="submit"
+                disabled={isSending}
+                className="w-10 h-10 rounded-full bg-[#00a884] hover:bg-[#008069] text-white flex items-center justify-center transition-transform active:scale-90 shadow-md cursor-pointer shrink-0"
+                title="Enviar mensagem"
+              >
+                <Send className="w-4 h-4 ml-0.5" />
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={handleStartRecording}
+                className="w-10 h-10 rounded-full bg-[#00a884] hover:bg-[#008069] text-white flex items-center justify-center transition-transform active:scale-95 shadow-md cursor-pointer shrink-0"
+                title="Gravar áudio de voz"
+              >
+                <Mic className="w-5 h-5" />
+              </button>
+            )}
+          </form>
+        )}
       </footer>
     </div>
   );
