@@ -7,6 +7,7 @@ import {
   markChatAsRead,
   deleteChat,
   generateChatId,
+  playIncomingWhatsAppChime,
 } from '../services/chatService';
 import { ChatConversation, ChatMessage } from '../types';
 import {
@@ -31,6 +32,9 @@ import {
   CreditCard,
   Building2,
   Smile,
+  Volume2,
+  VolumeX,
+  Bell,
 } from 'lucide-react';
 
 export const WhatsAppAdminDashboard: React.FC = () => {
@@ -49,6 +53,34 @@ export const WhatsAppAdminDashboard: React.FC = () => {
   const [showNewChatModal, setShowNewChatModal] = useState(false);
   const [newClientName, setNewClientName] = useState('');
   const [newClientContact, setNewClientContact] = useState('');
+
+  // Sound alert settings
+  const [soundEnabled, setSoundEnabled] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('metaslim_whatsapp_sound') !== 'false';
+    } catch {
+      return true;
+    }
+  });
+
+  const handleToggleSound = () => {
+    const next = !soundEnabled;
+    setSoundEnabled(next);
+    try {
+      localStorage.setItem('metaslim_whatsapp_sound', String(next));
+    } catch {}
+    if (next) {
+      playIncomingWhatsAppChime();
+      showToast('Som de alerta do WhatsApp ativado!');
+    } else {
+      showToast('Som de alerta desativado.');
+    }
+  };
+
+  const handleTestSound = () => {
+    playIncomingWhatsAppChime();
+    showToast('Reproduzindo toque de mensagem do WhatsApp...');
+  };
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -222,8 +254,39 @@ export const WhatsAppAdminDashboard: React.FC = () => {
         {/* Link Copy & Actions */}
         <div className="flex flex-wrap items-center gap-2 shrink-0">
           <button
+            onClick={handleTestSound}
+            className="px-3 py-2 rounded-xl bg-white/15 hover:bg-white/25 text-white font-bold text-xs border border-white/30 transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
+            title="Ouvir e testar o toque sonoro de mensagem do WhatsApp"
+          >
+            <Volume2 className="w-4 h-4 text-emerald-300" />
+            <span>Testar Toque</span>
+          </button>
+
+          <button
+            onClick={handleToggleSound}
+            className={`px-3 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer border ${
+              soundEnabled
+                ? 'bg-emerald-950/40 text-emerald-200 border-emerald-400/50 hover:bg-emerald-950/60'
+                : 'bg-red-950/40 text-red-200 border-red-400/50 hover:bg-red-950/60'
+            }`}
+            title="Ativar ou desativar som das mensagens"
+          >
+            {soundEnabled ? (
+              <>
+                <Bell className="w-3.5 h-3.5 text-emerald-300" />
+                <span>Som Ativo</span>
+              </>
+            ) : (
+              <>
+                <VolumeX className="w-3.5 h-3.5 text-red-300" />
+                <span>Som Mudo</span>
+              </>
+            )}
+          </button>
+
+          <button
             onClick={handleCopyClientLink}
-            className="px-4 py-2.5 rounded-xl bg-white hover:bg-emerald-50 text-[#008069] font-bold text-xs shadow-md transition-all active:scale-95 flex items-center gap-2 cursor-pointer"
+            className="px-4 py-2 rounded-xl bg-white hover:bg-emerald-50 text-[#008069] font-bold text-xs shadow-md transition-all active:scale-95 flex items-center gap-2 cursor-pointer"
             title="Copiar o link direto para enviar para clientes no WhatsApp, Instagram ou E-mail"
           >
             {copiedLink ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
@@ -232,7 +295,7 @@ export const WhatsAppAdminDashboard: React.FC = () => {
 
           <button
             onClick={() => setActiveTab('chat')}
-            className="px-3.5 py-2.5 rounded-xl bg-emerald-950/40 hover:bg-emerald-950/60 text-white font-bold text-xs border border-white/30 transition-all flex items-center gap-1.5 cursor-pointer"
+            className="px-3.5 py-2 rounded-xl bg-emerald-950/40 hover:bg-emerald-950/60 text-white font-bold text-xs border border-white/30 transition-all flex items-center gap-1.5 cursor-pointer"
             title="Abrir como cliente para testar"
           >
             <ExternalLink className="w-4 h-4" />
@@ -241,7 +304,7 @@ export const WhatsAppAdminDashboard: React.FC = () => {
 
           <button
             onClick={() => setShowNewChatModal(true)}
-            className="px-3.5 py-2.5 rounded-xl bg-emerald-700/60 hover:bg-emerald-700/90 text-white font-bold text-xs border border-white/30 transition-all flex items-center gap-1.5 cursor-pointer"
+            className="px-3.5 py-2 rounded-xl bg-emerald-700/60 hover:bg-emerald-700/90 text-white font-bold text-xs border border-white/30 transition-all flex items-center gap-1.5 cursor-pointer"
             title="Iniciar atendimento manual com novo cliente"
           >
             <Plus className="w-4 h-4" />

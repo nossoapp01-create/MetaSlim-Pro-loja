@@ -12,6 +12,7 @@ import { SuperAdminPanel } from './components/SuperAdminPanel';
 import { DeliveryPolicy } from './components/DeliveryPolicy';
 import { ResaleWholesale } from './components/ResaleWholesale';
 import { WhatsAppClientChat } from './components/WhatsAppClientChat';
+import { GlobalChatNotifier } from './components/GlobalChatNotifier';
 import { Footer } from './components/Footer';
 import { BottomNav } from './components/BottomNav';
 import { DosageCalculatorModal } from './components/DosageCalculatorModal';
@@ -332,6 +333,7 @@ export function App() {
   return (
     <ErrorBoundary>
       <StoreProvider>
+        <GlobalChatNotifier />
         <MainContent />
       </StoreProvider>
     </ErrorBoundary>

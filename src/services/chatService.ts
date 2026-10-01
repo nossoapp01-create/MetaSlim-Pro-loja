@@ -31,31 +31,133 @@ export function generateChatId(contact: string): string {
   return `chat_${sanitized || Date.now().toString()}`;
 }
 
-// Subtle WhatsApp-style audio chime using Web Audio API
-export function playChatNotificationSound() {
+// Authentic WhatsApp-style incoming message chime using Web Audio API
+export function playIncomingWhatsAppChime() {
   try {
     const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
     if (!AudioContextClass) return;
     const ctx = new AudioContextClass();
+
+    if (ctx.state === 'suspended') {
+      ctx.resume().catch(() => {});
+    }
+
+    const t = ctx.currentTime;
+
+    // Tone 1: High bell chime intro (880 Hz - A5)
+    const osc1 = ctx.createOscillator();
+    const gain1 = ctx.createGain();
+    osc1.type = 'sine';
+    osc1.frequency.setValueAtTime(880, t);
+    gain1.gain.setValueAtTime(0.28, t);
+    gain1.gain.exponentialRampToValueAtTime(0.001, t + 0.12);
+    osc1.connect(gain1);
+    gain1.connect(ctx.destination);
+    osc1.start(t);
+    osc1.stop(t + 0.12);
+
+    // Tone 2: Bright harmonic chime peak (1318.5 Hz - E6)
+    const osc2 = ctx.createOscillator();
+    const gain2 = ctx.createGain();
+    osc2.type = 'sine';
+    osc2.frequency.setValueAtTime(1318.5, t + 0.08);
+    gain2.gain.setValueAtTime(0.32, t + 0.08);
+    gain2.gain.exponentialRampToValueAtTime(0.001, t + 0.45);
+    osc2.connect(gain2);
+    gain2.connect(ctx.destination);
+    osc2.start(t + 0.08);
+    osc2.stop(t + 0.45);
+
+    // Tone 3: Sweet high overtone (1760 Hz - A6) for authentic crispness
+    const osc3 = ctx.createOscillator();
+    const gain3 = ctx.createGain();
+    osc3.type = 'triangle';
+    osc3.frequency.setValueAtTime(1760, t + 0.09);
+    gain3.gain.setValueAtTime(0.12, t + 0.09);
+    gain3.gain.exponentialRampToValueAtTime(0.001, t + 0.35);
+    osc3.connect(gain3);
+    gain3.connect(ctx.destination);
+    osc3.start(t + 0.09);
+    osc3.stop(t + 0.35);
+  } catch (e) {
+    console.warn('Audio chime warning:', e);
+  }
+}
+
+// Outgoing message sound (light click / pop)
+export function playOutgoingWhatsAppTone() {
+  try {
+    const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioContextClass) return;
+    const ctx = new AudioContextClass();
+    if (ctx.state === 'suspended') {
+      ctx.resume().catch(() => {});
+    }
+    const t = ctx.currentTime;
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
-
     osc.type = 'sine';
-    // WhatsApp-like double-tone "ping"
-    osc.frequency.setValueAtTime(880, ctx.currentTime); // A5
-    osc.frequency.exponentialRampToValueAtTime(1320, ctx.currentTime + 0.08); // E6
-
-    gain.gain.setValueAtTime(0.15, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.25);
-
+    osc.frequency.setValueAtTime(600, t);
+    osc.frequency.exponentialRampToValueAtTime(300, t + 0.06);
+    gain.gain.setValueAtTime(0.15, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.06);
     osc.connect(gain);
     gain.connect(ctx.destination);
+    osc.start(t);
+    osc.stop(t + 0.06);
+  } catch (e) {}
+}
 
-    osc.start(ctx.currentTime);
-    osc.stop(ctx.currentTime + 0.25);
-  } catch (e) {
-    // Audio context may require user interaction first
+export const playChatNotificationSound = playIncomingWhatsAppChime;
+
+// Desktop Notification helper
+export async function requestNotificationPermission(): Promise<boolean> {
+  if (typeof window === 'undefined' || !('Notification' in window)) return false;
+  if (Notification.permission === 'granted') return true;
+  if (Notification.permission !== 'denied') {
+    const res = await Notification.requestPermission();
+    return res === 'granted';
   }
+  return false;
+}
+
+export function showSystemNotification(title: string, body: string, onClick?: () => void) {
+  try {
+    if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+      const notif = new Notification(title, {
+        body,
+        icon: 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&q=80&w=128',
+      });
+      if (onClick) {
+        notif.onclick = () => {
+          window.focus();
+          onClick();
+          notif.close();
+        };
+      }
+    }
+  } catch (e) {
+    console.warn('Desktop notification error:', e);
+  }
+}
+
+// Flash page title to alert user when tab is inactive
+let titleFlashTimer: any = null;
+export function flashPageTitle(alertText: string, originalTitle = 'MetaSlim-Pro-loja') {
+  if (typeof document === 'undefined') return;
+  if (titleFlashTimer) clearInterval(titleFlashTimer);
+
+  let state = false;
+  let count = 0;
+  titleFlashTimer = setInterval(() => {
+    document.title = state ? alertText : originalTitle;
+    state = !state;
+    count++;
+    if (count > 16) {
+      clearInterval(titleFlashTimer);
+      document.title = originalTitle;
+    }
+  }, 900);
 }
 
 // Get or initialize a client conversation
