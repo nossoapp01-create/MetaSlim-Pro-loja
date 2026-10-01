@@ -33,6 +33,7 @@ const MainContent: React.FC = () => {
     toast,
     setToast,
     setSelectedProductId,
+    isTenantAdmin,
   } = useStore();
 
   const [isCalculatorOpen, setIsCalculatorOpen] = useState(false);
@@ -53,6 +54,11 @@ const MainContent: React.FC = () => {
 
   // Dedicated Full-Screen WhatsApp VIP Chat Mode (Zero Store Header, Zero Footer, 100% WhatsApp Web)
   if (activeTab === 'chat') {
+    // SECURITY RULE: Clients NEVER have access to the admin dashboard.
+    // Only verified store administrators (isTenantAdmin) see the full WhatsAppAdminDashboard.
+    // Clients and patients ALWAYS see their private individual WhatsAppClientChat.
+    const isAuthorizedAdmin = Boolean(isTenantAdmin);
+
     return (
       <div className="fixed inset-0 w-full h-[100dvh] max-h-[100dvh] z-50 bg-[#efeae2] overflow-hidden font-sans flex flex-col">
         {/* Floating Toast Notification */}
@@ -74,7 +80,7 @@ const MainContent: React.FC = () => {
 
         {/* 100% Full-Screen WhatsApp Web Interface */}
         <div className="w-full h-full flex-1 flex flex-col overflow-hidden min-h-0">
-          <WhatsAppAdminDashboard />
+          {isAuthorizedAdmin ? <WhatsAppAdminDashboard /> : <WhatsAppClientChat />}
         </div>
       </div>
     );
