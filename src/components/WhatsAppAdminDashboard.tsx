@@ -39,6 +39,7 @@ import {
   MoreVertical,
   MessageSquarePlus,
   ChevronDown,
+  ChevronUp,
   Pin,
   ArrowLeft,
   Users,
@@ -107,9 +108,28 @@ export const WhatsAppAdminDashboard: React.FC = () => {
   };
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const chatScrollContainerRef = useRef<HTMLDivElement>(null);
+  const conversationsScrollContainerRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = (smooth = true) => {
-    messagesEndRef.current?.scrollIntoView({ behavior: smooth ? 'smooth' : 'auto' });
+    if (chatScrollContainerRef.current) {
+      chatScrollContainerRef.current.scrollTo({
+        top: chatScrollContainerRef.current.scrollHeight,
+        behavior: smooth ? 'smooth' : 'auto',
+      });
+    } else {
+      messagesEndRef.current?.scrollIntoView({ behavior: smooth ? 'smooth' : 'auto' });
+    }
+  };
+
+  const scrollChatToTop = () => {
+    if (chatScrollContainerRef.current) {
+      chatScrollContainerRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  const scrollChatToBottom = () => {
+    scrollToBottom(true);
   };
 
   // 1. Subscribe to all client conversations
@@ -256,7 +276,7 @@ export const WhatsAppAdminDashboard: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col h-full w-full font-sans overflow-hidden bg-white select-none">
+    <div className="flex flex-col h-full w-full font-sans overflow-hidden bg-[#efeae2]">
       {/* 1. SLIM TOP UTILITY & ACTION BAR (ONLY 46px, NO OVERSIZED CARDS) */}
       <header className="bg-[#008069] text-white px-3 sm:px-4 py-2 flex items-center justify-between shadow-xs shrink-0 z-20">
         <div className="flex items-center gap-2.5 truncate">
@@ -324,18 +344,30 @@ export const WhatsAppAdminDashboard: React.FC = () => {
       </header>
 
       {/* 2. MAIN WHATSAPP WEB TWO-COLUMN BATE-PAPO (100% OF VIEWPORT) */}
-      <div className="flex-1 w-full flex flex-col md:flex-row overflow-hidden bg-white relative">
+      <div className="flex-1 w-full flex flex-col md:flex-row overflow-hidden bg-white relative min-h-0">
         {/* LEFT COLUMN: CLIENT LIST (WHATSAPP AUTHENTIC STRUCTURE) */}
         <div
-          className={`w-full md:w-84 lg:w-96 border-r border-slate-200 flex flex-col shrink-0 bg-white ${
+          className={`w-full md:w-84 lg:w-96 border-r border-slate-200 flex flex-col shrink-0 bg-white h-full min-h-0 ${
             mobileChatOpen ? 'hidden md:flex' : 'flex'
           }`}
         >
           {/* Authentic WhatsApp Top Header */}
-          <div className="px-4 py-3 bg-white flex items-center justify-between border-b border-slate-100">
-            <h1 className="text-xl font-black text-slate-900 tracking-tight font-sans">
-              WhatsApp
-            </h1>
+          <div className="px-4 py-3 bg-white flex items-center justify-between border-b border-slate-100 shrink-0">
+            <div className="flex items-center gap-2">
+              <h1 className="text-xl font-black text-slate-900 tracking-tight font-sans">
+                WhatsApp
+              </h1>
+              {activeConversation && (
+                <button
+                  onClick={() => setMobileChatOpen(true)}
+                  className="md:hidden px-2.5 py-1 rounded-full bg-emerald-100 hover:bg-emerald-200 text-[#008069] text-xs font-bold flex items-center gap-1 border border-emerald-300 transition-colors shadow-2xs cursor-pointer active:scale-95"
+                  title="Abrir a conversa selecionada"
+                >
+                  <span>Ver Chat</span>
+                  <span>→</span>
+                </button>
+              )}
+            </div>
 
             <div className="flex items-center gap-1 text-slate-600">
               <button
@@ -347,9 +379,9 @@ export const WhatsAppAdminDashboard: React.FC = () => {
               </button>
 
               <button
-                onClick={handleCopyClientLink}
+                onClick={handleCopyAdminLink}
                 className="p-2 hover:bg-slate-100 rounded-full transition-colors cursor-pointer text-slate-700"
-                title="Mais opções e links"
+                title="Copiar Link do Admin"
               >
                 <MoreVertical className="w-5 h-5" />
               </button>
@@ -357,7 +389,7 @@ export const WhatsAppAdminDashboard: React.FC = () => {
           </div>
 
           {/* Authentic Search Bar */}
-          <div className="px-3 py-2 bg-white">
+          <div className="px-3 py-2 bg-white shrink-0">
             <div className="relative flex items-center bg-[#f0f2f5] rounded-xl px-3 py-2">
               <Search className="w-4 h-4 text-slate-400 shrink-0 mr-2.5" />
               <input
@@ -371,7 +403,7 @@ export const WhatsAppAdminDashboard: React.FC = () => {
           </div>
 
           {/* Filter Pills Row (Tudo, Não lidas, Favoritos, Grupos) */}
-          <div className="px-3 pb-2.5 pt-0.5 bg-white flex items-center gap-1.5 overflow-x-auto scrollbar-none border-b border-slate-100">
+          <div className="px-3 pb-2.5 pt-0.5 bg-white flex items-center gap-1.5 overflow-x-auto scrollbar-none border-b border-slate-100 shrink-0">
             <button
               onClick={() => setFilterType('all')}
               className={`px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap transition-colors cursor-pointer ${
@@ -418,8 +450,12 @@ export const WhatsAppAdminDashboard: React.FC = () => {
             </span>
           </div>
 
-          {/* Conversations List */}
-          <div className="flex-1 overflow-y-auto divide-y divide-slate-100">
+          {/* Conversations List with VISIBLE SCROLLBAR & TOUCH SCROLL */}
+          <div
+            ref={conversationsScrollContainerRef}
+            className="flex-1 overflow-y-auto divide-y divide-slate-100 min-h-0 overscroll-contain touch-pan-y [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:bg-slate-300 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-slate-50"
+            style={{ WebkitOverflowScrolling: 'touch' }}
+          >
             {filteredConversations.length === 0 ? (
               <div className="p-8 text-center text-slate-400 flex flex-col items-center">
                 <MessageSquare className="w-8 h-8 text-slate-300 mb-2" />
@@ -541,42 +577,43 @@ export const WhatsAppAdminDashboard: React.FC = () => {
 
         {/* RIGHT COLUMN: ACTIVE CONVERSATION MESSAGES & REPLY */}
         <div
-          className={`flex-1 flex flex-col bg-[#efeae2] relative ${
+          className={`flex-1 flex flex-col bg-[#efeae2] relative h-full min-h-0 overflow-hidden ${
             !mobileChatOpen ? 'hidden md:flex' : 'flex'
           }`}
         >
           {activeConversation ? (
             <>
               {/* Active Conversation Top Bar */}
-              <div className="p-3 bg-[#f0f2f5] border-b border-slate-200/80 flex items-center justify-between shadow-2xs shrink-0">
-                <div className="flex items-center gap-2 sm:gap-3">
+              <div className="p-2.5 sm:p-3 bg-[#f0f2f5] border-b border-slate-200/80 flex items-center justify-between shadow-2xs shrink-0 z-10">
+                <div className="flex items-center gap-2 sm:gap-3 truncate">
                   <button
                     onClick={() => setMobileChatOpen(false)}
-                    className="md:hidden p-1.5 -ml-1 text-slate-700 hover:bg-slate-200/80 rounded-full transition-colors cursor-pointer"
+                    className="md:hidden px-2.5 py-1.5 -ml-1 text-slate-700 bg-white hover:bg-slate-100 border border-slate-300 rounded-xl font-bold text-xs flex items-center gap-1 transition-all cursor-pointer shadow-xs active:scale-95 shrink-0"
                     title="Voltar à lista de conversas"
                   >
-                    <ArrowLeft className="w-5 h-5" />
+                    <ArrowLeft className="w-4 h-4 text-emerald-700" />
+                    <span>Conversas</span>
                   </button>
-                  <div className="w-10 h-10 rounded-full bg-emerald-600 text-white font-bold text-xs flex items-center justify-center shadow-xs">
+                  <div className="w-10 h-10 rounded-full bg-emerald-600 text-white font-bold text-xs flex items-center justify-center shadow-xs shrink-0">
                     {activeConversation.customerName.slice(0, 2).toUpperCase()}
                   </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h3 className="font-bold text-sm text-slate-900">
+                  <div className="truncate">
+                    <div className="flex items-center gap-2 truncate">
+                      <h3 className="font-bold text-sm text-slate-900 truncate">
                         {activeConversation.customerName}
                       </h3>
-                      <span className="text-[10px] font-mono text-emerald-800 bg-emerald-100 px-2 py-0.2 rounded-full font-bold">
+                      <span className="text-[10px] font-mono text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-full font-bold whitespace-nowrap hidden sm:inline-block">
                         Cliente Individual
                       </span>
                     </div>
-                    <div className="flex items-center gap-2 text-xs text-slate-500">
-                      <span>{activeConversation.customerContact}</span>
+                    <div className="flex items-center gap-2 text-xs text-slate-500 truncate">
+                      <span className="truncate">{activeConversation.customerContact}</span>
                       {!activeConversation.customerContact.includes('@') && (
                         <a
                           href={`https://wa.me/${activeConversation.customerContact.replace(/\D/g, '')}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-emerald-700 hover:text-emerald-900 flex items-center gap-1 font-semibold"
+                          className="text-emerald-700 hover:text-emerald-900 flex items-center gap-1 font-semibold shrink-0"
                           title="Abrir no aplicativo WhatsApp oficial"
                         >
                           <ExternalLink className="w-3 h-3" />
@@ -587,7 +624,7 @@ export const WhatsAppAdminDashboard: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 shrink-0">
                   <button
                     onClick={() => handleDeleteConversation(activeConversation.id, activeConversation.customerName)}
                     className="p-2 text-slate-400 hover:text-red-600 rounded-lg hover:bg-slate-200/60 transition-colors"
@@ -598,15 +635,17 @@ export const WhatsAppAdminDashboard: React.FC = () => {
                 </div>
               </div>
 
-              {/* Messages Body */}
+              {/* Messages Body with Full Mobile Touch & Custom Visible Scrollbar */}
               <div
-                className="flex-1 overflow-y-auto p-4 flex flex-col gap-2.5"
+                ref={chatScrollContainerRef}
+                className="flex-1 overflow-y-auto p-3 sm:p-4 flex flex-col gap-2.5 min-h-0 overscroll-contain touch-pan-y relative [&::-webkit-scrollbar]:w-2.5 [&::-webkit-scrollbar-thumb]:bg-emerald-600/50 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-black/5"
                 style={{
                   backgroundColor: '#efeae2',
                   backgroundImage:
                     'radial-gradient(#d3cbbd 0.75px, transparent 0.75px), radial-gradient(#d3cbbd 0.75px, #efeae2 0.75px)',
                   backgroundSize: '30px 30px',
                   backgroundPosition: '0 0, 15px 15px',
+                  WebkitOverflowScrolling: 'touch',
                 }}
               >
                 {/* Security info banner */}
@@ -651,6 +690,29 @@ export const WhatsAppAdminDashboard: React.FC = () => {
                   );
                 })}
                 <div ref={messagesEndRef} />
+              </div>
+
+              {/* Floating Scroll Controls (Setas para Cima e para Baixo) */}
+              <div className="absolute right-3.5 bottom-24 sm:bottom-20 z-30 flex flex-col gap-2 pointer-events-none">
+                {/* Seta para Cima (Início) */}
+                <button
+                  type="button"
+                  onClick={scrollChatToTop}
+                  className="pointer-events-auto w-10 h-10 rounded-full bg-white/95 hover:bg-white text-slate-700 hover:text-emerald-700 shadow-xl border border-slate-300 flex items-center justify-center transition-all active:scale-90 cursor-pointer"
+                  title="Subir para o início das mensagens"
+                >
+                  <ChevronUp className="w-5 h-5 stroke-[2.5]" />
+                </button>
+
+                {/* Seta para Baixo (Fim / Recentes) */}
+                <button
+                  type="button"
+                  onClick={scrollChatToBottom}
+                  className="pointer-events-auto w-10 h-10 rounded-full bg-[#00a884] hover:bg-[#008069] text-white shadow-xl flex items-center justify-center transition-all active:scale-90 ring-2 ring-white/90 cursor-pointer"
+                  title="Descer para as últimas mensagens"
+                >
+                  <ChevronDown className="w-5 h-5 stroke-[2.5]" />
+                </button>
               </div>
 
               {/* Quick Macro Suggestions Bar */}
