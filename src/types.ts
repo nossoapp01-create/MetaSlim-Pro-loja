@@ -201,9 +201,12 @@ export interface ChatMessage {
   timestamp: string;
   status?: 'sent' | 'delivered' | 'read';
   attachmentUrl?: string;
+  attachmentName?: string;
+  attachmentType?: 'image' | 'pdf' | 'document';
+  attachmentSize?: number;
   audioUrl?: string;
   audioDuration?: number; // duration in seconds
-  messageType?: 'text' | 'audio' | 'image';
+  messageType?: 'text' | 'audio' | 'image' | 'pdf' | 'document';
 }
 
 export interface ChatConversation {

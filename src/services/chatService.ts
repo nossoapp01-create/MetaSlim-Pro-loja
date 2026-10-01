@@ -321,31 +321,48 @@ export async function sendChatMessage(
   text: string,
   extra?: {
     attachmentUrl?: string;
+    attachmentName?: string;
+    attachmentType?: 'image' | 'pdf' | 'document';
+    attachmentSize?: number;
     audioUrl?: string;
     audioDuration?: number;
-    messageType?: 'text' | 'audio' | 'image';
+    messageType?: 'text' | 'audio' | 'image' | 'pdf' | 'document';
   }
 ): Promise<ChatMessage> {
   const now = new Date().toISOString();
   const messageId = `msg_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
 
   const isAudio = Boolean(extra?.audioUrl) || extra?.messageType === 'audio';
-  const displaySnippet = isAudio
-    ? `🎙️ Áudio (${Math.max(1, Math.round(extra?.audioDuration || 0))}s)`
-    : text.trim().slice(0, 150);
+  const isImage = extra?.messageType === 'image' || extra?.attachmentType === 'image';
+  const isPdf = extra?.messageType === 'pdf' || extra?.attachmentType === 'pdf';
+  const isDoc = extra?.messageType === 'document' || extra?.attachmentType === 'document';
+
+  let displaySnippet = text.trim().slice(0, 150);
+  if (isAudio) {
+    displaySnippet = `🎙️ Áudio (${Math.max(1, Math.round(extra?.audioDuration || 0))}s)`;
+  } else if (isImage) {
+    displaySnippet = text.trim() ? `📷 Foto: ${text.trim()}` : `📷 Foto: ${extra?.attachmentName || 'Imagem enviada'}`;
+  } else if (isPdf) {
+    displaySnippet = text.trim() ? `📄 PDF: ${text.trim()}` : `📄 Documento: ${extra?.attachmentName || 'arquivo.pdf'}`;
+  } else if (isDoc) {
+    displaySnippet = `📎 Arquivo: ${extra?.attachmentName || 'documento'}`;
+  }
 
   const message: ChatMessage = {
     id: messageId,
     chatId,
     sender,
     senderName,
-    text: text.trim() || (isAudio ? '🎙️ Mensagem de áudio' : ''),
+    text: text.trim() || (isAudio ? '🎙️ Mensagem de áudio' : isImage ? '📷 Foto enviada' : isPdf ? '📄 Documento PDF' : ''),
     timestamp: now,
     status: 'sent',
     attachmentUrl: extra?.attachmentUrl,
+    attachmentName: extra?.attachmentName,
+    attachmentType: extra?.attachmentType || (isImage ? 'image' : isPdf ? 'pdf' : undefined),
+    attachmentSize: extra?.attachmentSize,
     audioUrl: extra?.audioUrl,
     audioDuration: extra?.audioDuration,
-    messageType: extra?.messageType || (isAudio ? 'audio' : 'text'),
+    messageType: extra?.messageType || (isAudio ? 'audio' : isImage ? 'image' : isPdf ? 'pdf' : isDoc ? 'document' : 'text'),
   };
 
   // 1. Immediately store in local cache

@@ -45,9 +45,12 @@ import {
   Users,
   Mic,
   Square,
+  Paperclip,
 } from 'lucide-react';
 import { PWAInstallPrompt } from './PWAInstallPrompt';
 import { WhatsAppAudioBubble } from './WhatsAppAudioBubble';
+import { WhatsAppAttachmentView } from './WhatsAppAttachmentView';
+import { processFileAttachment } from '../utils/fileUtils';
 import {
   startAudioRecording,
   AudioRecordingSession,

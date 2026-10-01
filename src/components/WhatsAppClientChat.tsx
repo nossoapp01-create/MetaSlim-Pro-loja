@@ -34,6 +34,8 @@ import {
   Trash2,
 } from 'lucide-react';
 import { WhatsAppAudioBubble } from './WhatsAppAudioBubble';
+import { WhatsAppAttachmentView } from './WhatsAppAttachmentView';
+import { processFileAttachment } from '../utils/fileUtils';
 import {
   startAudioRecording,
   AudioRecordingSession,
@@ -224,6 +226,53 @@ export const WhatsAppClientChat: React.FC = () => {
     }
     setIsRecordingAudio(false);
     setRecordingDuration(0);
+  };
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isUploadingFile, setIsUploadingFile] = useState(false);
+
+  const handleTriggerFileSelect = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !clientIdentity) return;
+
+    // Reset value so user can pick the same file again
+    e.target.value = '';
+
+    setIsUploadingFile(true);
+    const caption = newMessage.trim();
+    setNewMessage('');
+
+    try {
+      showToast('Processando e anexando arquivo...');
+      const processed = await processFileAttachment(file);
+
+      await sendChatMessage(
+        clientIdentity.chatId,
+        'customer',
+        clientIdentity.name,
+        caption,
+        {
+          attachmentUrl: processed.attachmentUrl,
+          attachmentName: processed.attachmentName,
+          attachmentType: processed.attachmentType,
+          attachmentSize: processed.attachmentSize,
+          messageType: processed.messageType,
+        }
+      );
+
+      const typeLabel = processed.attachmentType === 'image' ? 'Foto enviada' : 'PDF enviado';
+      showToast(`${typeLabel} com sucesso!`);
+      setTimeout(() => scrollToBottom(true), 50);
+    } catch (err: any) {
+      console.error('File upload error:', err);
+      showToast(err.message || 'Erro ao processar arquivo.');
+    } finally {
+      setIsUploadingFile(false);
+    }
   };
 
   const handleCopyChatLink = () => {
@@ -483,6 +532,17 @@ export const WhatsAppClientChat: React.FC = () => {
                     </div>
                   )}
 
+                  {/* Attachment (Image, Photo, or PDF) */}
+                  {msg.attachmentUrl && (
+                    <WhatsAppAttachmentView
+                      attachmentUrl={msg.attachmentUrl}
+                      attachmentName={msg.attachmentName}
+                      attachmentType={msg.attachmentType}
+                      attachmentSize={msg.attachmentSize}
+                      isAdmin={!isCustomer}
+                    />
+                  )}
+
                   {msg.audioUrl ? (
                     <div className="my-0.5">
                       <WhatsAppAudioBubble
@@ -495,7 +555,11 @@ export const WhatsAppClientChat: React.FC = () => {
                       )}
                     </div>
                   ) : (
-                    <div className="whitespace-pre-wrap break-words">{msg.text}</div>
+                    msg.text && !msg.text.startsWith('📷 Foto') && !msg.text.startsWith('📄 Documento') ? (
+                      <div className="whitespace-pre-wrap break-words">{msg.text}</div>
+                    ) : !msg.attachmentUrl ? (
+                      <div className="whitespace-pre-wrap break-words">{msg.text}</div>
+                    ) : null
                   )}
 
                   <div className="flex items-center justify-end gap-1 mt-1 select-none">
@@ -582,13 +646,23 @@ export const WhatsAppClientChat: React.FC = () => {
               <Smile className="w-5 h-5" />
             </button>
 
+            {/* Hidden File Picker for Images and PDFs */}
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileUpload}
+              accept="image/*,application/pdf"
+              className="hidden"
+            />
+
             <button
               type="button"
-              onClick={() => {
-                handleSendMessage('Enviei meu comprovante / laudo para conferência médica.');
-              }}
-              className="text-slate-500 hover:text-slate-700 p-1.5 rounded-full hover:bg-slate-200/60 transition-colors cursor-pointer"
-              title="Anexar arquivo / laudo"
+              onClick={handleTriggerFileSelect}
+              disabled={isUploadingFile}
+              className={`text-slate-500 hover:text-slate-700 p-1.5 rounded-full hover:bg-slate-200/60 transition-colors cursor-pointer ${
+                isUploadingFile ? 'opacity-50 animate-spin' : ''
+              }`}
+              title="Anexar imagem, foto ou documento PDF"
             >
               <Paperclip className="w-5 h-5" />
             </button>
