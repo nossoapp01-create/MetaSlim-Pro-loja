@@ -297,6 +297,52 @@ export const WhatsAppAdminDashboard: React.FC = () => {
     showToast('Gravação de áudio cancelada.');
   };
 
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isUploadingFile, setIsUploadingFile] = useState(false);
+
+  const handleTriggerFileSelect = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !selectedChatId) return;
+
+    e.target.value = '';
+    setIsUploadingFile(true);
+    const caption = replyText.trim();
+    setReplyText('');
+
+    try {
+      showToast('Processando e enviando anexo...');
+      const processed = await processFileAttachment(file);
+
+      await sendChatMessage(
+        selectedChatId,
+        'admin',
+        'Dra. Valéria Prado',
+        caption,
+        {
+          attachmentUrl: processed.attachmentUrl,
+          attachmentName: processed.attachmentName,
+          attachmentType: processed.attachmentType,
+          attachmentSize: processed.attachmentSize,
+          messageType: processed.messageType,
+        }
+      );
+      markChatAsRead(selectedChatId, 'admin');
+
+      const typeLabel = processed.attachmentType === 'image' ? 'Foto enviada' : 'PDF enviado';
+      showToast(`${typeLabel} com sucesso!`);
+      setTimeout(() => scrollToBottom(true), 50);
+    } catch (err: any) {
+      console.error('File upload error:', err);
+      showToast(err.message || 'Erro ao processar anexo.');
+    } finally {
+      setIsUploadingFile(false);
+    }
+  };
+
   const handleDeleteConversation = async (chatId: string, name: string) => {
     if (window.confirm(`Deseja realmente apagar todo o histórico de conversa com ${name}?`)) {
       await deleteChat(chatId);
@@ -731,6 +777,17 @@ export const WhatsAppAdminDashboard: React.FC = () => {
                           {isAdmin ? 'Você (Dra. Valéria Prado)' : msg.senderName || activeConversation.customerName}
                         </div>
 
+                        {/* Image, Photo, or PDF Attachment */}
+                        {msg.attachmentUrl && (
+                          <WhatsAppAttachmentView
+                            attachmentUrl={msg.attachmentUrl}
+                            attachmentName={msg.attachmentName}
+                            attachmentType={msg.attachmentType}
+                            attachmentSize={msg.attachmentSize}
+                            isAdmin={isAdmin}
+                          />
+                        )}
+
                         {/* Audio Voice Note Bubble or Text Message */}
                         {msg.audioUrl ? (
                           <div className="my-0.5">
@@ -744,7 +801,11 @@ export const WhatsAppAdminDashboard: React.FC = () => {
                             )}
                           </div>
                         ) : (
-                          <div className="whitespace-pre-wrap break-words">{msg.text}</div>
+                          msg.text && !msg.text.startsWith('📷 Foto') && !msg.text.startsWith('📄 Documento') ? (
+                            <div className="whitespace-pre-wrap break-words">{msg.text}</div>
+                          ) : !msg.attachmentUrl ? (
+                            <div className="whitespace-pre-wrap break-words">{msg.text}</div>
+                          ) : null
                         )}
 
                         <div className="flex items-center justify-end gap-1 mt-1 select-none">
@@ -828,6 +889,27 @@ export const WhatsAppAdminDashboard: React.FC = () => {
                     }}
                     className="flex items-center gap-2 w-full"
                   >
+                    {/* Hidden file picker for admin (Images and PDFs) */}
+                    <input
+                      type="file"
+                      ref={fileInputRef}
+                      onChange={handleFileUpload}
+                      accept="image/*,application/pdf"
+                      className="hidden"
+                    />
+
+                    <button
+                      type="button"
+                      onClick={handleTriggerFileSelect}
+                      disabled={isUploadingFile}
+                      className={`p-2 text-slate-500 hover:text-slate-700 hover:bg-slate-200/60 rounded-full transition-colors cursor-pointer shrink-0 ${
+                        isUploadingFile ? 'opacity-50 animate-spin' : ''
+                      }`}
+                      title="Anexar imagem, foto ou documento PDF"
+                    >
+                      <Paperclip className="w-5 h-5" />
+                    </button>
+
                     <input
                       type="text"
                       value={replyText}
