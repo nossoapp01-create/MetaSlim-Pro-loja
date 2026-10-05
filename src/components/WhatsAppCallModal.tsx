@@ -8,10 +8,6 @@ import {
   VolumeX,
   PhoneOff,
   ShieldCheck,
-  Minimize2,
-  Maximize2,
-  Camera,
-  RefreshCw,
 } from 'lucide-react';
 import { callAudio } from '../utils/callAudio';
 
@@ -22,6 +18,8 @@ interface WhatsAppCallModalProps {
   contactRole?: string;
   contactAvatar?: string;
   caller: 'customer' | 'admin';
+  isInitiator?: boolean;
+  callStatusSync?: 'ringing' | 'connected' | 'ended' | 'declined';
   onClose: (durationSeconds: number, callType: 'voice' | 'video', status: 'completed' | 'missed') => void;
 }
 
@@ -32,6 +30,8 @@ export const WhatsAppCallModal: React.FC<WhatsAppCallModalProps> = ({
   contactRole,
   contactAvatar,
   caller,
+  isInitiator = true,
+  callStatusSync,
   onClose,
 }) => {
   const [callStatus, setCallStatus] = useState<'calling' | 'connecting' | 'connected' | 'ended'>('calling');
@@ -57,20 +57,57 @@ export const WhatsAppCallModal: React.FC<WhatsAppCallModalProps> = ({
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
+  // Synchronize with Firestore real-time call status
+  useEffect(() => {
+    if (!isOpen) return;
+
+    if (callStatusSync === 'connected' && callStatus !== 'connected') {
+      callAudio.stopRinging();
+      callAudio.playCallConnectedChime();
+      setCallStatus('connected');
+      if (!timerRef.current) {
+        timerRef.current = setInterval(() => {
+          setCallDuration((prev) => prev + 1);
+        }, 1000);
+      }
+    } else if (callStatusSync === 'declined' || callStatusSync === 'ended') {
+      handleEndCall('missed');
+    }
+  }, [callStatusSync, isOpen]);
+
   // Initialize call & WebRTC media stream
   useEffect(() => {
     if (!isOpen) return;
 
-    setCallStatus('calling');
     setCallDuration(0);
     setIsMuted(false);
     setIsVideoDisabled(false);
     setCameraPermissionError(null);
 
-    // Play outgoing WhatsApp ringing tone
-    callAudio.startOutgoingRinging();
+    // If answering an incoming call, directly connect
+    if (!isInitiator) {
+      callAudio.stopIncomingRingtone();
+      callAudio.playCallConnectedChime();
+      setCallStatus('connected');
+      timerRef.current = setInterval(() => {
+        setCallDuration((prev) => prev + 1);
+      }, 1000);
+    } else {
+      // Caller initiates outgoing ring
+      setCallStatus('calling');
+      callAudio.startOutgoingRinging();
 
-    // Attempt to acquire real webcam / mic stream
+      // Fallback: If after 30 seconds no one answers, cancel
+      const timeoutNoAnswer = setTimeout(() => {
+        if (callStatus !== 'connected') {
+          handleEndCall('missed');
+        }
+      }, 35000);
+
+      return () => clearTimeout(timeoutNoAnswer);
+    }
+
+    // Acquire real webcam/microphone stream
     const initMedia = async () => {
       try {
         if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
@@ -86,48 +123,27 @@ export const WhatsAppCallModal: React.FC<WhatsAppCallModalProps> = ({
         }
       } catch (err: any) {
         console.warn('Microphone/Camera permission notice:', err);
-        setCameraPermissionError('Modo simulado ativado (permissão de câmera/microfone indisponível).');
+        setCameraPermissionError('Modo simulado ativado (câmera/microfone indisponível).');
       }
     };
 
     initMedia();
 
-    // Realistic Call Lifecycle Progression:
-    // 0-3.5s: "Chamando..."
-    // 3.5s: Answered! Plays connection chime -> "Conectando..." -> "Conectado"
-    const ringTimeout = setTimeout(() => {
-      callAudio.stopRinging();
-      setCallStatus('connecting');
-
-      const connectTimeout = setTimeout(() => {
-        callAudio.playCallConnectedChime();
-        setCallStatus('connected');
-
-        // Start duration timer
-        timerRef.current = setInterval(() => {
-          setCallDuration((prev) => prev + 1);
-        }, 1000);
-      }, 700);
-
-      return () => clearTimeout(connectTimeout);
-    }, 3200);
-
     return () => {
-      clearTimeout(ringTimeout);
-      callAudio.stopRinging();
+      callAudio.stopAll();
       if (timerRef.current) clearInterval(timerRef.current);
       if (localStreamRef.current) {
         localStreamRef.current.getTracks().forEach((track) => track.stop());
         localStreamRef.current = null;
       }
     };
-  }, [isOpen, callType]);
+  }, [isOpen, callType, isInitiator]);
 
   // Handle Mute Mic toggle
   const toggleMute = () => {
     if (localStreamRef.current) {
       localStreamRef.current.getAudioTracks().forEach((track) => {
-        track.enabled = isMuted; // Toggle
+        track.enabled = isMuted;
       });
     }
     setIsMuted(!isMuted);
@@ -144,12 +160,15 @@ export const WhatsAppCallModal: React.FC<WhatsAppCallModalProps> = ({
   };
 
   // End Call Handler
-  const handleEndCall = () => {
-    callAudio.stopRinging();
+  const handleEndCall = (forcedStatus?: 'completed' | 'missed') => {
+    callAudio.stopAll();
     callAudio.playHangupTone();
     setCallStatus('ended');
 
-    if (timerRef.current) clearInterval(timerRef.current);
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
 
     if (localStreamRef.current) {
       localStreamRef.current.getTracks().forEach((track) => track.stop());
@@ -157,7 +176,7 @@ export const WhatsAppCallModal: React.FC<WhatsAppCallModalProps> = ({
     }
 
     const finalDuration = callDuration;
-    const finalStatus = finalDuration > 0 ? 'completed' : 'missed';
+    const finalStatus = forcedStatus || (finalDuration > 0 ? 'completed' : 'missed');
 
     setTimeout(() => {
       onClose(finalDuration, callType, finalStatus);
@@ -188,20 +207,16 @@ export const WhatsAppCallModal: React.FC<WhatsAppCallModalProps> = ({
         {/* VIDEO CALL MODE */}
         {callType === 'video' ? (
           <div className="relative w-full h-full max-w-4xl mx-auto rounded-3xl overflow-hidden bg-slate-900 border border-white/10 shadow-2xl flex items-center justify-center">
-            {/* Remote Party Video / Simulated Video Consultation Stream */}
             {callStatus === 'connected' ? (
               <div className="relative w-full h-full flex items-center justify-center overflow-hidden">
-                {/* Simulated Doctor Consultation Video Background Feed */}
                 <img
                   src={avatarUrl}
                   alt={contactName}
                   className="w-full h-full object-cover filter brightness-95 scale-105 transition-transform duration-1000"
                 />
 
-                {/* Subtle Realistic Video Feed Scanline & Watermark Overlay */}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/30 pointer-events-none" />
 
-                {/* Remote Doctor Name Badge */}
                 <div className="absolute bottom-4 left-4 z-10 bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-xl border border-white/15 flex items-center gap-2">
                   <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
                   <span className="text-xs font-bold text-white">{contactName}</span>
@@ -209,7 +224,6 @@ export const WhatsAppCallModal: React.FC<WhatsAppCallModalProps> = ({
                 </div>
               </div>
             ) : (
-              /* Calling State for Video */
               <div className="flex flex-col items-center justify-center gap-4 text-center z-10 p-6">
                 <div className="relative">
                   <div className="w-28 h-28 sm:w-36 sm:h-36 rounded-full p-1 border-2 border-emerald-400 overflow-hidden shadow-2xl animate-pulse">
@@ -229,7 +243,7 @@ export const WhatsAppCallModal: React.FC<WhatsAppCallModalProps> = ({
               </div>
             )}
 
-            {/* Local User Picture-in-Picture (PiP) Webcam Preview */}
+            {/* Local User Picture-in-Picture Webcam Preview */}
             <div className="absolute top-4 right-4 z-20 w-28 h-40 sm:w-36 sm:h-52 rounded-2xl overflow-hidden bg-black/80 border-2 border-white/40 shadow-2xl backdrop-blur-md">
               <video
                 ref={localVideoRef}
@@ -254,7 +268,6 @@ export const WhatsAppCallModal: React.FC<WhatsAppCallModalProps> = ({
         ) : (
           /* VOICE CALL MODE */
           <div className="flex flex-col items-center justify-center gap-6 text-center max-w-md w-full">
-            {/* Animated Pulsing Sound Wave Rings */}
             <div className="relative flex items-center justify-center">
               {callStatus === 'connected' && (
                 <>
@@ -274,7 +287,6 @@ export const WhatsAppCallModal: React.FC<WhatsAppCallModalProps> = ({
                 {contactRole || 'Atendimento VIP MetaSlim Pro'}
               </span>
 
-              {/* Call Status / Live Timer */}
               <div className="mt-3 px-4 py-1 rounded-full bg-white/10 border border-white/15 backdrop-blur-xs">
                 {callStatus === 'connected' ? (
                   <span className="text-sm font-mono font-bold tracking-widest text-emerald-300">
@@ -290,7 +302,6 @@ export const WhatsAppCallModal: React.FC<WhatsAppCallModalProps> = ({
           </div>
         )}
 
-        {/* Live Call Duration Floating Tag (for Video calls) */}
         {callType === 'video' && callStatus === 'connected' && (
           <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20 bg-black/60 backdrop-blur-md px-3.5 py-1 rounded-full border border-white/20 text-xs font-mono font-bold text-emerald-300 shadow-md">
             {formatDuration(callDuration)}
@@ -304,10 +315,9 @@ export const WhatsAppCallModal: React.FC<WhatsAppCallModalProps> = ({
         )}
       </div>
 
-      {/* 3. BOTTOM CONTROL BAR (AUTHENTIC WHATSAPP CALL ACTION PILL) */}
+      {/* 3. BOTTOM CONTROL BAR */}
       <div className="px-4 py-6 bg-gradient-to-t from-black/90 via-black/60 to-transparent flex items-center justify-center z-20">
         <div className="bg-[#1f2c34]/90 backdrop-blur-md px-4 sm:px-6 py-3 rounded-full border border-white/15 shadow-2xl flex items-center gap-3 sm:gap-5">
-          {/* Mute Mic Button */}
           <button
             type="button"
             onClick={toggleMute}
@@ -319,7 +329,6 @@ export const WhatsAppCallModal: React.FC<WhatsAppCallModalProps> = ({
             {isMuted ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
           </button>
 
-          {/* Toggle Video Button (Only in Video Call) */}
           {callType === 'video' && (
             <button
               type="button"
@@ -333,7 +342,6 @@ export const WhatsAppCallModal: React.FC<WhatsAppCallModalProps> = ({
             </button>
           )}
 
-          {/* Speaker / Volume Button */}
           <button
             type="button"
             onClick={() => setIsSpeakerOn(!isSpeakerOn)}
@@ -345,10 +353,9 @@ export const WhatsAppCallModal: React.FC<WhatsAppCallModalProps> = ({
             {isSpeakerOn ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5" />}
           </button>
 
-          {/* End Call Button (Large Red Circular WhatsApp Hang-up) */}
           <button
             type="button"
-            onClick={handleEndCall}
+            onClick={() => handleEndCall()}
             className="w-14 h-14 rounded-full bg-red-600 hover:bg-red-700 text-white flex items-center justify-center transition-all cursor-pointer shadow-xl active:scale-90 ring-4 ring-red-500/30"
             title="Encerrar Chamada"
           >

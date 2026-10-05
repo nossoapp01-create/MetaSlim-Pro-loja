@@ -37,6 +37,15 @@ import { WhatsAppAudioBubble } from './WhatsAppAudioBubble';
 import { WhatsAppAttachmentView } from './WhatsAppAttachmentView';
 import { WhatsAppCallModal } from './WhatsAppCallModal';
 import { WhatsAppCallBubble } from './WhatsAppCallBubble';
+import { WhatsAppIncomingCallModal } from './WhatsAppIncomingCallModal';
+import {
+  initiateCall,
+  answerCall,
+  declineCall,
+  endCall,
+  subscribeToChatCall,
+  ActiveCallData,
+} from '../services/callSignalingService';
 import { processFileAttachment } from '../utils/fileUtils';
 import {
   startAudioRecording,
@@ -280,11 +289,93 @@ export const WhatsAppClientChat: React.FC = () => {
   // Call Handlers for Voice and Video
   const [isCallModalOpen, setIsCallModalOpen] = useState(false);
   const [activeCallType, setActiveCallType] = useState<'voice' | 'video'>('voice');
+  const [isCallInitiator, setIsCallInitiator] = useState<boolean>(true);
+  const [incomingCall, setIncomingCall] = useState<ActiveCallData | null>(null);
+  const [activeCallSession, setActiveCallSession] = useState<ActiveCallData | null>(null);
 
-  const handleStartCall = (type: 'voice' | 'video') => {
+  // Subscribe to real-time call events on this client's conversation
+  useEffect(() => {
+    if (!clientIdentity?.chatId) return;
+
+    const unsubscribe = subscribeToChatCall(clientIdentity.chatId, (call) => {
+      setActiveCallSession(call);
+
+      // If doctor is calling this patient and call is ringing
+      if (call && call.receiver === 'customer' && call.status === 'ringing') {
+        setIncomingCall(call);
+      } else {
+        setIncomingCall(null);
+      }
+    });
+
+    return () => unsubscribe();
+  }, [clientIdentity?.chatId]);
+
+  // Handle patient answering call from Dra. Valéria Prado
+  const handleAcceptIncomingCall = async () => {
+    if (!incomingCall || !clientIdentity) return;
+    const callToAccept = incomingCall;
+    setIncomingCall(null);
+
+    setActiveCallType(callToAccept.callType);
+    setIsCallInitiator(false);
+    setActiveCallSession(callToAccept);
+    setIsCallModalOpen(true);
+
+    try {
+      await answerCall(clientIdentity.chatId, callToAccept.callId);
+    } catch (e) {
+      console.error('Error answering call:', e);
+    }
+  };
+
+  // Handle patient declining incoming call
+  const handleDeclineIncomingCall = async () => {
+    if (!incomingCall || !clientIdentity) return;
+    const callToDecline = incomingCall;
+    setIncomingCall(null);
+
+    try {
+      await declineCall(clientIdentity.chatId, callToDecline.callId);
+      await sendChatMessage(
+        clientIdentity.chatId,
+        'admin',
+        'Dra. Valéria Prado',
+        '',
+        {
+          messageType: 'call',
+          callType: callToDecline.callType,
+          callDuration: 0,
+          callStatus: 'declined',
+        }
+      );
+    } catch (e) {
+      console.error('Error declining call:', e);
+    }
+  };
+
+  // When patient initiates a call to Dra. Valéria Prado
+  const handleStartCall = async (type: 'voice' | 'video') => {
     if (!clientIdentity) return;
     setActiveCallType(type);
+    setIsCallInitiator(true);
     setIsCallModalOpen(true);
+
+    try {
+      const callData = await initiateCall(
+        clientIdentity.chatId,
+        'customer',
+        clientIdentity.name,
+        clientIdentity.contact,
+        'admin',
+        'Dra. Valéria Prado',
+        type
+      );
+      setActiveCallSession(callData);
+    } catch (err: any) {
+      console.error('Error initiating call:', err);
+      showToast('Erro ao iniciar chamada.');
+    }
   };
 
   const handleCallEnded = async (
@@ -294,6 +385,10 @@ export const WhatsAppClientChat: React.FC = () => {
   ) => {
     setIsCallModalOpen(false);
     if (!clientIdentity) return;
+
+    if (activeCallSession) {
+      endCall(clientIdentity.chatId, activeCallSession.callId, durationSeconds);
+    }
 
     try {
       await sendChatMessage(
@@ -767,13 +862,22 @@ export const WhatsAppClientChat: React.FC = () => {
         )}
       </footer>
 
-      {/* 6. REALTIME WHATSAPP CALL MODAL */}
+      {/* 6. INCOMING CALL MODAL (RINGS & VIBRATES WHEN DRA. VALÉRIA CALLS) */}
+      <WhatsAppIncomingCallModal
+        call={incomingCall}
+        onAccept={handleAcceptIncomingCall}
+        onDecline={handleDeclineIncomingCall}
+      />
+
+      {/* 7. ACTIVE REALTIME WHATSAPP CALL MODAL */}
       <WhatsAppCallModal
         isOpen={isCallModalOpen}
         callType={activeCallType}
         contactName="Dra. Valéria Prado"
         contactRole="Médica Endocrinologista • CRM 62.180-SP"
         caller="customer"
+        isInitiator={isCallInitiator}
+        callStatusSync={activeCallSession?.status}
         onClose={handleCallEnded}
       />
     </div>

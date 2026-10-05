@@ -53,6 +53,16 @@ import { WhatsAppAudioBubble } from './WhatsAppAudioBubble';
 import { WhatsAppAttachmentView } from './WhatsAppAttachmentView';
 import { WhatsAppCallModal } from './WhatsAppCallModal';
 import { WhatsAppCallBubble } from './WhatsAppCallBubble';
+import { WhatsAppIncomingCallModal } from './WhatsAppIncomingCallModal';
+import {
+  initiateCall,
+  answerCall,
+  declineCall,
+  endCall,
+  subscribeToChatCall,
+  subscribeToAdminIncomingCalls,
+  ActiveCallData,
+} from '../services/callSignalingService';
 import { processFileAttachment } from '../utils/fileUtils';
 import {
   startAudioRecording,
@@ -349,14 +359,104 @@ export const WhatsAppAdminDashboard: React.FC = () => {
   // Call Handlers for Voice and Video
   const [isCallModalOpen, setIsCallModalOpen] = useState(false);
   const [activeCallType, setActiveCallType] = useState<'voice' | 'video'>('voice');
+  const [isCallInitiator, setIsCallInitiator] = useState<boolean>(true);
+  const [incomingCall, setIncomingCall] = useState<ActiveCallData | null>(null);
+  const [activeCallSession, setActiveCallSession] = useState<ActiveCallData | null>(null);
 
-  const handleStartCall = (type: 'voice' | 'video') => {
+  // 1. Subscribe to all incoming calls destined for Dra. Valéria Prado across any chat
+  useEffect(() => {
+    const unsubscribe = subscribeToAdminIncomingCalls((call) => {
+      if (call && call.status === 'ringing') {
+        setIncomingCall(call);
+      } else {
+        setIncomingCall(null);
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  // 2. Synchronize activeCall state for the selected conversation
+  useEffect(() => {
+    if (!selectedChatId) return;
+
+    const unsubscribe = subscribeToChatCall(selectedChatId, (call) => {
+      setActiveCallSession(call);
+    });
+
+    return () => unsubscribe();
+  }, [selectedChatId]);
+
+  // Handle Dra. Valéria answering an incoming call
+  const handleAcceptIncomingCall = async () => {
+    if (!incomingCall) return;
+    const callToAccept = incomingCall;
+    setIncomingCall(null);
+
+    // Switch active conversation to caller
+    setSelectedChatId(callToAccept.chatId);
+    setActiveCallType(callToAccept.callType);
+    setIsCallInitiator(false);
+    setActiveCallSession(callToAccept);
+    setIsCallModalOpen(true);
+
+    try {
+      await answerCall(callToAccept.chatId, callToAccept.callId);
+    } catch (e) {
+      console.error('Error answering call:', e);
+    }
+  };
+
+  // Handle Dra. Valéria declining an incoming call
+  const handleDeclineIncomingCall = async () => {
+    if (!incomingCall) return;
+    const callToDecline = incomingCall;
+    setIncomingCall(null);
+
+    try {
+      await declineCall(callToDecline.chatId, callToDecline.callId);
+      await sendChatMessage(
+        callToDecline.chatId,
+        'customer',
+        callToDecline.callerName,
+        '',
+        {
+          messageType: 'call',
+          callType: callToDecline.callType,
+          callDuration: 0,
+          callStatus: 'declined',
+        }
+      );
+    } catch (e) {
+      console.error('Error declining call:', e);
+    }
+  };
+
+  // When Dra. Valéria initiates a call to a client
+  const handleStartCall = async (type: 'voice' | 'video') => {
     if (!activeConversation) {
       showToast('Selecione uma conversa para iniciar a chamada.');
       return;
     }
     setActiveCallType(type);
+    setIsCallInitiator(true);
     setIsCallModalOpen(true);
+
+    try {
+      const callData = await initiateCall(
+        activeConversation.id,
+        'admin',
+        'Dra. Valéria Prado',
+        'CRM 62.180-SP',
+        'customer',
+        activeConversation.customerName,
+        type
+      );
+      setActiveCallSession(callData);
+    } catch (err: any) {
+      console.error('Error initiating call:', err);
+      showToast('Erro ao iniciar chamada.');
+    }
   };
 
   const handleCallEnded = async (
@@ -366,6 +466,10 @@ export const WhatsAppAdminDashboard: React.FC = () => {
   ) => {
     setIsCallModalOpen(false);
     if (!selectedChatId) return;
+
+    if (activeCallSession) {
+      endCall(selectedChatId, activeCallSession.callId, durationSeconds);
+    }
 
     try {
       await sendChatMessage(
@@ -1108,14 +1212,23 @@ export const WhatsAppAdminDashboard: React.FC = () => {
         </div>
       )}
 
-      {/* 4. REALTIME WHATSAPP CALL MODAL */}
+      {/* 4. INCOMING CALL MODAL (RINGS & VIBRATES WHEN PATIENT CALLS) */}
+      <WhatsAppIncomingCallModal
+        call={incomingCall}
+        onAccept={handleAcceptIncomingCall}
+        onDecline={handleDeclineIncomingCall}
+      />
+
+      {/* 5. ACTIVE REALTIME WHATSAPP CALL MODAL */}
       {activeConversation && (
         <WhatsAppCallModal
           isOpen={isCallModalOpen}
           callType={activeCallType}
-          contactName={activeConversation.customerName}
+          contactName={isCallInitiator ? activeConversation.customerName : (incomingCall?.callerName || activeConversation.customerName)}
           contactRole={`Paciente VIP • ${activeConversation.customerContact}`}
           caller="admin"
+          isInitiator={isCallInitiator}
+          callStatusSync={activeCallSession?.status}
           onClose={handleCallEnded}
         />
       )}
