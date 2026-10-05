@@ -888,6 +888,33 @@ export const WhatsAppAdminDashboard: React.FC = () => {
                 </div>
 
                 <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+                  {/* Test Incoming Call button for admin testing */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (activeConversation) {
+                        setIncomingCall({
+                          callId: `test_${Date.now()}`,
+                          chatId: activeConversation.id,
+                          caller: 'customer',
+                          callerName: activeConversation.customerName,
+                          callerContact: activeConversation.customerContact,
+                          receiver: 'admin',
+                          receiverName: 'Dra. Valéria Prado',
+                          callType: 'video',
+                          status: 'ringing',
+                          startedAt: new Date().toISOString(),
+                        });
+                        showToast(`Simulando chamada recebida de ${activeConversation.customerName}...`);
+                      }
+                    }}
+                    className="hidden sm:flex px-2 py-1 bg-emerald-100 hover:bg-emerald-200 text-emerald-800 text-[10px] font-bold rounded-full items-center gap-1 cursor-pointer transition-transform active:scale-95"
+                    title="Simular chamada recebida deste paciente para testar toque"
+                  >
+                    <Bell className="w-3.5 h-3.5 text-emerald-700 animate-pulse" />
+                    <span>Testar Toque</span>
+                  </button>
+
                   {/* Video Call Button */}
                   <button
                     type="button"

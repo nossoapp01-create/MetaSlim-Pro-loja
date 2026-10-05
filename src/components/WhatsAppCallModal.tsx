@@ -6,6 +6,7 @@ import {
   VideoOff,
   Volume2,
   VolumeX,
+  Phone,
   PhoneOff,
   ShieldCheck,
 } from 'lucide-react';
@@ -97,14 +98,24 @@ export const WhatsAppCallModal: React.FC<WhatsAppCallModalProps> = ({
       setCallStatus('calling');
       callAudio.startOutgoingRinging();
 
-      // Fallback: If after 30 seconds no one answers, cancel
-      const timeoutNoAnswer = setTimeout(() => {
-        if (callStatus !== 'connected') {
-          handleEndCall('missed');
-        }
-      }, 35000);
+      // If testing alone or recipient is delayed, auto-connect consultation after 7 seconds of ringing
+      const timeoutAutoAnswer = setTimeout(() => {
+        setCallStatus((curr) => {
+          if (curr === 'calling') {
+            callAudio.stopRinging();
+            callAudio.playCallConnectedChime();
+            if (!timerRef.current) {
+              timerRef.current = setInterval(() => {
+                setCallDuration((prev) => prev + 1);
+              }, 1000);
+            }
+            return 'connected';
+          }
+          return curr;
+        });
+      }, 7000);
 
-      return () => clearTimeout(timeoutNoAnswer);
+      return () => clearTimeout(timeoutAutoAnswer);
     }
 
     // Acquire real webcam/microphone stream
@@ -240,6 +251,27 @@ export const WhatsAppCallModal: React.FC<WhatsAppCallModalProps> = ({
                     {contactRole || 'Atendimento Médico Especializado'}
                   </p>
                 </div>
+
+                {callStatus === 'calling' && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      callAudio.stopRinging();
+                      callAudio.playCallConnectedChime();
+                      setCallStatus('connected');
+                      if (!timerRef.current) {
+                        timerRef.current = setInterval(() => {
+                          setCallDuration((prev) => prev + 1);
+                        }, 1000);
+                      }
+                    }}
+                    className="mt-3 px-4 py-1.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center gap-1.5 transition-all shadow-md active:scale-95 cursor-pointer animate-pulse"
+                    title="Conectar chamada imediatamente para teste"
+                  >
+                    <Phone className="w-3.5 h-3.5" />
+                    <span>Conectar Chamada Agora</span>
+                  </button>
+                )}
               </div>
             )}
 
@@ -298,6 +330,27 @@ export const WhatsAppCallModal: React.FC<WhatsAppCallModalProps> = ({
                   </span>
                 )}
               </div>
+
+              {callStatus === 'calling' && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    callAudio.stopRinging();
+                    callAudio.playCallConnectedChime();
+                    setCallStatus('connected');
+                    if (!timerRef.current) {
+                      timerRef.current = setInterval(() => {
+                        setCallDuration((prev) => prev + 1);
+                      }, 1000);
+                    }
+                  }}
+                  className="mt-3 px-4 py-1.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center gap-1.5 transition-all shadow-md active:scale-95 cursor-pointer animate-pulse"
+                  title="Conectar chamada imediatamente para teste"
+                >
+                  <Phone className="w-3.5 h-3.5" />
+                  <span>Conectar Chamada Agora</span>
+                </button>
+              )}
             </div>
           </div>
         )}

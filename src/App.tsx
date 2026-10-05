@@ -14,6 +14,7 @@ import { ResaleWholesale } from './components/ResaleWholesale';
 import { WhatsAppClientChat } from './components/WhatsAppClientChat';
 import { WhatsAppAdminDashboard } from './components/WhatsAppAdminDashboard';
 import { GlobalChatNotifier } from './components/GlobalChatNotifier';
+import { GlobalCallManager } from './components/GlobalCallManager';
 import { Footer } from './components/Footer';
 import { BottomNav } from './components/BottomNav';
 import { DosageCalculatorModal } from './components/DosageCalculatorModal';
@@ -343,6 +344,7 @@ export function App() {
     <ErrorBoundary>
       <StoreProvider>
         <GlobalChatNotifier />
+        <GlobalCallManager />
         <MainContent />
       </StoreProvider>
     </ErrorBoundary>

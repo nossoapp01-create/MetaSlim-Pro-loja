@@ -51,10 +51,15 @@ export async function initiateCall(
   };
 
   const chatDocRef = doc(db, CHATS_COLLECTION, chatId);
-  await updateDoc(chatDocRef, {
-    activeCall: callData,
-    updatedAt: now,
-  });
+  await setDoc(
+    chatDocRef,
+    {
+      id: chatId,
+      activeCall: callData,
+      updatedAt: now,
+    },
+    { merge: true }
+  );
 
   return callData;
 }
@@ -62,19 +67,31 @@ export async function initiateCall(
 // Answer incoming call
 export async function answerCall(chatId: string, callId: string): Promise<void> {
   const chatDocRef = doc(db, CHATS_COLLECTION, chatId);
-  await updateDoc(chatDocRef, {
-    'activeCall.status': 'connected',
-    'activeCall.answeredAt': new Date().toISOString(),
-  });
+  await setDoc(
+    chatDocRef,
+    {
+      id: chatId,
+      'activeCall.status': 'connected',
+      'activeCall.answeredAt': new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    },
+    { merge: true }
+  );
 }
 
 // Decline incoming call
 export async function declineCall(chatId: string, callId: string): Promise<void> {
   const chatDocRef = doc(db, CHATS_COLLECTION, chatId);
-  await updateDoc(chatDocRef, {
-    'activeCall.status': 'declined',
-    'activeCall.endedAt': new Date().toISOString(),
-  });
+  await setDoc(
+    chatDocRef,
+    {
+      id: chatId,
+      'activeCall.status': 'declined',
+      'activeCall.endedAt': new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    },
+    { merge: true }
+  );
 
   // Clear active call state after brief cooldown
   setTimeout(async () => {
@@ -90,11 +107,17 @@ export async function declineCall(chatId: string, callId: string): Promise<void>
 export async function endCall(chatId: string, callId: string, durationSeconds = 0): Promise<void> {
   const chatDocRef = doc(db, CHATS_COLLECTION, chatId);
   try {
-    await updateDoc(chatDocRef, {
-      'activeCall.status': 'ended',
-      'activeCall.duration': durationSeconds,
-      'activeCall.endedAt': new Date().toISOString(),
-    });
+    await setDoc(
+      chatDocRef,
+      {
+        id: chatId,
+        'activeCall.status': 'ended',
+        'activeCall.duration': durationSeconds,
+        'activeCall.endedAt': new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
+      { merge: true }
+    );
   } catch {}
 
   // Clear active call state

@@ -19,6 +19,7 @@ import {
   Clock,
   Phone,
   Video,
+  Bell,
   MoreVertical,
   Paperclip,
   Smile,
@@ -593,6 +594,22 @@ export const WhatsAppClientChat: React.FC = () => {
               title="Iniciar Chamada de Voz com a Dra. Valéria"
             >
               <Phone className="w-4.5 h-4.5" />
+            </button>
+
+            {/* Test Simulation Button: allows user to test the phone ringing and vibration! */}
+            <button
+              type="button"
+              onClick={() => {
+                if ((window as any).simulateIncomingCall) {
+                  (window as any).simulateIncomingCall('video');
+                  showToast('Simulando chamada da Dra. Valéria Prado...');
+                }
+              }}
+              className="px-2.5 py-1 bg-emerald-950/70 hover:bg-emerald-900 text-[10px] font-bold text-emerald-200 border border-emerald-400/50 rounded-full flex items-center gap-1 cursor-pointer transition-transform active:scale-95 shadow-xs"
+              title="Testar como a chamada toca no seu celular"
+            >
+              <Bell className="w-3.5 h-3.5 text-emerald-300 animate-pulse" />
+              <span className="hidden sm:inline">Testar Toque</span>
             </button>
 
             <PWAInstallPrompt title="Baixar App" variant="button" />
