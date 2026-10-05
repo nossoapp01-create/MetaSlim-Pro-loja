@@ -31,7 +31,7 @@ export const BottomNav: React.FC = () => {
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-[#ffffff]/95 backdrop-blur-lg border-t border-slate-200/80 shadow-[0_-2px_10px_rgba(0,0,0,0.04)] h-16 px-2">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-[#ffffff]/95 backdrop-blur-lg border-t border-slate-200/80 shadow-[0_-2px_10px_rgba(0,0,0,0.04)] h-14 sm:h-16 px-1.5 pb-[env(safe-area-inset-bottom,0px)]">
       <div className="max-w-md mx-auto h-full flex items-center justify-around">
         {navItems.map((item) => {
           const Icon = item.icon;
@@ -43,25 +43,25 @@ export const BottomNav: React.FC = () => {
             <button
               key={item.id}
               onClick={() => setActiveTab(item.id as any)}
-              className={`relative flex flex-col items-center justify-center w-14 h-full transition-colors active:scale-90 ${
+              className={`relative flex flex-col items-center justify-center w-12 sm:w-14 h-full transition-colors active:scale-90 cursor-pointer ${
                 isActive ? 'text-[#006750]' : 'text-slate-400 hover:text-slate-600'
               }`}
               id={`bottom-nav-${item.id}`}
             >
               <div className="relative">
                 <Icon
-                  className={`w-5 h-5 transition-transform ${
+                  className={`w-4.5 h-4.5 sm:w-5 sm:h-5 transition-transform ${
                     isActive ? 'scale-110 stroke-[2.2]' : 'scale-100'
                   }`}
                 />
                 {item.badge !== undefined && item.badge > 0 && (
-                  <span className="absolute -top-1 -right-2 min-w-[16px] h-4 px-1 rounded-full bg-[#006750] text-white font-mono text-[9px] font-bold flex items-center justify-center shadow-xs">
+                  <span className="absolute -top-1 -right-2 min-w-[15px] h-3.5 sm:h-4 px-1 rounded-full bg-[#006750] text-white font-mono text-[8px] sm:text-[9px] font-bold flex items-center justify-center shadow-xs">
                     {item.badge}
                   </span>
                 )}
               </div>
               <span
-                className={`text-[10px] mt-1 font-medium tracking-tight ${
+                className={`text-[9px] sm:text-[10px] mt-0.5 sm:mt-1 font-medium tracking-tight ${
                   isActive ? 'font-bold text-[#006750]' : 'text-slate-400'
                 }`}
               >
@@ -70,7 +70,7 @@ export const BottomNav: React.FC = () => {
 
               {/* Active Indicator bar */}
               {isActive && (
-                <span className="absolute top-0 w-8 h-0.5 rounded-full bg-[#006750]" />
+                <span className="absolute top-0 w-6 sm:w-8 h-0.5 rounded-full bg-[#006750]" />
               )}
             </button>
           );

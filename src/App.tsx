@@ -93,11 +93,11 @@ const MainContent: React.FC = () => {
       <Header onOpenCalculator={() => setIsCalculatorOpen(true)} />
 
       {/* Main View Router */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 pt-20 pb-12">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-4 pt-16 sm:pt-20 pb-20 sm:pb-12">
         {/* Floating Toast Notification */}
         {toast && (
-          <div className="fixed top-20 right-4 left-4 sm:left-auto sm:max-w-lg z-50 bg-[#131b2e] text-white p-3.5 rounded-2xl shadow-2xl border border-slate-700/80 flex items-start gap-3 text-xs font-medium animate-in slide-in-from-top duration-200 backdrop-blur-md">
-            <span className="w-2.5 h-2.5 rounded-full bg-[#71face] shrink-0 mt-1 animate-ping" />
+          <div className="fixed top-16 sm:top-20 right-3 sm:right-4 left-3 sm:left-auto sm:max-w-lg z-50 bg-[#131b2e] text-white p-3 sm:p-3.5 rounded-xl sm:rounded-2xl shadow-xl border border-slate-700/80 flex items-start gap-2.5 text-xs font-medium animate-in slide-in-from-top duration-200 backdrop-blur-md">
+            <span className="w-2 h-2 rounded-full bg-[#71face] shrink-0 mt-1 animate-ping" />
             <div className="flex-1 leading-relaxed text-slate-100 break-words font-sans">
               {toast}
             </div>
@@ -113,73 +113,75 @@ const MainContent: React.FC = () => {
 
         {/* VIEW 1: HOME PAGE */}
         {activeTab === 'inicio' && (
-          <div className="flex flex-col gap-6">
+          <div className="flex flex-col gap-3.5 sm:gap-6">
             {/* 5-Slide Rotating Banner */}
             <HeroBanner />
 
             {/* Quick Scientific Trust Bar */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 bg-white p-3 rounded-2xl border border-slate-200/70 shadow-xs text-center text-xs">
-              <div className="flex items-center justify-center gap-1.5 text-slate-700 font-semibold">
-                <ShieldCheck className="w-4 h-4 text-[#006750]" />
-                <span>Laudo HPLC &gt;99%</span>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 sm:gap-2.5 bg-white p-2.5 sm:p-3 rounded-xl sm:rounded-2xl border border-slate-200/70 shadow-2xs text-center text-[11px] sm:text-xs">
+              <div className="flex items-center justify-center gap-1 sm:gap-1.5 text-slate-700 font-semibold truncate">
+                <ShieldCheck className="w-3.5 h-3.5 text-[#006750] shrink-0" />
+                <span className="truncate">Laudo HPLC &gt;99%</span>
               </div>
               <button
                 onClick={() => setActiveTab('prazos-entrega')}
-                className="flex items-center justify-center gap-1.5 text-slate-700 hover:text-[#006750] font-semibold transition-colors cursor-pointer group"
+                className="flex items-center justify-center gap-1 sm:gap-1.5 text-slate-700 hover:text-[#006750] font-semibold transition-colors cursor-pointer group truncate"
                 title="Ver Prazos e Condições de Entrega"
               >
-                <Truck className="w-3.5 h-3.5 text-emerald-600 group-hover:scale-110 transition-transform" />
-                <span>Envio Térmico (Prazos)</span>
+                <Truck className="w-3.5 h-3.5 text-emerald-600 group-hover:scale-110 transition-transform shrink-0" />
+                <span className="truncate">Envio Térmico</span>
               </button>
-              <div className="flex items-center justify-center gap-1.5 text-slate-700 font-semibold">
-                <Sparkles className="w-4 h-4 text-emerald-600" />
-                <span>Liofilização Pura</span>
+              <div className="flex items-center justify-center gap-1 sm:gap-1.5 text-slate-700 font-semibold truncate">
+                <Sparkles className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                <span className="truncate">Liofilização Pura</span>
               </div>
-              <div className="flex items-center justify-center gap-1.5 text-slate-700 font-semibold">
+              <div className="flex items-center justify-center gap-1 sm:gap-1.5 text-slate-700 font-semibold truncate">
                 <span className="font-mono font-bold text-[#006750]">MB WAY / PIX</span>
               </div>
             </div>
 
-            {/* Categories Filter with Hover Micro-effects */}
+            {/* Categories Filter with Fluid Touch */}
             <CategoryFilter />
 
             {/* Featured Product Banner (Retatrutide 10mg) */}
-            <div className="bg-gradient-to-r from-[#006750] via-[#0b745c] to-[#0d8267] rounded-2xl p-5 sm:p-6 text-white shadow-lg shadow-emerald-950/15 flex flex-col sm:flex-row items-center justify-between gap-5 relative overflow-hidden">
-              <div className="flex items-center gap-4 relative z-10">
-                <div className="w-20 h-24 sm:w-24 sm:h-28 rounded-xl bg-white/10 backdrop-blur-md p-2 flex items-center justify-center border border-white/20 shrink-0">
+            <div className="bg-gradient-to-r from-[#006750] via-[#0b745c] to-[#0d8267] rounded-xl sm:rounded-2xl p-3.5 sm:p-5 text-white shadow-md shadow-emerald-950/15 flex flex-col sm:flex-row items-center justify-between gap-3.5 sm:gap-5 relative overflow-hidden">
+              <div className="flex items-center gap-3 sm:gap-4 relative z-10 w-full sm:w-auto">
+                <div className="w-16 h-20 sm:w-24 sm:h-28 rounded-xl bg-white/10 backdrop-blur-md p-1.5 sm:p-2 flex items-center justify-center border border-white/20 shrink-0">
                   <img
                     src={products[0]?.image}
                     alt={products[0]?.name}
                     className="w-full h-full object-contain filter drop-shadow-md"
                   />
                 </div>
-                <div className="flex flex-col">
-                  <span className="font-mono text-[10px] uppercase font-bold text-[#93f5d4] tracking-wider bg-black/20 px-2 py-0.5 rounded-full w-fit">
-                    Destaque Clínico • Tri-Agonista
+                <div className="flex flex-col min-w-0 flex-1">
+                  <span className="font-mono text-[9px] uppercase font-bold text-[#93f5d4] tracking-wider bg-black/20 px-2 py-0.5 rounded-full w-fit">
+                    Destaque • Tri-Agonista
                   </span>
-                  <h3 className="text-xl sm:text-2xl font-extrabold mt-1">
+                  <h3 className="text-base sm:text-xl font-extrabold mt-0.5 truncate">
                     {products[0]?.name || 'Retatrutide 10mg'}
                   </h3>
-                  <p className="text-xs sm:text-sm text-slate-100 max-w-md mt-1 leading-relaxed line-clamp-2">
+                  <p className="text-[11px] sm:text-xs text-slate-100 max-w-md mt-0.5 leading-relaxed line-clamp-2">
                     {products[0]?.whatIsItFor}
                   </p>
                 </div>
               </div>
 
-              <div className="flex flex-col sm:items-end w-full sm:w-auto relative z-10 shrink-0">
-                <span className="text-[11px] text-emerald-200 font-mono">A partir de</span>
-                <span className="text-2xl sm:text-3xl font-extrabold font-mono text-[#93f5d4]">
-                  €59,00
-                </span>
+              <div className="flex sm:flex-col items-center sm:items-end justify-between w-full sm:w-auto relative z-10 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-white/10">
+                <div className="flex flex-col sm:items-end">
+                  <span className="text-[10px] text-emerald-200 font-mono">A partir de</span>
+                  <span className="text-xl sm:text-2xl font-extrabold font-mono text-[#93f5d4]">
+                    €59,00
+                  </span>
+                </div>
                 <button
                   onClick={() => {
                     setSelectedProductId(products[0]?.id || 'retatrutide-10mg');
                     setActiveTab('produto-detalhe');
                   }}
-                  className="mt-2 w-full sm:w-auto px-5 py-2.5 rounded-xl bg-white text-[#006750] hover:bg-emerald-50 font-bold text-xs shadow-md transition-all active:scale-95 flex items-center justify-center gap-1.5"
+                  className="px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-lg sm:rounded-xl bg-white text-[#006750] hover:bg-emerald-50 font-bold text-xs shadow-xs transition-all active:scale-95 flex items-center justify-center gap-1 cursor-pointer"
                 >
-                  <span>Ver Detalhes do Frasco</span>
-                  <ArrowRight className="w-4 h-4" />
+                  <span>Ver Frasco</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
                 </button>
               </div>
 
@@ -187,27 +189,27 @@ const MainContent: React.FC = () => {
             </div>
 
             {/* Products Section Header */}
-            <div className="flex items-center justify-between px-1">
+            <div className="flex items-center justify-between px-0.5">
               <div>
-                <h2 className="text-xl sm:text-2xl font-extrabold text-[#131b2e] tracking-tight">
+                <h2 className="text-base sm:text-xl font-extrabold text-[#131b2e] tracking-tight">
                   Peptídeos Disponíveis
                 </h2>
-                <p className="text-xs text-slate-500">
-                  {filteredProducts.length} compostos com laudo de pureza cromatográfica.
+                <p className="text-[11px] sm:text-xs text-slate-500">
+                  {filteredProducts.length} compostos certificados por HPLC.
                 </p>
               </div>
 
               <button
                 onClick={() => setIsCalculatorOpen(true)}
-                className="hidden sm:flex items-center gap-1.5 text-xs font-semibold text-[#006750] bg-emerald-50 hover:bg-emerald-100 px-3 py-1.5 rounded-xl transition-colors"
+                className="flex items-center gap-1 text-[11px] font-semibold text-[#006750] bg-emerald-50 hover:bg-emerald-100 px-2.5 py-1 rounded-lg transition-colors cursor-pointer"
               >
-                <Calculator className="w-4 h-4" />
-                <span>Calculadora BAC</span>
+                <Calculator className="w-3.5 h-3.5" />
+                <span className="hidden xs:inline">Calculadora BAC</span>
               </button>
             </div>
 
-            {/* Product Cards Grid with Hover Effects */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
+            {/* Product Cards Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-4">
               {filteredProducts.map((product) => (
                 <ProductCard key={product.id} product={product} />
               ))}

@@ -37,43 +37,43 @@ export const Header: React.FC<HeaderProps> = ({ onOpenCalculator }) => {
   const pendingTenantsCount = (allTenants || []).filter((t) => t?.status === 'pending').length;
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 bg-[#ffffff]/90 backdrop-blur-md border-b border-emerald-950/5 shadow-[0_1px_8px_rgba(0,0,0,0.03)]">
-      <div className="max-w-7xl mx-auto h-16 px-4 flex items-center justify-between gap-2">
+    <header className="fixed top-0 left-0 right-0 z-50 bg-[#ffffff]/95 backdrop-blur-md border-b border-emerald-950/5 shadow-[0_1px_8px_rgba(0,0,0,0.03)]">
+      <div className="max-w-7xl mx-auto h-14 sm:h-16 px-3 sm:px-4 flex items-center justify-between gap-1.5 sm:gap-2">
         {/* Brand Logo */}
         <button
           onClick={() => setActiveTab('inicio')}
-          className="flex items-center gap-2.5 text-left group transition-transform active:scale-95"
+          className="flex items-center gap-2 text-left group transition-transform active:scale-95 cursor-pointer shrink-0"
           id="logo-button"
         >
           {settings.logoUrl ? (
-            <div className="flex items-center gap-2.5">
+            <div className="flex items-center gap-2">
               <img
                 src={settings.logoUrl}
                 alt={settings.storeName}
-                className="h-10 max-h-10 max-w-[150px] object-contain rounded-lg"
+                className="h-8 sm:h-10 max-h-8 sm:max-h-10 max-w-[120px] sm:max-w-[150px] object-contain rounded-lg"
               />
               <div className="flex flex-col hidden sm:flex">
                 <div className="flex items-center gap-1 leading-none">
-                  <span className="font-extrabold text-[16px] tracking-tight text-[#006750]">
+                  <span className="font-extrabold text-[15px] sm:text-[16px] tracking-tight text-[#006750]">
                     {settings.storeName}
                   </span>
                 </div>
-                <span className="text-[9px] uppercase tracking-widest text-emerald-800/60 font-semibold font-mono mt-0.5">
+                <span className="text-[8px] sm:text-[9px] uppercase tracking-widest text-emerald-800/60 font-semibold font-mono mt-0.5">
                   {settings.storeSubtitle || 'Clinical Peptide Labs'}
                 </span>
               </div>
             </div>
           ) : (
             <>
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-[#006750] to-[#0d8267] flex items-center justify-center text-white shadow-md shadow-emerald-900/20 group-hover:scale-105 transition-transform">
-                <Dna className="w-5 h-5 text-[#93f5d4]" />
+              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-tr from-[#006750] to-[#0d8267] flex items-center justify-center text-white shadow-xs group-hover:scale-105 transition-transform shrink-0">
+                <Dna className="w-4 h-4 sm:w-5 sm:h-5 text-[#93f5d4]" />
               </div>
               <div className="flex flex-col">
                 <div className="flex items-center gap-1 leading-none">
-                  <span className="font-extrabold text-[17px] tracking-tight text-[#006750]">{settings.storeName.split(' ')[0] || 'MetaSlim'}</span>
-                  <span className="font-light text-[17px] tracking-tight text-[#131b2e]">{settings.storeName.split(' ')[1] || 'Pro'}</span>
+                  <span className="font-extrabold text-[15px] sm:text-[17px] tracking-tight text-[#006750]">{settings.storeName.split(' ')[0] || 'MetaSlim'}</span>
+                  <span className="font-light text-[15px] sm:text-[17px] tracking-tight text-[#131b2e]">{settings.storeName.split(' ')[1] || 'Pro'}</span>
                 </div>
-                <span className="text-[9px] uppercase tracking-widest text-emerald-800/60 font-semibold font-mono mt-0.5">
+                <span className="text-[8px] sm:text-[9px] uppercase tracking-widest text-emerald-800/60 font-semibold font-mono mt-0.5">
                   {settings.storeSubtitle || 'Clinical Peptide Labs'}
                 </span>
               </div>
