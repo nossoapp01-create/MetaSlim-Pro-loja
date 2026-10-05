@@ -72,6 +72,7 @@ import {
   Share2,
   Layers,
   Dna,
+  Menu,
 } from 'lucide-react';
 
 export const AdminPanel: React.FC = () => {
@@ -131,6 +132,24 @@ export const AdminPanel: React.FC = () => {
   const [showSecretKey, setShowSecretKey] = useState(false);
   const [showWebhookSecret, setShowWebhookSecret] = useState(false);
   const [copiedKeyField, setCopiedKeyField] = useState<string | null>(null);
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+
+  const getAdminTabTitle = (tab: typeof activeAdminTab) => {
+    switch (tab) {
+      case 'saas-tenants': return 'Lojas SaaS & Isolamento';
+      case 'vendas-stripe': return 'Vendas Stripe & Envios';
+      case 'whatsapp-chat': return 'WhatsApp VIP (Clientes)';
+      case 'produtos': return 'Editar Produtos';
+      case 'banners': return 'Banners Rotativos';
+      case 'depoimentos': return 'Antes & Depois';
+      case 'revenda': return 'Revenda & Atacado';
+      case 'configuracoes': return 'Configurações Gerais';
+      case 'stripe': return 'Chaves Stripe';
+      case 'mypos': return 'Gateway myPOS';
+      case 'vercel': return 'Deploy Vercel';
+      default: return 'Painel Administrativo';
+    }
+  };
 
   // Resale & Wholesale Configuration State & Handlers
   const currentResale: ResaleSettings = settings.resale || initialResaleSettings;
@@ -424,7 +443,7 @@ export const AdminPanel: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col gap-6 max-w-4xl mx-auto pb-20" id="admin-panel">
+    <div className="flex flex-col gap-6 max-w-7xl mx-auto pb-24 px-3 sm:px-6" id="admin-panel">
       {/* SaaS Multi-Tenant Active Store Workspace Banner */}
       <div className="bg-[#131b2e] text-white rounded-2xl p-4 sm:p-5 shadow-lg border border-slate-700/80 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-start sm:items-center gap-3.5">
@@ -644,163 +663,387 @@ export const AdminPanel: React.FC = () => {
         </div>
       </section>
 
-      {/* Admin Tabs - Full-width Wrapped Layout that never overflows or cuts off */}
-      <div className="flex flex-wrap items-center gap-2 p-1.5 bg-slate-100/90 rounded-2xl border border-slate-200/80">
-        <button
-          onClick={() => setActiveTab('super-admin')}
-          className="px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer bg-amber-400 hover:bg-amber-300 text-slate-950 shadow-md ring-2 ring-amber-300 active:scale-98"
-          title="Acessar o Painel do Super Admin para autorização de lojas"
-        >
-          <ShieldCheck className="w-3.5 h-3.5 text-slate-950" />
-          <span>Super Admin (Autorizar Lojas)</span>
-          {allTenants.filter((t) => t.status === 'pending').length > 0 && (
-            <span className="text-[10px] font-mono px-1.5 py-0.2 rounded-full font-black bg-slate-950 text-amber-300 animate-pulse">
-              {allTenants.filter((t) => t.status === 'pending').length} pendente(s)
-            </span>
-          )}
-        </button>
+      {/* 2-COLUMN LAYOUT: MENU LATERAL (SIDEBAR) + ÁREA DE CONTEÚDO PRINCIPAL */}
+      <div className="flex flex-col lg:flex-row gap-6 items-start w-full">
+        {/* MENU LATERAL (SIDEBAR) */}
+        <aside className="w-full lg:w-64 xl:w-72 shrink-0 lg:sticky lg:top-20 z-20 flex flex-col gap-2">
+          {/* Mobile Header / Quick Toggle Accordion */}
+          <div className="lg:hidden flex items-center justify-between p-3 bg-white rounded-2xl border border-slate-200/80 shadow-xs">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-[#006750] to-[#0d8267] flex items-center justify-center text-white">
+                <Sliders className="w-4 h-4 text-[#93f5d4]" />
+              </div>
+              <div>
+                <span className="text-[10px] uppercase font-bold text-slate-400 font-mono tracking-wider block leading-none">
+                  Aba Ativa
+                </span>
+                <span className="text-xs font-bold text-slate-800">
+                  {getAdminTabTitle(activeAdminTab)}
+                </span>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setIsMobileSidebarOpen(!isMobileSidebarOpen)}
+              className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 rounded-xl text-xs font-bold text-slate-700 flex items-center gap-1.5 transition-colors cursor-pointer"
+            >
+              <Menu className="w-4 h-4 text-slate-600" />
+              <span>{isMobileSidebarOpen ? 'Fechar Menu' : 'Menu Lateral'}</span>
+              <ChevronDown className={`w-3.5 h-3.5 transition-transform ${isMobileSidebarOpen ? 'rotate-180' : ''}`} />
+            </button>
+          </div>
 
-        <button
-          onClick={() => setActiveAdminTab('saas-tenants')}
-          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
-            activeAdminTab === 'saas-tenants'
-              ? 'bg-[#006750] text-white shadow-md'
-              : 'bg-white text-slate-700 hover:bg-emerald-50 border border-slate-200/70 hover:border-emerald-300'
-          }`}
-        >
-          <Building2 className="w-3.5 h-3.5 text-emerald-400" />
-          <span>Lojas SaaS &amp; Isolamento</span>
-          <span className="text-[10px] font-mono px-2 py-0.5 rounded-full font-bold bg-emerald-100 text-[#006750]">
-            {allTenants.length}
-          </span>
-        </button>
+          {/* Sidebar Navigation Card */}
+          <div
+            className={`bg-white rounded-2xl border border-slate-200/80 shadow-xs p-3 sm:p-3.5 flex flex-col gap-4 ${
+              isMobileSidebarOpen ? 'flex' : 'hidden lg:flex'
+            }`}
+          >
+            {/* Sidebar Title */}
+            <div className="flex items-center justify-between pb-2 border-b border-slate-100 px-1">
+              <div className="flex items-center gap-2">
+                <Sliders className="w-4 h-4 text-[#006750]" />
+                <span className="text-xs font-extrabold text-slate-900 tracking-tight">
+                  Menu Administrativo
+                </span>
+              </div>
+              <span className="text-[9px] font-mono font-bold bg-emerald-50 text-[#006750] px-2 py-0.5 rounded-full border border-emerald-200/60">
+                PAINEL
+              </span>
+            </div>
 
-        <button
-          onClick={() => setActiveAdminTab('vendas-stripe')}
-          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
-            activeAdminTab === 'vendas-stripe'
-              ? 'bg-[#635BFF] text-white shadow-md shadow-indigo-900/20'
-              : 'bg-white text-slate-700 hover:bg-indigo-50 border border-slate-200/70 hover:border-indigo-300'
-          }`}
-        >
-          <CreditCard className="w-3.5 h-3.5 text-indigo-300" />
-          <span>Vendas Stripe &amp; Envios</span>
-          <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full font-bold ${
-            activeAdminTab === 'vendas-stripe'
-              ? 'bg-white/20 text-white'
-              : 'bg-indigo-100 text-[#635BFF]'
-          }`}>
-            {orders.length}
-          </span>
-        </button>
+            {/* SEÇÃO 1: VENDAS & OPERACIONAL */}
+            <div className="flex flex-col gap-1">
+              <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-wider px-2 py-0.5">
+                Vendas &amp; Operacional
+              </span>
 
-        <button
-          onClick={() => setActiveAdminTab('whatsapp-chat')}
-          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
-            activeAdminTab === 'whatsapp-chat'
-              ? 'bg-[#008069] text-white shadow-md shadow-emerald-950/20'
-              : 'bg-white text-slate-700 hover:bg-emerald-50 border border-slate-200/70 hover:border-emerald-400'
-          }`}
-        >
-          <MessageCircle className="w-3.5 h-3.5 text-emerald-400" />
-          <span>WhatsApp VIP (Clientes)</span>
-          <span className="text-[10px] font-mono px-2 py-0.5 rounded-full font-bold bg-emerald-100 text-[#008069]">
-            Direto
-          </span>
-        </button>
+              {/* Vendas Stripe & Envios */}
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveAdminTab('vendas-stripe');
+                  setIsMobileSidebarOpen(false);
+                }}
+                className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  activeAdminTab === 'vendas-stripe'
+                    ? 'bg-[#635BFF] text-white shadow-sm ring-1 ring-indigo-300'
+                    : 'text-slate-700 hover:bg-slate-50 hover:text-slate-900'
+                }`}
+              >
+                <div className="flex items-center gap-2.5 truncate">
+                  <CreditCard className={`w-4 h-4 shrink-0 ${activeAdminTab === 'vendas-stripe' ? 'text-white' : 'text-indigo-600'}`} />
+                  <span className="truncate">Vendas Stripe &amp; Envios</span>
+                </div>
+                <span
+                  className={`text-[10px] font-mono px-1.5 py-0.2 rounded-full font-bold shrink-0 ${
+                    activeAdminTab === 'vendas-stripe'
+                      ? 'bg-white/20 text-white'
+                      : 'bg-indigo-50 text-indigo-700'
+                  }`}
+                >
+                  {orders.length}
+                </span>
+              </button>
 
-        <button
-          onClick={() => setActiveAdminTab('produtos')}
-          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-            activeAdminTab === 'produtos'
-              ? 'bg-[#006750] text-white shadow-md'
-              : 'bg-white text-slate-700 hover:bg-emerald-50 border border-slate-200/70'
-          }`}
-        >
-          Editar Produtos ({products.length})
-        </button>
+              {/* WhatsApp VIP (Clientes) */}
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveAdminTab('whatsapp-chat');
+                  setIsMobileSidebarOpen(false);
+                }}
+                className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  activeAdminTab === 'whatsapp-chat'
+                    ? 'bg-[#008069] text-white shadow-sm ring-1 ring-emerald-400'
+                    : 'text-slate-700 hover:bg-slate-50 hover:text-slate-900'
+                }`}
+              >
+                <div className="flex items-center gap-2.5 truncate">
+                  <MessageCircle className={`w-4 h-4 shrink-0 ${activeAdminTab === 'whatsapp-chat' ? 'text-white' : 'text-[#008069]'}`} />
+                  <span className="truncate">WhatsApp VIP (Clientes)</span>
+                </div>
+                <span
+                  className={`text-[10px] font-mono px-1.5 py-0.2 rounded-full font-bold shrink-0 ${
+                    activeAdminTab === 'whatsapp-chat'
+                      ? 'bg-white/20 text-white'
+                      : 'bg-emerald-50 text-[#008069]'
+                  }`}
+                >
+                  Direto
+                </span>
+              </button>
 
-        <button
-          onClick={() => setActiveAdminTab('banners')}
-          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-            activeAdminTab === 'banners'
-              ? 'bg-[#006750] text-white shadow-md'
-              : 'bg-white text-slate-700 hover:bg-emerald-50 border border-slate-200/70'
-          }`}
-        >
-          Banners Rotativos ({banners.length})
-        </button>
+              {/* Lojas SaaS & Isolamento */}
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveAdminTab('saas-tenants');
+                  setIsMobileSidebarOpen(false);
+                }}
+                className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  activeAdminTab === 'saas-tenants'
+                    ? 'bg-[#006750] text-white shadow-sm ring-1 ring-emerald-400'
+                    : 'text-slate-700 hover:bg-slate-50 hover:text-slate-900'
+                }`}
+              >
+                <div className="flex items-center gap-2.5 truncate">
+                  <Building2 className={`w-4 h-4 shrink-0 ${activeAdminTab === 'saas-tenants' ? 'text-white' : 'text-emerald-700'}`} />
+                  <span className="truncate">Lojas SaaS &amp; Isolamento</span>
+                </div>
+                <span
+                  className={`text-[10px] font-mono px-1.5 py-0.2 rounded-full font-bold shrink-0 ${
+                    activeAdminTab === 'saas-tenants'
+                      ? 'bg-white/20 text-white'
+                      : 'bg-emerald-50 text-[#006750]'
+                  }`}
+                >
+                  {allTenants.length}
+                </span>
+              </button>
 
-        <button
-          onClick={() => setActiveAdminTab('depoimentos')}
-          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-            activeAdminTab === 'depoimentos'
-              ? 'bg-[#006750] text-white shadow-md'
-              : 'bg-white text-slate-700 hover:bg-emerald-50 border border-slate-200/70'
-          }`}
-        >
-          Antes &amp; Depois ({testimonials.length})
-        </button>
+              {/* Super Admin (Autorizar Lojas) */}
+              <button
+                type="button"
+                onClick={() => setActiveTab('super-admin')}
+                className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer bg-amber-400 hover:bg-amber-300 text-slate-950 shadow-xs mt-0.5 active:scale-98"
+              >
+                <div className="flex items-center gap-2.5 truncate">
+                  <ShieldCheck className="w-4 h-4 shrink-0 text-slate-950" />
+                  <span className="truncate">Super Admin (Autorizar)</span>
+                </div>
+                {allTenants.filter((t) => t.status === 'pending').length > 0 && (
+                  <span className="text-[10px] font-mono px-1.5 py-0.2 rounded-full font-black bg-slate-950 text-amber-300 animate-pulse shrink-0">
+                    {allTenants.filter((t) => t.status === 'pending').length}
+                  </span>
+                )}
+              </button>
+            </div>
 
-        <button
-          onClick={() => setActiveAdminTab('revenda')}
-          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
-            activeAdminTab === 'revenda'
-              ? 'bg-[#006750] text-white shadow-md'
-              : 'bg-white text-slate-700 hover:bg-emerald-50 border border-slate-200/70'
-          }`}
-        >
-          <TrendingUp className="w-3.5 h-3.5 text-emerald-600" />
-          <span>Revenda &amp; Atacado (Packs e Custos)</span>
-        </button>
+            {/* SEÇÃO 2: CATÁLOGO & MARKETING */}
+            <div className="flex flex-col gap-1">
+              <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-wider px-2 py-0.5">
+                Catálogo &amp; Marketing
+              </span>
 
-        <button
-          onClick={() => setActiveAdminTab('configuracoes')}
-          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-            activeAdminTab === 'configuracoes'
-              ? 'bg-[#006750] text-white shadow-md'
-              : 'bg-white text-slate-700 hover:bg-emerald-50 border border-slate-200/70'
-          }`}
-        >
-          Configurações Gerais
-        </button>
+              {/* Editar Produtos */}
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveAdminTab('produtos');
+                  setIsMobileSidebarOpen(false);
+                }}
+                className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  activeAdminTab === 'produtos'
+                    ? 'bg-[#006750] text-white shadow-sm ring-1 ring-emerald-400'
+                    : 'text-slate-700 hover:bg-slate-50 hover:text-slate-900'
+                }`}
+              >
+                <div className="flex items-center gap-2.5 truncate">
+                  <Package className={`w-4 h-4 shrink-0 ${activeAdminTab === 'produtos' ? 'text-white' : 'text-emerald-700'}`} />
+                  <span className="truncate">Editar Produtos</span>
+                </div>
+                <span
+                  className={`text-[10px] font-mono px-1.5 py-0.2 rounded-full font-bold shrink-0 ${
+                    activeAdminTab === 'produtos'
+                      ? 'bg-white/20 text-white'
+                      : 'bg-slate-100 text-slate-600'
+                  }`}
+                >
+                  {products.length}
+                </span>
+              </button>
 
-        <button
-          onClick={() => setActiveAdminTab('stripe')}
-          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
-            activeAdminTab === 'stripe'
-              ? 'bg-[#635BFF] text-white shadow-md'
-              : 'bg-white text-slate-700 hover:bg-indigo-50 border border-slate-200/70'
-          }`}
-        >
-          <CreditCard className="w-3.5 h-3.5 text-[#635BFF]" />
-          <span>Chaves Stripe</span>
-        </button>
+              {/* Banners Rotativos */}
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveAdminTab('banners');
+                  setIsMobileSidebarOpen(false);
+                }}
+                className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  activeAdminTab === 'banners'
+                    ? 'bg-[#006750] text-white shadow-sm ring-1 ring-emerald-400'
+                    : 'text-slate-700 hover:bg-slate-50 hover:text-slate-900'
+                }`}
+              >
+                <div className="flex items-center gap-2.5 truncate">
+                  <ImageIcon className={`w-4 h-4 shrink-0 ${activeAdminTab === 'banners' ? 'text-white' : 'text-emerald-700'}`} />
+                  <span className="truncate">Banners Rotativos</span>
+                </div>
+                <span
+                  className={`text-[10px] font-mono px-1.5 py-0.2 rounded-full font-bold shrink-0 ${
+                    activeAdminTab === 'banners'
+                      ? 'bg-white/20 text-white'
+                      : 'bg-slate-100 text-slate-600'
+                  }`}
+                >
+                  {banners.length}
+                </span>
+              </button>
 
-        <button
-          onClick={() => setActiveAdminTab('mypos')}
-          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
-            activeAdminTab === 'mypos'
-              ? 'bg-[#006750] text-white shadow-md'
-              : 'bg-white text-slate-700 hover:bg-emerald-50 border border-slate-200/70'
-          }`}
-        >
-          <CreditCard className="w-3.5 h-3.5 text-[#006750]" />
-          <span>Gateway myPOS</span>
-        </button>
+              {/* Antes & Depois */}
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveAdminTab('depoimentos');
+                  setIsMobileSidebarOpen(false);
+                }}
+                className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  activeAdminTab === 'depoimentos'
+                    ? 'bg-[#006750] text-white shadow-sm ring-1 ring-emerald-400'
+                    : 'text-slate-700 hover:bg-slate-50 hover:text-slate-900'
+                }`}
+              >
+                <div className="flex items-center gap-2.5 truncate">
+                  <Sparkles className={`w-4 h-4 shrink-0 ${activeAdminTab === 'depoimentos' ? 'text-white' : 'text-amber-500'}`} />
+                  <span className="truncate">Antes &amp; Depois</span>
+                </div>
+                <span
+                  className={`text-[10px] font-mono px-1.5 py-0.2 rounded-full font-bold shrink-0 ${
+                    activeAdminTab === 'depoimentos'
+                      ? 'bg-white/20 text-white'
+                      : 'bg-slate-100 text-slate-600'
+                  }`}
+                >
+                  {testimonials.length}
+                </span>
+              </button>
 
-        <button
-          onClick={() => setActiveAdminTab('vercel')}
-          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
-            activeAdminTab === 'vercel'
-              ? 'bg-[#131b2e] text-white shadow-md'
-              : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200/70'
-          }`}
-        >
-          <Globe className="w-3.5 h-3.5 text-[#71face]" />
-          <span>Deploy Vercel</span>
-        </button>
-      </div>
+              {/* Revenda & Atacado */}
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveAdminTab('revenda');
+                  setIsMobileSidebarOpen(false);
+                }}
+                className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  activeAdminTab === 'revenda'
+                    ? 'bg-[#006750] text-white shadow-sm ring-1 ring-emerald-400'
+                    : 'text-slate-700 hover:bg-slate-50 hover:text-slate-900'
+                }`}
+              >
+                <div className="flex items-center gap-2.5 truncate">
+                  <TrendingUp className={`w-4 h-4 shrink-0 ${activeAdminTab === 'revenda' ? 'text-white' : 'text-emerald-700'}`} />
+                  <span className="truncate">Revenda &amp; Atacado</span>
+                </div>
+                <span
+                  className={`text-[9px] font-mono px-1.5 py-0.2 rounded-full font-bold shrink-0 ${
+                    activeAdminTab === 'revenda'
+                      ? 'bg-white/20 text-white'
+                      : 'bg-emerald-50 text-[#006750]'
+                  }`}
+                >
+                  Packs
+                </span>
+              </button>
+            </div>
+
+            {/* SEÇÃO 3: CONFIGURAÇÕES & GATEWAYS */}
+            <div className="flex flex-col gap-1">
+              <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-wider px-2 py-0.5">
+                Configurações &amp; Gateways
+              </span>
+
+              {/* Configurações Gerais */}
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveAdminTab('configuracoes');
+                  setIsMobileSidebarOpen(false);
+                }}
+                className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  activeAdminTab === 'configuracoes'
+                    ? 'bg-[#006750] text-white shadow-sm ring-1 ring-emerald-400'
+                    : 'text-slate-700 hover:bg-slate-50 hover:text-slate-900'
+                }`}
+              >
+                <div className="flex items-center gap-2.5 truncate">
+                  <Settings className={`w-4 h-4 shrink-0 ${activeAdminTab === 'configuracoes' ? 'text-white' : 'text-slate-500'}`} />
+                  <span className="truncate">Configurações Gerais</span>
+                </div>
+              </button>
+
+              {/* Chaves Stripe */}
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveAdminTab('stripe');
+                  setIsMobileSidebarOpen(false);
+                }}
+                className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  activeAdminTab === 'stripe'
+                    ? 'bg-[#635BFF] text-white shadow-sm ring-1 ring-indigo-300'
+                    : 'text-slate-700 hover:bg-slate-50 hover:text-slate-900'
+                }`}
+              >
+                <div className="flex items-center gap-2.5 truncate">
+                  <CreditCard className={`w-4 h-4 shrink-0 ${activeAdminTab === 'stripe' ? 'text-white' : 'text-indigo-600'}`} />
+                  <span className="truncate">Chaves Stripe</span>
+                </div>
+                <span
+                  className={`text-[9px] font-mono px-1.5 py-0.2 rounded-full font-bold shrink-0 ${
+                    activeAdminTab === 'stripe'
+                      ? 'bg-white/20 text-white'
+                      : 'bg-indigo-50 text-indigo-700'
+                  }`}
+                >
+                  API
+                </span>
+              </button>
+
+              {/* Gateway myPOS */}
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveAdminTab('mypos');
+                  setIsMobileSidebarOpen(false);
+                }}
+                className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  activeAdminTab === 'mypos'
+                    ? 'bg-[#006750] text-white shadow-sm ring-1 ring-emerald-400'
+                    : 'text-slate-700 hover:bg-slate-50 hover:text-slate-900'
+                }`}
+              >
+                <div className="flex items-center gap-2.5 truncate">
+                  <CreditCard className={`w-4 h-4 shrink-0 ${activeAdminTab === 'mypos' ? 'text-white' : 'text-[#006750]'}`} />
+                  <span className="truncate">Gateway myPOS</span>
+                </div>
+                <span
+                  className={`text-[9px] font-mono px-1.5 py-0.2 rounded-full font-bold shrink-0 ${
+                    activeAdminTab === 'mypos'
+                      ? 'bg-white/20 text-white'
+                      : 'bg-emerald-50 text-[#006750]'
+                  }`}
+                >
+                  POS
+                </span>
+              </button>
+
+              {/* Deploy Vercel */}
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveAdminTab('vercel');
+                  setIsMobileSidebarOpen(false);
+                }}
+                className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  activeAdminTab === 'vercel'
+                    ? 'bg-[#131b2e] text-white shadow-sm ring-1 ring-slate-400'
+                    : 'text-slate-700 hover:bg-slate-50 hover:text-slate-900'
+                }`}
+              >
+                <div className="flex items-center gap-2.5 truncate">
+                  <Globe className={`w-4 h-4 shrink-0 ${activeAdminTab === 'vercel' ? 'text-[#71face]' : 'text-slate-500'}`} />
+                  <span className="truncate">Deploy Vercel</span>
+                </div>
+              </button>
+            </div>
+          </div>
+        </aside>
+
+        {/* ÁREA DE CONTEÚDO PRINCIPAL (RENDERIZA A ABA ATIVA) */}
+        <div className="flex-1 min-w-0 w-full flex flex-col gap-6">
 
       {/* TAB SAAS: Multi-Tenant SaaS Management & Isolation */}
       {activeAdminTab === 'saas-tenants' && (
@@ -3341,9 +3584,11 @@ VITE_FIREBASE_STORAGE_BUCKET=gen-lang-client-0356673859.firebasestorage.app`}
           </div>
         </section>
       )}
+        </div>
+      </div>
 
       {/* Floating Save Bar */}
-      <div className="fixed bottom-16 left-0 right-0 z-40 bg-white/95 backdrop-blur-md px-4 py-3 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] border-t border-slate-200/80 flex items-center justify-between max-w-4xl mx-auto sm:rounded-t-2xl">
+      <div className="fixed bottom-14 sm:bottom-16 left-0 right-0 z-40 bg-white/95 backdrop-blur-md px-4 py-3 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] border-t border-slate-200/80 flex items-center justify-between max-w-7xl mx-auto sm:rounded-t-2xl">
         <div className="flex flex-col">
           <span className="text-xs font-bold text-slate-800">Sincronização em Tempo Real</span>
           <span className="text-[11px] text-slate-500">Dados salvos automaticamente em cache local.</span>
