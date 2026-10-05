@@ -35,6 +35,8 @@ import {
 } from 'lucide-react';
 import { WhatsAppAudioBubble } from './WhatsAppAudioBubble';
 import { WhatsAppAttachmentView } from './WhatsAppAttachmentView';
+import { WhatsAppCallModal } from './WhatsAppCallModal';
+import { WhatsAppCallBubble } from './WhatsAppCallBubble';
 import { processFileAttachment } from '../utils/fileUtils';
 import {
   startAudioRecording,
@@ -275,6 +277,43 @@ export const WhatsAppClientChat: React.FC = () => {
     }
   };
 
+  // Call Handlers for Voice and Video
+  const [isCallModalOpen, setIsCallModalOpen] = useState(false);
+  const [activeCallType, setActiveCallType] = useState<'voice' | 'video'>('voice');
+
+  const handleStartCall = (type: 'voice' | 'video') => {
+    if (!clientIdentity) return;
+    setActiveCallType(type);
+    setIsCallModalOpen(true);
+  };
+
+  const handleCallEnded = async (
+    durationSeconds: number,
+    type: 'voice' | 'video',
+    status: 'completed' | 'missed'
+  ) => {
+    setIsCallModalOpen(false);
+    if (!clientIdentity) return;
+
+    try {
+      await sendChatMessage(
+        clientIdentity.chatId,
+        'customer',
+        clientIdentity.name,
+        '',
+        {
+          messageType: 'call',
+          callType: type,
+          callDuration: durationSeconds,
+          callStatus: status,
+        }
+      );
+      setTimeout(() => scrollToBottom(true), 50);
+    } catch (e) {
+      console.error('Error logging call from client:', e);
+    }
+  };
+
   const handleCopyChatLink = () => {
     const directUrl = `${window.location.origin}${window.location.pathname}?chat=1`;
     navigator.clipboard.writeText(directUrl);
@@ -441,11 +480,31 @@ export const WhatsAppClientChat: React.FC = () => {
 
           {/* Action controls */}
           <div className="flex items-center gap-1 sm:gap-2 text-emerald-100">
+            {/* Video Call Button */}
+            <button
+              type="button"
+              onClick={() => handleStartCall('video')}
+              className="p-2 text-white hover:bg-emerald-700/60 rounded-full transition-colors cursor-pointer"
+              title="Iniciar Chamada de Vídeo com a Dra. Valéria"
+            >
+              <Video className="w-5 h-5" />
+            </button>
+
+            {/* Voice Call Button */}
+            <button
+              type="button"
+              onClick={() => handleStartCall('voice')}
+              className="p-2 text-white hover:bg-emerald-700/60 rounded-full transition-colors cursor-pointer"
+              title="Iniciar Chamada de Voz com a Dra. Valéria"
+            >
+              <Phone className="w-4.5 h-4.5" />
+            </button>
+
             <PWAInstallPrompt title="Baixar App" variant="button" />
 
             <button
               onClick={handleCopyChatLink}
-              className="px-3 py-1.5 hover:bg-emerald-700/60 rounded-full transition-colors text-xs flex items-center gap-1.5 text-white bg-emerald-700/40 border border-emerald-500/40 cursor-pointer"
+              className="hidden sm:flex px-3 py-1.5 hover:bg-emerald-700/60 rounded-full transition-colors text-xs items-center gap-1.5 text-white bg-emerald-700/40 border border-emerald-500/40 cursor-pointer"
               title="Copiar link permanente deste atendimento"
             >
               {copiedLink ? <Check className="w-4 h-4 text-emerald-200" /> : <Copy className="w-4 h-4" />}
@@ -543,7 +602,17 @@ export const WhatsAppClientChat: React.FC = () => {
                     />
                   )}
 
-                  {msg.audioUrl ? (
+                  {/* Call Log Bubble (Voice or Video) */}
+                  {msg.messageType === 'call' ? (
+                    <WhatsAppCallBubble
+                      callType={msg.callType}
+                      callDuration={msg.callDuration}
+                      callStatus={msg.callStatus}
+                      timestamp={time}
+                      isCurrentUser={isCustomer}
+                      onCallBack={(type) => handleStartCall(type)}
+                    />
+                  ) : msg.audioUrl ? (
                     <div className="my-0.5">
                       <WhatsAppAudioBubble
                         audioUrl={msg.audioUrl}
@@ -697,6 +766,16 @@ export const WhatsAppClientChat: React.FC = () => {
           </form>
         )}
       </footer>
+
+      {/* 6. REALTIME WHATSAPP CALL MODAL */}
+      <WhatsAppCallModal
+        isOpen={isCallModalOpen}
+        callType={activeCallType}
+        contactName="Dra. Valéria Prado"
+        contactRole="Médica Endocrinologista • CRM 62.180-SP"
+        caller="customer"
+        onClose={handleCallEnded}
+      />
     </div>
   );
 };

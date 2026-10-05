@@ -326,7 +326,10 @@ export async function sendChatMessage(
     attachmentSize?: number;
     audioUrl?: string;
     audioDuration?: number;
-    messageType?: 'text' | 'audio' | 'image' | 'pdf' | 'document';
+    messageType?: 'text' | 'audio' | 'image' | 'pdf' | 'document' | 'call';
+    callType?: 'voice' | 'video';
+    callDuration?: number;
+    callStatus?: 'completed' | 'missed' | 'declined';
   }
 ): Promise<ChatMessage> {
   const now = new Date().toISOString();
@@ -336,10 +339,16 @@ export async function sendChatMessage(
   const isImage = extra?.messageType === 'image' || extra?.attachmentType === 'image';
   const isPdf = extra?.messageType === 'pdf' || extra?.attachmentType === 'pdf';
   const isDoc = extra?.messageType === 'document' || extra?.attachmentType === 'document';
+  const isCall = extra?.messageType === 'call';
 
   let displaySnippet = text.trim().slice(0, 150);
   if (isAudio) {
     displaySnippet = `🎙️ Áudio (${Math.max(1, Math.round(extra?.audioDuration || 0))}s)`;
+  } else if (isCall) {
+    const icon = extra?.callType === 'video' ? '📹' : '📞';
+    const label = extra?.callType === 'video' ? 'Chamada de vídeo' : 'Chamada de voz';
+    const dur = extra?.callDuration ? ` (${Math.floor(extra.callDuration / 60)}:${(extra.callDuration % 60).toString().padStart(2, '0')})` : '';
+    displaySnippet = `${icon} ${label}${dur}`;
   } else if (isImage) {
     displaySnippet = text.trim() ? `📷 Foto: ${text.trim()}` : `📷 Foto: ${extra?.attachmentName || 'Imagem enviada'}`;
   } else if (isPdf) {
@@ -353,7 +362,7 @@ export async function sendChatMessage(
     chatId,
     sender,
     senderName,
-    text: text.trim() || (isAudio ? '🎙️ Mensagem de áudio' : isImage ? '📷 Foto enviada' : isPdf ? '📄 Documento PDF' : ''),
+    text: text.trim() || (isCall ? (extra?.callType === 'video' ? '📹 Chamada de vídeo finalizada' : '📞 Chamada de voz finalizada') : isAudio ? '🎙️ Mensagem de áudio' : isImage ? '📷 Foto enviada' : isPdf ? '📄 Documento PDF' : ''),
     timestamp: now,
     status: 'sent',
     attachmentUrl: extra?.attachmentUrl,
@@ -362,7 +371,10 @@ export async function sendChatMessage(
     attachmentSize: extra?.attachmentSize,
     audioUrl: extra?.audioUrl,
     audioDuration: extra?.audioDuration,
-    messageType: extra?.messageType || (isAudio ? 'audio' : isImage ? 'image' : isPdf ? 'pdf' : isDoc ? 'document' : 'text'),
+    messageType: extra?.messageType || (isCall ? 'call' : isAudio ? 'audio' : isImage ? 'image' : isPdf ? 'pdf' : isDoc ? 'document' : 'text'),
+    callType: extra?.callType,
+    callDuration: extra?.callDuration,
+    callStatus: extra?.callStatus,
   };
 
   // 1. Immediately store in local cache

@@ -18,6 +18,7 @@ import {
   CheckCheck,
   Clock,
   Phone,
+  Video,
   Mail,
   User,
   Trash2,
@@ -50,6 +51,8 @@ import {
 import { PWAInstallPrompt } from './PWAInstallPrompt';
 import { WhatsAppAudioBubble } from './WhatsAppAudioBubble';
 import { WhatsAppAttachmentView } from './WhatsAppAttachmentView';
+import { WhatsAppCallModal } from './WhatsAppCallModal';
+import { WhatsAppCallBubble } from './WhatsAppCallBubble';
 import { processFileAttachment } from '../utils/fileUtils';
 import {
   startAudioRecording,
@@ -340,6 +343,62 @@ export const WhatsAppAdminDashboard: React.FC = () => {
       showToast(err.message || 'Erro ao processar anexo.');
     } finally {
       setIsUploadingFile(false);
+    }
+  };
+
+  // Call Handlers for Voice and Video
+  const [isCallModalOpen, setIsCallModalOpen] = useState(false);
+  const [activeCallType, setActiveCallType] = useState<'voice' | 'video'>('voice');
+
+  const handleStartCall = (type: 'voice' | 'video') => {
+    if (!activeConversation) {
+      showToast('Selecione uma conversa para iniciar a chamada.');
+      return;
+    }
+    setActiveCallType(type);
+    setIsCallModalOpen(true);
+  };
+
+  const handleCallEnded = async (
+    durationSeconds: number,
+    type: 'voice' | 'video',
+    status: 'completed' | 'missed'
+  ) => {
+    setIsCallModalOpen(false);
+    if (!selectedChatId) return;
+
+    try {
+      await sendChatMessage(
+        selectedChatId,
+        'admin',
+        'Dra. Valéria Prado',
+        '',
+        {
+          messageType: 'call',
+          callType: type,
+          callDuration: durationSeconds,
+          callStatus: status,
+        }
+      );
+      markChatAsRead(selectedChatId, 'admin');
+
+      setConversations((prev) => {
+        const now = new Date().toISOString();
+        const icon = type === 'video' ? '📹' : '📞';
+        const label = type === 'video' ? 'Chamada de vídeo' : 'Chamada de voz';
+        const dur = durationSeconds > 0 ? ` (${Math.floor(durationSeconds / 60)}:${(durationSeconds % 60).toString().padStart(2, '0')})` : '';
+        const snippet = `${icon} ${label}${dur}`;
+
+        return prev.map((c) =>
+          c.id === selectedChatId
+            ? { ...c, lastMessage: snippet, lastMessageAt: now }
+            : c
+        ).sort((a, b) => getChatSortTime(b) - getChatSortTime(a));
+      });
+
+      setTimeout(() => scrollToBottom(true), 50);
+    } catch (e) {
+      console.error('Error logging call:', e);
     }
   };
 
@@ -724,10 +783,30 @@ export const WhatsAppAdminDashboard: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 shrink-0">
+                <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+                  {/* Video Call Button */}
+                  <button
+                    type="button"
+                    onClick={() => handleStartCall('video')}
+                    className="p-2 text-slate-600 hover:text-emerald-700 hover:bg-slate-200/70 rounded-full transition-colors cursor-pointer"
+                    title="Iniciar Chamada de Vídeo VIP"
+                  >
+                    <Video className="w-5 h-5 text-emerald-700" />
+                  </button>
+
+                  {/* Voice Call Button */}
+                  <button
+                    type="button"
+                    onClick={() => handleStartCall('voice')}
+                    className="p-2 text-slate-600 hover:text-emerald-700 hover:bg-slate-200/70 rounded-full transition-colors cursor-pointer"
+                    title="Iniciar Chamada de Voz VIP"
+                  >
+                    <Phone className="w-4.5 h-4.5 text-emerald-700" />
+                  </button>
+
                   <button
                     onClick={() => handleDeleteConversation(activeConversation.id, activeConversation.customerName)}
-                    className="p-2 text-slate-400 hover:text-red-600 rounded-lg hover:bg-slate-200/60 transition-colors"
+                    className="p-2 text-slate-400 hover:text-red-600 rounded-lg hover:bg-slate-200/60 transition-colors cursor-pointer"
                     title="Excluir esta conversa"
                   >
                     <Trash2 className="w-4 h-4" />
@@ -788,8 +867,17 @@ export const WhatsAppAdminDashboard: React.FC = () => {
                           />
                         )}
 
-                        {/* Audio Voice Note Bubble or Text Message */}
-                        {msg.audioUrl ? (
+                        {/* Call Log Bubble (Voice or Video) */}
+                        {msg.messageType === 'call' ? (
+                          <WhatsAppCallBubble
+                            callType={msg.callType}
+                            callDuration={msg.callDuration}
+                            callStatus={msg.callStatus}
+                            timestamp={time}
+                            isCurrentUser={isAdmin}
+                            onCallBack={(type) => handleStartCall(type)}
+                          />
+                        ) : msg.audioUrl ? (
                           <div className="my-0.5">
                             <WhatsAppAudioBubble
                               audioUrl={msg.audioUrl}
@@ -1018,6 +1106,18 @@ export const WhatsAppAdminDashboard: React.FC = () => {
             </form>
           </div>
         </div>
+      )}
+
+      {/* 4. REALTIME WHATSAPP CALL MODAL */}
+      {activeConversation && (
+        <WhatsAppCallModal
+          isOpen={isCallModalOpen}
+          callType={activeCallType}
+          contactName={activeConversation.customerName}
+          contactRole={`Paciente VIP • ${activeConversation.customerContact}`}
+          caller="admin"
+          onClose={handleCallEnded}
+        />
       )}
     </div>
   );

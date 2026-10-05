@@ -206,7 +206,10 @@ export interface ChatMessage {
   attachmentSize?: number;
   audioUrl?: string;
   audioDuration?: number; // duration in seconds
-  messageType?: 'text' | 'audio' | 'image' | 'pdf' | 'document';
+  messageType?: 'text' | 'audio' | 'image' | 'pdf' | 'document' | 'call';
+  callType?: 'voice' | 'video';
+  callDuration?: number; // seconds
+  callStatus?: 'completed' | 'missed' | 'declined';
 }
 
 export interface ChatConversation {
