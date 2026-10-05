@@ -55,10 +55,9 @@ const MainContent: React.FC = () => {
 
   // Dedicated Full-Screen WhatsApp VIP Chat Mode (Zero Store Header, Zero Footer, 100% WhatsApp Web)
   if (activeTab === 'chat') {
-    // SECURITY RULE: Clients NEVER have access to the admin dashboard.
-    // Only verified store administrators (isTenantAdmin) see the full WhatsAppAdminDashboard.
-    // Clients and patients ALWAYS see their private individual WhatsAppClientChat.
-    const isAuthorizedAdmin = Boolean(isTenantAdmin);
+    // Verified store administrators OR devices switched to Doctor Mode view the WhatsAppAdminDashboard
+    const isDoctorDevice = typeof window !== 'undefined' && localStorage.getItem('metaslim_device_mode') === 'doctor';
+    const isAuthorizedAdmin = Boolean(isTenantAdmin || isDoctorDevice);
 
     return (
       <div className="fixed inset-0 w-full h-[100dvh] max-h-[100dvh] z-50 bg-[#efeae2] overflow-hidden font-sans flex flex-col">

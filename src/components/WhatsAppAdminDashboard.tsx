@@ -572,6 +572,38 @@ export const WhatsAppAdminDashboard: React.FC = () => {
 
         {/* Action Controls */}
         <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          {/* Test Incoming Call Ringing */}
+          <button
+            type="button"
+            onClick={() => {
+              if ((window as any).simulateIncomingCall) {
+                (window as any).simulateIncomingCall('video');
+                showToast('Simulando chamada de paciente recebida pela Dra. Valéria...');
+              }
+            }}
+            className="px-2.5 py-1 rounded-full bg-emerald-950/60 hover:bg-emerald-950 text-emerald-200 border border-emerald-400/40 font-bold text-xs transition-all flex items-center gap-1 cursor-pointer shadow-xs active:scale-95"
+            title="Simular chamada de paciente tocando no celular da doutora"
+          >
+            <Bell className="w-3.5 h-3.5 text-emerald-300 animate-pulse" />
+            <span className="hidden sm:inline">Testar Toque</span>
+          </button>
+
+          {/* Switch to Patient Mode */}
+          <button
+            type="button"
+            onClick={() => {
+              localStorage.setItem('metaslim_device_mode', 'customer');
+              window.dispatchEvent(new Event('device-mode-changed'));
+              showToast('Alternando para a visão do Paciente...');
+              setTimeout(() => window.location.reload(), 400);
+            }}
+            className="px-2.5 py-1 rounded-full bg-white/10 hover:bg-white/20 text-white font-medium text-xs border border-white/20 transition-all flex items-center gap-1 cursor-pointer shadow-xs active:scale-95"
+            title="Ver o WhatsApp como Paciente"
+          >
+            <User className="w-3.5 h-3.5 text-emerald-300" />
+            <span className="hidden md:inline">Ver como Paciente</span>
+          </button>
+
           {/* PWA Install Button for Admin Phone */}
           <PWAInstallPrompt title="Baixar App" variant="pill" />
 

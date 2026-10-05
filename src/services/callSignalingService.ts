@@ -1,4 +1,4 @@
-import { doc, updateDoc, setDoc, onSnapshot, collection, query, where } from 'firebase/firestore';
+import { doc, updateDoc, setDoc, onSnapshot, collection } from 'firebase/firestore';
 import { db } from '../firebase';
 
 export interface ActiveCallData {
@@ -67,31 +67,53 @@ export async function initiateCall(
 // Answer incoming call
 export async function answerCall(chatId: string, callId: string): Promise<void> {
   const chatDocRef = doc(db, CHATS_COLLECTION, chatId);
-  await setDoc(
-    chatDocRef,
-    {
-      id: chatId,
+  const now = new Date().toISOString();
+  try {
+    await updateDoc(chatDocRef, {
       'activeCall.status': 'connected',
-      'activeCall.answeredAt': new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    },
-    { merge: true }
-  );
+      'activeCall.answeredAt': now,
+      updatedAt: now,
+    });
+  } catch {
+    await setDoc(
+      chatDocRef,
+      {
+        id: chatId,
+        activeCall: {
+          status: 'connected',
+          answeredAt: now,
+        },
+        updatedAt: now,
+      },
+      { merge: true }
+    );
+  }
 }
 
 // Decline incoming call
 export async function declineCall(chatId: string, callId: string): Promise<void> {
   const chatDocRef = doc(db, CHATS_COLLECTION, chatId);
-  await setDoc(
-    chatDocRef,
-    {
-      id: chatId,
+  const now = new Date().toISOString();
+  try {
+    await updateDoc(chatDocRef, {
       'activeCall.status': 'declined',
-      'activeCall.endedAt': new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    },
-    { merge: true }
-  );
+      'activeCall.endedAt': now,
+      updatedAt: now,
+    });
+  } catch {
+    await setDoc(
+      chatDocRef,
+      {
+        id: chatId,
+        activeCall: {
+          status: 'declined',
+          endedAt: now,
+        },
+        updatedAt: now,
+      },
+      { merge: true }
+    );
+  }
 
   // Clear active call state after brief cooldown
   setTimeout(async () => {
@@ -106,19 +128,29 @@ export async function declineCall(chatId: string, callId: string): Promise<void>
 // End ongoing call
 export async function endCall(chatId: string, callId: string, durationSeconds = 0): Promise<void> {
   const chatDocRef = doc(db, CHATS_COLLECTION, chatId);
+  const now = new Date().toISOString();
   try {
+    await updateDoc(chatDocRef, {
+      'activeCall.status': 'ended',
+      'activeCall.duration': durationSeconds,
+      'activeCall.endedAt': now,
+      updatedAt: now,
+    });
+  } catch {
     await setDoc(
       chatDocRef,
       {
         id: chatId,
-        'activeCall.status': 'ended',
-        'activeCall.duration': durationSeconds,
-        'activeCall.endedAt': new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
+        activeCall: {
+          status: 'ended',
+          duration: durationSeconds,
+          endedAt: now,
+        },
+        updatedAt: now,
       },
       { merge: true }
     );
-  } catch {}
+  }
 
   // Clear active call state
   setTimeout(async () => {
@@ -164,12 +196,13 @@ export function subscribeToAdminIncomingCalls(
       let ringingCall: ActiveCallData | null = null;
       snapshot.forEach((docSnap) => {
         const data = docSnap.data();
+        const call = data?.activeCall;
         if (
-          data?.activeCall &&
-          data.activeCall.status === 'ringing' &&
-          data.activeCall.receiver === 'admin'
+          call &&
+          call.status === 'ringing' &&
+          call.receiver === 'admin'
         ) {
-          ringingCall = data.activeCall as ActiveCallData;
+          ringingCall = call as ActiveCallData;
         }
       });
       onIncomingCall(ringingCall);

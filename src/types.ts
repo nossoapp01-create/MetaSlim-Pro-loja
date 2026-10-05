@@ -1,3 +1,10 @@
+export interface DosageOption {
+  mg: number;
+  label: string;
+  price: number;
+  originalPrice?: number;
+}
+
 export interface Product {
   id: string;
   name: string;
@@ -19,14 +26,18 @@ export interface Product {
   paymentLink: string;
   featured?: boolean;
   badge?: string;
+  dosageOptions?: DosageOption[];
+  hasDosageSelector?: boolean;
 }
 
 export interface CartItem {
-  id: string; // unique item id (e.g., productId + tier)
+  id: string; // unique item id (e.g., productId + dosage + tier)
   productId: string;
   product: Product;
   quantity: number;
   vialsCount: number; // 1, 2, or 3
+  dosageMg?: number;
+  dosageLabel?: string;
   unitPrice: number; // calculated tier unit price
   totalPrice: number;
 }

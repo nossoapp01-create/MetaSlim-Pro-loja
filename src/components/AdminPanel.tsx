@@ -9,8 +9,13 @@ import {
   ResaleSettings,
   ResaleCompoundConfig,
   ResalePackConfig,
+  DosageOption,
 } from '../types';
-import { initialResaleSettings } from '../data/initialData';
+import {
+  initialResaleSettings,
+  defaultRetatrutideDosages,
+  defaultTirzepatideDosages,
+} from '../data/initialData';
 import { StripeSalesDashboard } from './StripeSalesDashboard';
 import { SaaSTenantsManager } from './SaaSTenantsManager';
 import { WhatsAppAdminDashboard } from './WhatsAppAdminDashboard';
@@ -66,6 +71,7 @@ import {
   Users,
   Share2,
   Layers,
+  Dna,
 } from 'lucide-react';
 
 export const AdminPanel: React.FC = () => {
@@ -930,6 +936,180 @@ export const AdminPanel: React.FC = () => {
                 className="h-10 px-3 rounded-xl bg-emerald-50 border border-emerald-200 text-xs font-mono font-bold text-[#006750] focus:outline-none focus:ring-1 focus:ring-[#006750]"
               />
             </div>
+          </div>
+
+          {/* TABELA DE VALORES POR DOSAGEM (10mg a 100mg) - Especialmente para Tirzepatide e Retatrutide */}
+          <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 flex flex-col gap-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <Dna className="w-4 h-4 text-[#006750]" />
+                <span className="text-xs font-bold text-slate-900">
+                  Valores Consoante a Dosagem (10mg a 100mg)
+                </span>
+                <span className="text-[10px] font-mono bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full font-bold">
+                  Tirzepatide &amp; Retatrutide
+                </span>
+              </div>
+              <label className="flex items-center gap-2 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={Boolean(selectedProduct.hasDosageSelector)}
+                  onChange={(e) => {
+                    const enabled = e.target.checked;
+                    let currentOptions = selectedProduct.dosageOptions || [];
+                    if (enabled && currentOptions.length === 0) {
+                      currentOptions = selectedProduct.name.toLowerCase().includes('retatrutide')
+                        ? defaultRetatrutideDosages
+                        : defaultTirzepatideDosages;
+                    }
+                    const updated = {
+                      ...selectedProduct,
+                      hasDosageSelector: enabled,
+                      dosageOptions: currentOptions,
+                    };
+                    updateProduct(updated);
+                  }}
+                  className="rounded text-[#006750] focus:ring-[#006750]"
+                />
+                <span className="text-xs font-bold text-slate-700">
+                  Ativar Seletor de Dosagens no Produto
+                </span>
+              </label>
+            </div>
+
+            {selectedProduct.hasDosageSelector && (
+              <div className="flex flex-col gap-3 mt-1">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <p className="text-[11px] text-slate-600">
+                    Defina o valor promocional e original de cada dosagem (10 a 100mg). Os valores mudam automaticamente na loja conforme a dosagem escolhida pelo cliente.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const defaults = selectedProduct.name.toLowerCase().includes('retatrutide')
+                        ? defaultRetatrutideDosages
+                        : defaultTirzepatideDosages;
+                      handleProductFieldChange('dosageOptions', defaults);
+                      showToast('Tabela padrão de 10mg a 100mg aplicada com sucesso!');
+                    }}
+                    className="text-[10px] text-[#006750] bg-emerald-100/70 hover:bg-emerald-200 px-2.5 py-1 rounded-md font-bold transition-colors cursor-pointer"
+                  >
+                    ⚡ Restaurar Tabela Padrão (10-100mg)
+                  </button>
+                </div>
+
+                <div className="overflow-x-auto border border-slate-200 rounded-xl bg-white shadow-2xs">
+                  <table className="w-full text-left text-xs divide-y divide-slate-200">
+                    <thead className="bg-slate-100 text-slate-700 font-bold text-[11px]">
+                      <tr>
+                        <th className="p-2.5">Dosagem (mg)</th>
+                        <th className="p-2.5">Rótulo Exibido</th>
+                        <th className="p-2.5 text-emerald-800">Preço Promocional (€)</th>
+                        <th className="p-2.5 text-slate-600">Preço Normal (€)</th>
+                        <th className="p-2.5 text-center">Ações</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 bg-white">
+                      {(selectedProduct.dosageOptions || []).map((opt, idx) => (
+                        <tr key={opt.mg} className="hover:bg-slate-50 transition-colors">
+                          <td className="p-2.5 font-mono font-bold text-slate-800">
+                            {opt.mg} mg
+                          </td>
+                          <td className="p-2.5">
+                            <input
+                              type="text"
+                              value={opt.label}
+                              onChange={(e) => {
+                                const newOpts = [...(selectedProduct.dosageOptions || [])];
+                                newOpts[idx] = { ...newOpts[idx], label: e.target.value };
+                                handleProductFieldChange('dosageOptions', newOpts);
+                              }}
+                              className="h-8 px-2 rounded-lg border border-slate-200 text-xs w-28 font-medium"
+                            />
+                          </td>
+                          <td className="p-2.5">
+                            <div className="flex items-center gap-1">
+                              <span className="text-slate-400 font-mono text-xs">€</span>
+                              <input
+                                type="number"
+                                step="0.01"
+                                value={opt.price}
+                                onChange={(e) => {
+                                  const val = parseFloat(e.target.value) || 0;
+                                  const newOpts = [...(selectedProduct.dosageOptions || [])];
+                                  newOpts[idx] = { ...newOpts[idx], price: val };
+                                  const updated = {
+                                    ...selectedProduct,
+                                    dosageOptions: newOpts,
+                                    price: idx === 0 ? val : selectedProduct.price,
+                                  };
+                                  updateProduct(updated);
+                                }}
+                                className="h-8 px-2 rounded-lg border border-emerald-300 bg-emerald-50/50 font-mono font-bold text-[#006750] text-xs w-24 focus:ring-1 focus:ring-[#006750]"
+                              />
+                            </div>
+                          </td>
+                          <td className="p-2.5">
+                            <div className="flex items-center gap-1">
+                              <span className="text-slate-400 font-mono text-xs">€</span>
+                              <input
+                                type="number"
+                                step="0.01"
+                                value={opt.originalPrice || ''}
+                                onChange={(e) => {
+                                  const val = parseFloat(e.target.value) || 0;
+                                  const newOpts = [...(selectedProduct.dosageOptions || [])];
+                                  newOpts[idx] = { ...newOpts[idx], originalPrice: val };
+                                  handleProductFieldChange('dosageOptions', newOpts);
+                                }}
+                                className="h-8 px-2 rounded-lg border border-slate-200 text-xs font-mono text-slate-700 w-24"
+                              />
+                            </div>
+                          </td>
+                          <td className="p-2.5 text-center">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const newOpts = (selectedProduct.dosageOptions || []).filter((_, i) => i !== idx);
+                                handleProductFieldChange('dosageOptions', newOpts);
+                              }}
+                              className="text-rose-500 hover:text-rose-700 hover:bg-rose-50 p-1.5 rounded-lg transition-colors"
+                              title="Remover Dosagem"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div className="flex items-center justify-between pt-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const current = selectedProduct.dosageOptions || [];
+                      const nextMg = current.length > 0 ? current[current.length - 1].mg + 10 : 10;
+                      const nextPrice = current.length > 0 ? Math.round(current[current.length - 1].price * 1.15) : 59;
+                      const newOpts = [
+                        ...current,
+                        { mg: nextMg, label: `${nextMg} mg`, price: nextPrice, originalPrice: Math.round(nextPrice * 1.5) },
+                      ];
+                      handleProductFieldChange('dosageOptions', newOpts);
+                    }}
+                    className="text-xs text-[#006750] font-bold flex items-center gap-1 hover:underline cursor-pointer"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Adicionar Passo de Dosagem</span>
+                  </button>
+
+                  <span className="text-[11px] text-slate-500 font-mono">
+                    {(selectedProduct.dosageOptions || []).length} dosagens cadastradas
+                  </span>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Para Que Serve */}

@@ -649,10 +649,15 @@ export const CartView: React.FC = () => {
 
                 <span className="text-[11px] text-slate-500 truncate">{item.product.subtitle}</span>
 
-                <div className="mt-1 flex items-center gap-1.5">
+                <div className="mt-1 flex flex-wrap items-center gap-1.5">
                   <span className="font-mono text-[10px] text-slate-600 bg-slate-100 px-2 py-0.5 rounded font-semibold">
                     Ref: {item.product.refCode}
                   </span>
+                  {item.dosageLabel && (
+                    <span className="font-mono text-[10px] text-[#006750] bg-emerald-100 border border-emerald-300 px-2 py-0.5 rounded-full font-bold">
+                      Dosagem: {item.dosageLabel}
+                    </span>
+                  )}
                   {item.vialsCount > 1 && (
                     <span className="font-mono text-[10px] text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded font-bold">
                       Kit {item.vialsCount} Frascos

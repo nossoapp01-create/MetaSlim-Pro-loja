@@ -13,11 +13,20 @@ import {
 import { sendChatMessage } from '../services/chatService';
 
 const STORAGE_CLIENT_IDENTITY = 'metaslim_client_chat_identity';
+const STORAGE_DEVICE_MODE = 'metaslim_device_mode';
 
 export const GlobalCallManager: React.FC = () => {
   const { isTenantAdmin, isSuperAdmin, isAdminUser, setActiveTab, activeTab } = useStore();
 
-  const isDoctorAdmin = Boolean(isTenantAdmin || isSuperAdmin || isAdminUser);
+  const [deviceMode, setDeviceMode] = useState<'customer' | 'doctor'>(() => {
+    try {
+      return (localStorage.getItem(STORAGE_DEVICE_MODE) as any) || 'customer';
+    } catch {
+      return 'customer';
+    }
+  });
+
+  const isDoctor = Boolean(isTenantAdmin || isSuperAdmin || isAdminUser || deviceMode === 'doctor');
 
   const [incomingCall, setIncomingCall] = useState<ActiveCallData | null>(null);
   const [activeCallSession, setActiveCallSession] = useState<ActiveCallData | null>(null);
@@ -40,12 +49,32 @@ export const GlobalCallManager: React.FC = () => {
           setClientChatId(parsed.chatId);
         }
       }
+      const savedMode = localStorage.getItem(STORAGE_DEVICE_MODE);
+      if (savedMode === 'doctor' || savedMode === 'customer') {
+        setDeviceMode(savedMode);
+      }
     } catch {}
   }, [activeTab]);
 
-  // 1. GLOBAL LISTENER FOR DOCTOR / ADMIN
+  // Listen to custom event for device mode toggle
   useEffect(() => {
-    if (!isDoctorAdmin) return;
+    const handleModeChange = () => {
+      try {
+        const m = (localStorage.getItem(STORAGE_DEVICE_MODE) as any) || 'customer';
+        setDeviceMode(m);
+      } catch {}
+    };
+    window.addEventListener('storage', handleModeChange);
+    window.addEventListener('device-mode-changed', handleModeChange);
+    return () => {
+      window.removeEventListener('storage', handleModeChange);
+      window.removeEventListener('device-mode-changed', handleModeChange);
+    };
+  }, []);
+
+  // 1. GLOBAL LISTENER FOR DOCTOR / ADMIN (RECEIVE CALLS DESTINED FOR DRA. VALÉRIA)
+  useEffect(() => {
+    if (!isDoctor) return;
 
     const unsubscribe = subscribeToAdminIncomingCalls((call) => {
       if (call && call.status === 'ringing') {
@@ -56,11 +85,11 @@ export const GlobalCallManager: React.FC = () => {
     });
 
     return () => unsubscribe();
-  }, [isDoctorAdmin]);
+  }, [isDoctor]);
 
-  // 2. GLOBAL LISTENER FOR PATIENT / CLIENT (ON MOBILE PWA OR DESKTOP)
+  // 2. GLOBAL LISTENER FOR PATIENT / CLIENT (RECEIVE CALLS FROM DRA. VALÉRIA)
   useEffect(() => {
-    if (!clientChatId || isDoctorAdmin) return;
+    if (!clientChatId || isDoctor) return;
 
     const unsubscribe = subscribeToChatCall(clientChatId, (call) => {
       // If doctor is calling client and call is currently ringing
@@ -72,7 +101,7 @@ export const GlobalCallManager: React.FC = () => {
     });
 
     return () => unsubscribe();
-  }, [clientChatId, isDoctorAdmin]);
+  }, [clientChatId, isDoctor]);
 
   // 3. LISTEN TO ACTIVE CALL STATUS WHEN IN CALL
   useEffect(() => {
@@ -110,9 +139,6 @@ export const GlobalCallManager: React.FC = () => {
     });
     setActiveCallSession(call);
     setIsLiveCallOpen(true);
-
-    // Switch view to chat
-    setActiveTab('chat');
 
     try {
       await answerCall(call.chatId, call.callId);
@@ -177,17 +203,19 @@ export const GlobalCallManager: React.FC = () => {
     }
   };
 
-  // Expose global test trigger on window for easy testing
+  // Expose test helper on window
   useEffect(() => {
     (window as any).simulateIncomingCall = (type: 'voice' | 'video' = 'voice') => {
       const mockCall: ActiveCallData = {
         callId: `call_test_${Date.now()}`,
         chatId: clientChatId || 'chat_test',
-        caller: 'admin',
-        callerName: 'Dra. Valéria Prado',
-        callerAvatar: 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&q=80&w=400',
-        receiver: 'customer',
-        receiverName: 'Você (Paciente)',
+        caller: isDoctor ? 'customer' : 'admin',
+        callerName: isDoctor ? 'Paciente VIP (Teste)' : 'Dra. Valéria Prado',
+        callerAvatar: isDoctor
+          ? undefined
+          : 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&q=80&w=400',
+        receiver: isDoctor ? 'admin' : 'customer',
+        receiverName: isDoctor ? 'Dra. Valéria Prado' : 'Você (Paciente)',
         callType: type,
         status: 'ringing',
         startedAt: new Date().toISOString(),
@@ -198,7 +226,7 @@ export const GlobalCallManager: React.FC = () => {
     return () => {
       delete (window as any).simulateIncomingCall;
     };
-  }, [clientChatId]);
+  }, [clientChatId, isDoctor]);
 
   return (
     <>
@@ -216,7 +244,7 @@ export const GlobalCallManager: React.FC = () => {
         contactName={liveCallContact.name}
         contactRole={liveCallContact.role}
         contactAvatar={liveCallContact.avatar}
-        caller={isDoctorAdmin ? 'admin' : 'customer'}
+        caller={isDoctor ? 'admin' : 'customer'}
         isInitiator={false}
         callStatusSync={activeCallSession?.status}
         onClose={handleEndLiveCall}

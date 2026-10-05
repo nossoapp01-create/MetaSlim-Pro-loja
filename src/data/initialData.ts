@@ -1,4 +1,28 @@
-import { Product, BannerSlide, Testimonial, StoreSettings, OrderRecord, ResaleSettings, TenantAccount } from '../types';
+import { Product, BannerSlide, Testimonial, StoreSettings, OrderRecord, ResaleSettings, TenantAccount, DosageOption } from '../types';
+
+export const defaultRetatrutideDosages: DosageOption[] = [
+  { mg: 10, label: '10 mg', price: 59.0, originalPrice: 99.0 },
+  { mg: 15, label: '15 mg', price: 69.0, originalPrice: 115.0 },
+  { mg: 20, label: '20 mg', price: 89.0, originalPrice: 139.0 },
+  { mg: 30, label: '30 mg', price: 119.0, originalPrice: 179.0 },
+  { mg: 40, label: '40 mg', price: 149.0, originalPrice: 219.0 },
+  { mg: 50, label: '50 mg', price: 179.0, originalPrice: 259.0 },
+  { mg: 60, label: '60 mg', price: 209.0, originalPrice: 299.0 },
+  { mg: 80, label: '80 mg', price: 259.0, originalPrice: 369.0 },
+  { mg: 100, label: '100 mg', price: 299.0, originalPrice: 429.0 },
+];
+
+export const defaultTirzepatideDosages: DosageOption[] = [
+  { mg: 10, label: '10 mg', price: 55.0, originalPrice: 95.0 },
+  { mg: 15, label: '15 mg', price: 65.0, originalPrice: 110.0 },
+  { mg: 20, label: '20 mg', price: 79.0, originalPrice: 129.0 },
+  { mg: 30, label: '30 mg', price: 109.0, originalPrice: 169.0 },
+  { mg: 40, label: '40 mg', price: 139.0, originalPrice: 199.0 },
+  { mg: 50, label: '50 mg', price: 165.0, originalPrice: 239.0 },
+  { mg: 60, label: '60 mg', price: 195.0, originalPrice: 279.0 },
+  { mg: 80, label: '80 mg', price: 245.0, originalPrice: 349.0 },
+  { mg: 100, label: '100 mg', price: 285.0, originalPrice: 399.0 },
+];
 
 export const initialResaleSettings: ResaleSettings = {
   whatsappNumber: '+351912345678',
@@ -132,7 +156,7 @@ export const initialProducts: Product[] = [
   // --- EIXO 1: EMAGRECIMENTO & GLP-1 (SCREENSHOT 1 & 3) ---
   {
     id: 'retatrutide-10mg',
-    name: 'Retatrutide 10mg',
+    name: 'Retatrutide (10mg a 100mg)',
     subtitle: 'Triple agonist (GIP/GLP-1/glucagon)',
     refCode: 'RT10',
     category: 'glp1',
@@ -154,10 +178,12 @@ export const initialProducts: Product[] = [
     paymentLink: '',
     featured: true,
     badge: 'SALE',
+    hasDosageSelector: true,
+    dosageOptions: defaultRetatrutideDosages,
   },
   {
     id: 'tirzepatide-10mg',
-    name: 'Tirzepatide 10mg',
+    name: 'Tirzepatide (10mg a 100mg)',
     subtitle: 'Dual GIP/GLP-1 receptor agonist',
     refCode: 'TR10',
     category: 'glp1',
@@ -179,6 +205,8 @@ export const initialProducts: Product[] = [
     paymentLink: '',
     featured: true,
     badge: 'SALE',
+    hasDosageSelector: true,
+    dosageOptions: defaultTirzepatideDosages,
   },
   {
     id: 'tirzepatide-15mg',

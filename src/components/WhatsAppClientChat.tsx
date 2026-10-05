@@ -596,6 +596,23 @@ export const WhatsAppClientChat: React.FC = () => {
               <Phone className="w-4.5 h-4.5" />
             </button>
 
+            {/* Switch to Doctor Mode on this phone */}
+            <button
+              type="button"
+              onClick={() => {
+                localStorage.setItem('metaslim_device_mode', 'doctor');
+                window.dispatchEvent(new Event('device-mode-changed'));
+                showToast('Modo Consultório da Dra. Valéria ativado! Este celular receberá todas as chamadas.');
+                setTimeout(() => window.location.reload(), 400);
+              }}
+              className="px-2 sm:px-2.5 py-1 bg-emerald-950/80 hover:bg-emerald-900 text-[10px] font-bold text-emerald-100 border border-emerald-400/50 rounded-full flex items-center gap-1 cursor-pointer transition-transform active:scale-95 shadow-xs"
+              title="Ativar modo consultório da Dra. Valéria neste aparelho para receber chamadas"
+            >
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-300" />
+              <span className="hidden sm:inline">Modo Dra. Valéria</span>
+              <span className="sm:hidden">Dra. Valéria</span>
+            </button>
+
             {/* Test Simulation Button: allows user to test the phone ringing and vibration! */}
             <button
               type="button"
@@ -605,7 +622,7 @@ export const WhatsAppClientChat: React.FC = () => {
                   showToast('Simulando chamada da Dra. Valéria Prado...');
                 }
               }}
-              className="px-2.5 py-1 bg-emerald-950/70 hover:bg-emerald-900 text-[10px] font-bold text-emerald-200 border border-emerald-400/50 rounded-full flex items-center gap-1 cursor-pointer transition-transform active:scale-95 shadow-xs"
+              className="px-2 sm:px-2.5 py-1 bg-emerald-900/60 hover:bg-emerald-900 text-[10px] font-bold text-emerald-200 border border-emerald-400/40 rounded-full flex items-center gap-1 cursor-pointer transition-transform active:scale-95 shadow-xs"
               title="Testar como a chamada toca no seu celular"
             >
               <Bell className="w-3.5 h-3.5 text-emerald-300 animate-pulse" />

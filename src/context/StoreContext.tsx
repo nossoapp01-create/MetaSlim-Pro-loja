@@ -111,7 +111,7 @@ interface StoreContextType {
   setDeliveryNotes: (notes: string) => void;
   toggleCurrency: () => void;
   formatPrice: (amountInEur: number) => string;
-  addToCart: (product: Product, vialsCount?: number, quantity?: number) => void;
+  addToCart: (product: Product, vialsCount?: number, quantity?: number, dosageMg?: number) => void;
   updateCartQty: (itemId: string, delta: number) => void;
   removeFromCart: (itemId: string) => void;
   clearCart: () => void;
@@ -1354,15 +1354,20 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return `€${amountInEur.toFixed(2).replace('.', ',')}`;
   };
 
-  const addToCart = (product: Product, vialsCount = 1, quantity = 1) => {
-    let unitPrice = product.price;
+  const addToCart = (product: Product, vialsCount = 1, quantity = 1, dosageMg?: number) => {
+    // If dosageMg is specified, find its configured price
+    const dosageOption = dosageMg ? product.dosageOptions?.find((d) => d.mg === dosageMg) : undefined;
+    const basePrice = dosageOption ? dosageOption.price : product.price;
+
+    let unitPrice = basePrice;
     if (vialsCount === 2) {
-      unitPrice = Math.round(product.price * 2 * 0.8 * 100) / 100;
+      unitPrice = Math.round(basePrice * 2 * 0.8 * 100) / 100;
     } else if (vialsCount === 3) {
-      unitPrice = Math.round(product.price * 3 * 0.7 * 100) / 100;
+      unitPrice = Math.round(basePrice * 3 * 0.7 * 100) / 100;
     }
 
-    const itemId = `${product.id}-${vialsCount}vial`;
+    const dosageKey = dosageMg ? `-${dosageMg}mg` : '';
+    const itemId = `${product.id}${dosageKey}-${vialsCount}vial`;
 
     setCart((prev) => {
       const existing = prev.find((item) => item.id === itemId);
@@ -1385,6 +1390,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             product,
             quantity,
             vialsCount,
+            dosageMg,
+            dosageLabel: dosageOption ? dosageOption.label : dosageMg ? `${dosageMg} mg` : undefined,
             unitPrice,
             totalPrice: unitPrice * quantity,
           },
@@ -1393,7 +1400,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     });
 
     const vialText = vialsCount > 1 ? ` (${vialsCount} Frascos)` : '';
-    showToast(`Adicionado ao carrinho: ${product.name}${vialText}`);
+    const dosageText = dosageMg ? ` [${dosageMg}mg]` : '';
+    showToast(`Adicionado ao carrinho: ${product.name}${dosageText}${vialText}`);
   };
 
   const updateCartQty = (itemId: string, delta: number) => {

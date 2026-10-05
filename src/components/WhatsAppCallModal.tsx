@@ -35,7 +35,7 @@ export const WhatsAppCallModal: React.FC<WhatsAppCallModalProps> = ({
   callStatusSync,
   onClose,
 }) => {
-  const [callStatus, setCallStatus] = useState<'calling' | 'connecting' | 'connected' | 'ended'>('calling');
+  const [callStatus, setCallStatus] = useState<'calling' | 'connecting' | 'connected' | 'ended' | 'missed'>('calling');
   const [callDuration, setCallDuration] = useState<number>(0);
   const [isMuted, setIsMuted] = useState<boolean>(false);
   const [isVideoDisabled, setIsVideoDisabled] = useState<boolean>(false);
@@ -98,24 +98,20 @@ export const WhatsAppCallModal: React.FC<WhatsAppCallModalProps> = ({
       setCallStatus('calling');
       callAudio.startOutgoingRinging();
 
-      // If testing alone or recipient is delayed, auto-connect consultation after 7 seconds of ringing
-      const timeoutAutoAnswer = setTimeout(() => {
+      // Ring for 40 seconds before timing out as missed call (do NOT auto-answer!)
+      const timeoutNoAnswer = setTimeout(() => {
         setCallStatus((curr) => {
           if (curr === 'calling') {
             callAudio.stopRinging();
-            callAudio.playCallConnectedChime();
-            if (!timerRef.current) {
-              timerRef.current = setInterval(() => {
-                setCallDuration((prev) => prev + 1);
-              }, 1000);
-            }
-            return 'connected';
+            callAudio.playHangupTone();
+            handleEndCall('missed');
+            return 'missed';
           }
           return curr;
         });
-      }, 7000);
+      }, 40000);
 
-      return () => clearTimeout(timeoutAutoAnswer);
+      return () => clearTimeout(timeoutNoAnswer);
     }
 
     // Acquire real webcam/microphone stream

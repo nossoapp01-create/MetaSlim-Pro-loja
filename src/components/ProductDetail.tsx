@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useStore } from '../context/StoreContext';
 import { ClinicalInfographicSheet } from './ClinicalInfographicSheet';
 import {
@@ -22,6 +22,7 @@ import {
   FlaskConical,
   Award,
   Truck,
+  Dna,
 } from 'lucide-react';
 
 export const ProductDetail: React.FC = () => {
@@ -44,24 +45,42 @@ export const ProductDetail: React.FC = () => {
 
   if (!product) return null;
 
+  const hasDosages = Boolean(product?.dosageOptions && product.dosageOptions.length > 0);
+  const [selectedDosageMg, setSelectedDosageMg] = useState<number>(() => {
+    return product?.dosageOptions?.[0]?.mg || 10;
+  });
+
+  useEffect(() => {
+    if (product?.dosageOptions && product.dosageOptions.length > 0) {
+      setSelectedDosageMg(product.dosageOptions[0].mg);
+    }
+  }, [product?.id]);
+
+  const selectedDosageOption = product?.dosageOptions?.find((d) => d.mg === selectedDosageMg);
+  const currentBasePrice = selectedDosageOption ? selectedDosageOption.price : product.price;
+  const currentOriginalPrice = selectedDosageOption
+    ? selectedDosageOption.originalPrice || product.originalPrice
+    : product.originalPrice;
+
   // Calculate pricing based on tier
   const calculateTierPrice = (vials: number) => {
-    if (vials === 1) return { total: product.price, unit: product.price, discount: 0 };
+    if (vials === 1) return { total: currentBasePrice, unit: currentBasePrice, discount: 0 };
     if (vials === 2) {
-      const total = Math.round(product.price * 2 * 0.8 * 100) / 100;
+      const total = Math.round(currentBasePrice * 2 * 0.8 * 100) / 100;
       return { total, unit: total / 2, discount: 20 };
     }
     // 3 vials
-    const total = Math.round(product.price * 3 * 0.7 * 100) / 100;
+    const total = Math.round(currentBasePrice * 3 * 0.7 * 100) / 100;
     return { total, unit: total / 3, discount: 30 };
   };
 
   const currentTier = calculateTierPrice(selectedVials);
 
   // Determine payment link (product specific or default fallback)
+  const dosageQuery = hasDosages ? `&dosage=${selectedDosageMg}mg` : '';
   const paymentUrl =
     product.paymentLink ||
-    `${settings.defaultPaymentLink}?ref=${product.refCode}&vials=${selectedVials}&price=${currentTier.total}`;
+    `${settings.defaultPaymentLink}?ref=${product.refCode}&vials=${selectedVials}${dosageQuery}&price=${currentTier.total}`;
 
   const handleDirectBuy = () => {
     if (paymentUrl.startsWith('http')) {
@@ -190,9 +209,9 @@ export const ProductDetail: React.FC = () => {
           <span className="text-3xl sm:text-4xl font-extrabold text-[#006750] font-mono">
             {formatPrice(currentTier.total)}
           </span>
-          {product.originalPrice > currentTier.total && (
+          {currentOriginalPrice > currentTier.total && (
             <span className="text-base text-slate-400 line-through font-mono">
-              {formatPrice(product.originalPrice * selectedVials)}
+              {formatPrice(currentOriginalPrice * selectedVials)}
             </span>
           )}
           {currentTier.discount > 0 ? (
@@ -205,6 +224,51 @@ export const ProductDetail: React.FC = () => {
             </span>
           )}
         </div>
+
+        {/* DOSAGE SELECTOR (10mg a 100mg) */}
+        {hasDosages && product.dosageOptions && product.dosageOptions.length > 0 && (
+          <div className="mt-6 pt-5 border-t border-slate-100">
+            <div className="flex items-center justify-between mb-2.5">
+              <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-800">
+                <Dna className="w-4 h-4 text-[#006750]" />
+                <span>Escolha a Dosagem do Frasco (10mg a 100mg)</span>
+              </div>
+              <span className="text-[11px] font-mono text-[#006750] font-bold bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
+                {selectedDosageMg} mg selecionado
+              </span>
+            </div>
+
+            <div className="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-9 gap-1.5 sm:gap-2">
+              {product.dosageOptions.map((opt) => {
+                const isSelected = selectedDosageMg === opt.mg;
+                return (
+                  <button
+                    key={opt.mg}
+                    type="button"
+                    onClick={() => setSelectedDosageMg(opt.mg)}
+                    className={`flex flex-col items-center justify-center p-2 rounded-xl text-center transition-all duration-200 cursor-pointer active:scale-95 ${
+                      isSelected
+                        ? 'bg-[#006750] text-white shadow-md ring-2 ring-emerald-400 font-bold'
+                        : 'bg-slate-50 hover:bg-emerald-50/60 text-slate-700 border border-slate-200/90'
+                    }`}
+                  >
+                    <span className="text-xs sm:text-sm font-extrabold">{opt.label}</span>
+                    <span
+                      className={`text-[10px] sm:text-[11px] font-mono mt-0.5 ${
+                        isSelected ? 'text-[#93f5d4]' : 'text-[#006750] font-semibold'
+                      }`}
+                    >
+                      {formatPrice(opt.price)}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+            <p className="text-[11px] text-slate-500 mt-2">
+              * Frasco liofilizado com selo de garantia farmacêutica e laudo HPLC (&gt;99%).
+            </p>
+          </div>
+        )}
 
         {/* Multi-Vial Tier Selector */}
         <div className="mt-6 pt-5 border-t border-slate-100">
@@ -233,7 +297,7 @@ export const ProductDetail: React.FC = () => {
               <div className="text-[10px] text-slate-500 mt-0.5">Dose Inicial</div>
               <div className="mt-2 w-full pt-1.5 bg-white rounded-lg border border-slate-100">
                 <div className="font-mono text-xs font-bold text-[#006750]">
-                  {formatPrice(product.price)}
+                  {formatPrice(currentBasePrice)}
                 </div>
                 <div className="text-[9px] text-slate-400 font-mono">1x frasco</div>
               </div>
@@ -299,18 +363,18 @@ export const ProductDetail: React.FC = () => {
           >
             <Bolt className="w-5 h-5 text-[#71face]" />
             <span>
-              Comprar Agora ({selectedVials}x Frasco{selectedVials > 1 ? 's' : ''}) • {formatPrice(currentTier.total)}
+              Comprar Agora ({selectedVials}x Frasco{selectedVials > 1 ? 's' : ''}{hasDosages ? ` • ${selectedDosageMg}mg` : ''}) • {formatPrice(currentTier.total)}
             </span>
           </button>
 
           {/* Add to Cart Button */}
           <button
-            onClick={() => addToCart(product, selectedVials, 1)}
-            className="w-full py-3 px-5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold text-sm flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
+            onClick={() => addToCart(product, selectedVials, 1, hasDosages ? selectedDosageMg : undefined)}
+            className="w-full py-3 px-5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold text-sm flex items-center justify-center gap-2 transition-all active:scale-[0.98] cursor-pointer"
             id="product-add-to-cart-cta"
           >
             <ShoppingBag className="w-4 h-4 text-[#006750]" />
-            <span>Adicionar ao Carrinho</span>
+            <span>Adicionar ao Carrinho ({selectedVials}x {hasDosages ? `• ${selectedDosageMg}mg` : ''})</span>
           </button>
         </div>
 

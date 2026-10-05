@@ -1,14 +1,13 @@
-// Web Audio API Synthesizer for Authentic WhatsApp Call Tones
+// Web Audio API Synthesizer for Authentic WhatsApp Call Tones & Mobile Ringing
 
 class WhatsAppCallToneGenerator {
   private audioCtx: AudioContext | null = null;
   private ringIntervalId: any = null;
   private incomingIntervalId: any = null;
-  private vibrateIntervalId: any = null;
   private isOutgoingRinging = false;
   private isIncomingRinging = false;
 
-  private getAudioContext(): AudioContext | null {
+  public getAudioContext(): AudioContext | null {
     if (typeof window === 'undefined') return null;
     try {
       const AudioCtxClass = window.AudioContext || (window as any).webkitAudioContext;
@@ -24,10 +23,28 @@ class WhatsAppCallToneGenerator {
     }
   }
 
-  // Play outgoing ringing tone (authentic dual-frequency UK/WhatsApp phone tone 400Hz + 450Hz)
+  // Pre-unlock audio on mobile touch / click
+  public unlock() {
+    try {
+      const ctx = this.getAudioContext();
+      if (ctx && ctx.state === 'suspended') {
+        ctx.resume().catch(() => {});
+      }
+      if (ctx) {
+        const buffer = ctx.createBuffer(1, 1, 22050);
+        const source = ctx.createBufferSource();
+        source.buffer = buffer;
+        source.connect(ctx.destination);
+        source.start(0);
+      }
+    } catch {}
+  }
+
+  // Play outgoing ringing tone (authentic dual-frequency UK/WhatsApp phone tone 425Hz + 450Hz)
   startOutgoingRinging() {
     if (this.isOutgoingRinging) return;
     this.stopAll();
+    this.unlock();
     this.isOutgoingRinging = true;
 
     const playPulse = () => {
@@ -47,8 +64,8 @@ class WhatsAppCallToneGenerator {
         osc2.frequency.setValueAtTime(450, now);
 
         gainNode.gain.setValueAtTime(0, now);
-        gainNode.gain.linearRampToValueAtTime(0.08, now + 0.05);
-        gainNode.gain.setValueAtTime(0.08, now + 0.85);
+        gainNode.gain.linearRampToValueAtTime(0.12, now + 0.05);
+        gainNode.gain.setValueAtTime(0.12, now + 0.85);
         gainNode.gain.linearRampToValueAtTime(0, now + 0.95);
 
         osc1.connect(gainNode);
@@ -67,13 +84,14 @@ class WhatsAppCallToneGenerator {
       if (this.isOutgoingRinging) {
         playPulse();
       }
-    }, 3000);
+    }, 2800);
   }
 
   // Play incoming ringtone (authentic rhythmic musical WhatsApp ring pattern)
   startIncomingRingtone() {
     if (this.isIncomingRinging) return;
     this.stopAll();
+    this.unlock();
     this.isIncomingRinging = true;
 
     // Physical device vibration on mobile
@@ -106,11 +124,11 @@ class WhatsAppCallToneGenerator {
           const osc = ctx.createOscillator();
           const gain = ctx.createGain();
 
-          osc.type = 'triangle'; // Clear marimba/chime timber
+          osc.type = 'triangle'; // Clear marimba/chime timbre
           osc.frequency.setValueAtTime(freq, now + time);
 
           gain.gain.setValueAtTime(0, now + time);
-          gain.gain.linearRampToValueAtTime(0.18, now + time + 0.02);
+          gain.gain.linearRampToValueAtTime(0.24, now + time + 0.02);
           gain.gain.exponentialRampToValueAtTime(0.001, now + time + dur);
 
           osc.connect(gain);
@@ -178,7 +196,7 @@ class WhatsAppCallToneGenerator {
       osc.frequency.exponentialRampToValueAtTime(880, now + 0.15); // A5
 
       gain.gain.setValueAtTime(0, now);
-      gain.gain.linearRampToValueAtTime(0.12, now + 0.03);
+      gain.gain.linearRampToValueAtTime(0.16, now + 0.03);
       gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
 
       osc.connect(gain);
@@ -204,7 +222,7 @@ class WhatsAppCallToneGenerator {
         osc.type = 'sine';
         osc.frequency.setValueAtTime(440, now + offset);
 
-        gain.gain.setValueAtTime(0.09, now + offset);
+        gain.gain.setValueAtTime(0.12, now + offset);
         gain.gain.exponentialRampToValueAtTime(0.001, now + offset + 0.1);
 
         osc.connect(gain);
@@ -218,3 +236,12 @@ class WhatsAppCallToneGenerator {
 }
 
 export const callAudio = new WhatsAppCallToneGenerator();
+
+// Global unlock on first user interaction for mobile browser compatibility
+if (typeof window !== 'undefined') {
+  const unlockListener = () => {
+    callAudio.unlock();
+  };
+  window.addEventListener('click', unlockListener, { passive: true });
+  window.addEventListener('touchstart', unlockListener, { passive: true });
+}
