@@ -197,14 +197,6 @@ const MainContent: React.FC = () => {
                   {filteredProducts.length} compostos certificados por HPLC.
                 </p>
               </div>
-
-              <button
-                onClick={() => setIsCalculatorOpen(true)}
-                className="flex items-center gap-1 text-[11px] font-semibold text-[#006750] bg-emerald-50 hover:bg-emerald-100 px-2.5 py-1 rounded-lg transition-colors cursor-pointer"
-              >
-                <Calculator className="w-3.5 h-3.5" />
-                <span className="hidden xs:inline">Calculadora BAC</span>
-              </button>
             </div>
 
             {/* Product Cards Grid */}
