@@ -20,6 +20,25 @@ export interface ActiveCallData {
 
 const CHATS_COLLECTION = 'chats';
 
+const DEFAULT_DOCTOR_AVATAR =
+  'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&q=80&w=400';
+const DEFAULT_PATIENT_AVATAR =
+  'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=400';
+
+function sanitizeCallData<T extends Record<string, any>>(obj: T): T {
+  const result: Record<string, any> = {};
+  for (const [key, value] of Object.entries(obj)) {
+    if (value !== undefined) {
+      if (value && typeof value === 'object' && !Array.isArray(value)) {
+        result[key] = sanitizeCallData(value);
+      } else {
+        result[key] = value;
+      }
+    }
+  }
+  return result as T;
+}
+
 // Start a new call in Firestore
 export async function initiateCall(
   chatId: string,
@@ -37,29 +56,31 @@ export async function initiateCall(
     callId,
     chatId,
     caller,
-    callerName,
-    callerContact,
-    callerAvatar:
-      caller === 'admin'
-        ? 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&q=80&w=400'
-        : undefined,
+    callerName: callerName || (caller === 'admin' ? 'Dra. Valéria Prado' : 'Paciente VIP'),
+    callerContact: callerContact || (caller === 'admin' ? 'CRM 62.180-SP' : 'Paciente Conectado'),
+    callerAvatar: caller === 'admin' ? DEFAULT_DOCTOR_AVATAR : DEFAULT_PATIENT_AVATAR,
     receiver,
-    receiverName,
+    receiverName: receiverName || (receiver === 'admin' ? 'Dra. Valéria Prado' : 'Paciente VIP'),
     callType,
     status: 'ringing',
     startedAt: now,
   };
 
   const chatDocRef = doc(db, CHATS_COLLECTION, chatId);
-  await setDoc(
-    chatDocRef,
-    {
-      id: chatId,
-      activeCall: callData,
-      updatedAt: now,
-    },
-    { merge: true }
-  );
+
+  try {
+    await setDoc(
+      chatDocRef,
+      sanitizeCallData({
+        id: chatId,
+        activeCall: callData,
+        updatedAt: now,
+      }),
+      { merge: true }
+    );
+  } catch (err) {
+    console.error('Error initiating call in Firestore:', err);
+  }
 
   return callData;
 }
@@ -69,24 +90,31 @@ export async function answerCall(chatId: string, callId: string): Promise<void> 
   const chatDocRef = doc(db, CHATS_COLLECTION, chatId);
   const now = new Date().toISOString();
   try {
-    await updateDoc(chatDocRef, {
-      'activeCall.status': 'connected',
-      'activeCall.answeredAt': now,
-      updatedAt: now,
-    });
-  } catch {
-    await setDoc(
+    await updateDoc(
       chatDocRef,
-      {
-        id: chatId,
-        activeCall: {
-          status: 'connected',
-          answeredAt: now,
-        },
+      sanitizeCallData({
+        'activeCall.status': 'connected',
+        'activeCall.answeredAt': now,
         updatedAt: now,
-      },
-      { merge: true }
+      })
     );
+  } catch {
+    try {
+      await setDoc(
+        chatDocRef,
+        sanitizeCallData({
+          id: chatId,
+          activeCall: {
+            status: 'connected',
+            answeredAt: now,
+          },
+          updatedAt: now,
+        }),
+        { merge: true }
+      );
+    } catch (e) {
+      console.error('Error answering call:', e);
+    }
   }
 }
 
@@ -95,24 +123,31 @@ export async function declineCall(chatId: string, callId: string): Promise<void>
   const chatDocRef = doc(db, CHATS_COLLECTION, chatId);
   const now = new Date().toISOString();
   try {
-    await updateDoc(chatDocRef, {
-      'activeCall.status': 'declined',
-      'activeCall.endedAt': now,
-      updatedAt: now,
-    });
-  } catch {
-    await setDoc(
+    await updateDoc(
       chatDocRef,
-      {
-        id: chatId,
-        activeCall: {
-          status: 'declined',
-          endedAt: now,
-        },
+      sanitizeCallData({
+        'activeCall.status': 'declined',
+        'activeCall.endedAt': now,
         updatedAt: now,
-      },
-      { merge: true }
+      })
     );
+  } catch {
+    try {
+      await setDoc(
+        chatDocRef,
+        sanitizeCallData({
+          id: chatId,
+          activeCall: {
+            status: 'declined',
+            endedAt: now,
+          },
+          updatedAt: now,
+        }),
+        { merge: true }
+      );
+    } catch (e) {
+      console.error('Error declining call:', e);
+    }
   }
 
   // Clear active call state after brief cooldown
@@ -130,26 +165,33 @@ export async function endCall(chatId: string, callId: string, durationSeconds = 
   const chatDocRef = doc(db, CHATS_COLLECTION, chatId);
   const now = new Date().toISOString();
   try {
-    await updateDoc(chatDocRef, {
-      'activeCall.status': 'ended',
-      'activeCall.duration': durationSeconds,
-      'activeCall.endedAt': now,
-      updatedAt: now,
-    });
-  } catch {
-    await setDoc(
+    await updateDoc(
       chatDocRef,
-      {
-        id: chatId,
-        activeCall: {
-          status: 'ended',
-          duration: durationSeconds,
-          endedAt: now,
-        },
+      sanitizeCallData({
+        'activeCall.status': 'ended',
+        'activeCall.duration': durationSeconds,
+        'activeCall.endedAt': now,
         updatedAt: now,
-      },
-      { merge: true }
+      })
     );
+  } catch {
+    try {
+      await setDoc(
+        chatDocRef,
+        sanitizeCallData({
+          id: chatId,
+          activeCall: {
+            status: 'ended',
+            duration: durationSeconds,
+            endedAt: now,
+          },
+          updatedAt: now,
+        }),
+        { merge: true }
+      );
+    } catch (e) {
+      console.error('Error ending call:', e);
+    }
   }
 
   // Clear active call state
@@ -167,6 +209,7 @@ export function subscribeToChatCall(
   chatId: string,
   onCallUpdate: (call: ActiveCallData | null) => void
 ): () => void {
+  if (!chatId) return () => {};
   const chatDocRef = doc(db, CHATS_COLLECTION, chatId);
   return onSnapshot(
     chatDocRef,

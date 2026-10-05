@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { StoreProvider, useStore } from './context/StoreContext';
 import { Header } from './components/Header';
 import { HeroBanner } from './components/HeroBanner';
-import { CategoryFilter } from './components/CategoryFilter';
+// Removed CategoryFilter
 import { ProductCard } from './components/ProductCard';
 import { ProductDetail } from './components/ProductDetail';
 import { BeforeAfterSection } from './components/BeforeAfterSection';
@@ -139,8 +139,6 @@ const MainContent: React.FC = () => {
               </div>
             </div>
 
-            {/* Categories Filter with Fluid Touch */}
-            <CategoryFilter />
 
             {/* Featured Product Banner (Retatrutide 10mg) */}
             <div className="bg-gradient-to-r from-[#006750] via-[#0b745c] to-[#0d8267] rounded-xl sm:rounded-2xl p-3.5 sm:p-5 text-white shadow-md shadow-emerald-950/15 flex flex-col sm:flex-row items-center justify-between gap-3.5 sm:gap-5 relative overflow-hidden">
@@ -247,8 +245,6 @@ const MainContent: React.FC = () => {
               </p>
             </div>
 
-            <CategoryFilter />
-
             {searchQuery && (
               <div className="p-3 bg-emerald-50 rounded-xl text-xs text-emerald-800 flex items-center justify-between">
                 <span>
@@ -261,7 +257,7 @@ const MainContent: React.FC = () => {
               <div className="p-12 text-center bg-white rounded-2xl border border-slate-200">
                 <AlertCircle className="w-10 h-10 text-slate-400 mx-auto mb-2" />
                 <h3 className="font-bold text-slate-800">Nenhum peptídeo encontrado</h3>
-                <p className="text-xs text-slate-500 mt-1">Tente buscar por outro termo ou categoria.</p>
+                <p className="text-xs text-slate-500 mt-1">Tente buscar por outro termo.</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">

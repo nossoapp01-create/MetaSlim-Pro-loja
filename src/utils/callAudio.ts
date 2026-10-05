@@ -1,9 +1,70 @@
-// Web Audio API Synthesizer for Authentic WhatsApp Call Tones & Mobile Ringing
+// Web Audio API & HTML5 Audio Hybrid Synthesizer for Authentic WhatsApp Call Tones & Mobile Ringing
+
+// Clean programmatic WAV base64 data URI for 100% reliable mobile browser audio playback
+function generateRingtoneWavUri(): string {
+  const sampleRate = 22050;
+  const duration = 2.0; // 2 seconds pulse
+  const numSamples = Math.floor(sampleRate * duration);
+  const buffer = new ArrayBuffer(44 + numSamples * 2);
+  const view = new DataView(buffer);
+
+  // RIFF
+  view.setUint32(0, 0x52494646, false);
+  view.setUint32(4, 36 + numSamples * 2, true);
+  view.setUint32(8, 0x57415645, false);
+  // fmt
+  view.setUint32(12, 0x666d7420, false);
+  view.setUint32(16, 16, true);
+  view.setUint16(20, 1, true); // PCM
+  view.setUint16(22, 1, true); // Mono
+  view.setUint32(24, sampleRate, true);
+  view.setUint32(28, sampleRate * 2, true);
+  view.setUint16(32, 2, true);
+  view.setUint16(34, 16, true);
+  // data
+  view.setUint32(36, 0x64617461, false);
+  view.setUint32(40, numSamples * 2, true);
+
+  // Synthesize authentic WhatsApp marimba ring melody (notes: 659Hz, 830Hz, 987Hz, 1318Hz)
+  const notes = [
+    { freq: 659.25, start: 0.0, end: 0.25 },
+    { freq: 830.61, start: 0.25, end: 0.5 },
+    { freq: 987.77, start: 0.5, end: 0.75 },
+    { freq: 1318.51, start: 0.75, end: 1.2 },
+    { freq: 987.77, start: 1.2, end: 1.45 },
+    { freq: 830.61, start: 1.45, end: 1.8 },
+  ];
+
+  for (let i = 0; i < numSamples; i++) {
+    const t = i / sampleRate;
+    let sample = 0;
+    for (const note of notes) {
+      if (t >= note.start && t < note.end) {
+        const localT = t - note.start;
+        const dur = note.end - note.start;
+        const env = Math.exp(-localT * 4) * Math.sin((localT / dur) * Math.PI);
+        sample += Math.sin(2 * Math.PI * note.freq * t) * env * 0.7;
+      }
+    }
+    const val = Math.max(-1, Math.min(1, sample)) * 0x7fff;
+    view.setInt16(44 + i * 2, val, true);
+  }
+
+  const bytes = new Uint8Array(buffer);
+  let binary = '';
+  for (let i = 0; i < bytes.length; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return 'data:audio/wav;base64,' + (typeof btoa !== 'undefined' ? btoa(binary) : '');
+}
+
+const ringtoneWavDataUri = typeof window !== 'undefined' ? generateRingtoneWavUri() : '';
 
 class WhatsAppCallToneGenerator {
   private audioCtx: AudioContext | null = null;
   private ringIntervalId: any = null;
   private incomingIntervalId: any = null;
+  private audioElement: HTMLAudioElement | null = null;
   private isOutgoingRinging = false;
   private isIncomingRinging = false;
 
@@ -37,6 +98,11 @@ class WhatsAppCallToneGenerator {
         source.connect(ctx.destination);
         source.start(0);
       }
+      if (!this.audioElement && typeof Audio !== 'undefined' && ringtoneWavDataUri) {
+        this.audioElement = new Audio(ringtoneWavDataUri);
+        this.audioElement.loop = true;
+        this.audioElement.volume = 0.9;
+      }
     } catch {}
   }
 
@@ -64,8 +130,8 @@ class WhatsAppCallToneGenerator {
         osc2.frequency.setValueAtTime(450, now);
 
         gainNode.gain.setValueAtTime(0, now);
-        gainNode.gain.linearRampToValueAtTime(0.12, now + 0.05);
-        gainNode.gain.setValueAtTime(0.12, now + 0.85);
+        gainNode.gain.linearRampToValueAtTime(0.15, now + 0.05);
+        gainNode.gain.setValueAtTime(0.15, now + 0.85);
         gainNode.gain.linearRampToValueAtTime(0, now + 0.95);
 
         osc1.connect(gainNode);
@@ -103,6 +169,20 @@ class WhatsAppCallToneGenerator {
       } catch (e) {}
     };
 
+    // 1. Play HTML5 Audio element fallback (works in background on mobile)
+    try {
+      if (!this.audioElement && typeof Audio !== 'undefined' && ringtoneWavDataUri) {
+        this.audioElement = new Audio(ringtoneWavDataUri);
+        this.audioElement.loop = true;
+        this.audioElement.volume = 0.95;
+      }
+      if (this.audioElement) {
+        this.audioElement.currentTime = 0;
+        this.audioElement.play().catch(() => {});
+      }
+    } catch {}
+
+    // 2. Play Web Audio synth melody
     const playMelody = () => {
       if (!this.isIncomingRinging) return;
       const ctx = this.getAudioContext();
@@ -110,7 +190,6 @@ class WhatsAppCallToneGenerator {
 
       try {
         const now = ctx.currentTime;
-        // Melodic notes: E5, G#5, B5, E6, B5, G#5
         const notes = [
           { freq: 659.25, time: 0.0, dur: 0.16 }, // E5
           { freq: 830.61, time: 0.18, dur: 0.16 }, // G#5
@@ -124,11 +203,11 @@ class WhatsAppCallToneGenerator {
           const osc = ctx.createOscillator();
           const gain = ctx.createGain();
 
-          osc.type = 'triangle'; // Clear marimba/chime timbre
+          osc.type = 'triangle';
           osc.frequency.setValueAtTime(freq, now + time);
 
           gain.gain.setValueAtTime(0, now + time);
-          gain.gain.linearRampToValueAtTime(0.24, now + time + 0.02);
+          gain.gain.linearRampToValueAtTime(0.3, now + time + 0.02);
           gain.gain.exponentialRampToValueAtTime(0.001, now + time + dur);
 
           osc.connect(gain);
@@ -158,6 +237,12 @@ class WhatsAppCallToneGenerator {
       clearInterval(this.incomingIntervalId);
       this.incomingIntervalId = null;
     }
+    try {
+      if (this.audioElement) {
+        this.audioElement.pause();
+        this.audioElement.currentTime = 0;
+      }
+    } catch {}
     try {
       if (typeof navigator !== 'undefined' && navigator.vibrate) {
         navigator.vibrate(0);
@@ -196,7 +281,7 @@ class WhatsAppCallToneGenerator {
       osc.frequency.exponentialRampToValueAtTime(880, now + 0.15); // A5
 
       gain.gain.setValueAtTime(0, now);
-      gain.gain.linearRampToValueAtTime(0.16, now + 0.03);
+      gain.gain.linearRampToValueAtTime(0.2, now + 0.03);
       gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
 
       osc.connect(gain);
@@ -222,7 +307,7 @@ class WhatsAppCallToneGenerator {
         osc.type = 'sine';
         osc.frequency.setValueAtTime(440, now + offset);
 
-        gain.gain.setValueAtTime(0.12, now + offset);
+        gain.gain.setValueAtTime(0.15, now + offset);
         gain.gain.exponentialRampToValueAtTime(0.001, now + offset + 0.1);
 
         osc.connect(gain);
@@ -244,4 +329,5 @@ if (typeof window !== 'undefined') {
   };
   window.addEventListener('click', unlockListener, { passive: true });
   window.addEventListener('touchstart', unlockListener, { passive: true });
+  window.addEventListener('touchend', unlockListener, { passive: true });
 }

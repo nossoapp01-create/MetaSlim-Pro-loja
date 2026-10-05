@@ -170,13 +170,48 @@ function cleanObject<T extends Record<string, any>>(obj: T): T {
   return result;
 }
 
+export interface ClientIdentity {
+  name: string;
+  contact: string;
+  chatId: string;
+}
+
+// Ensure every visitor / device has an immediate persistent identity & Firestore presence
+export function ensureClientIdentity(): ClientIdentity {
+  const STORAGE_CLIENT_IDENTITY = 'metaslim_client_chat_identity';
+  try {
+    const saved = localStorage.getItem(STORAGE_CLIENT_IDENTITY);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      if (parsed?.chatId) return parsed;
+    }
+  } catch {}
+
+  const randomSuffix = Math.random().toString(36).substring(2, 8);
+  const identity: ClientIdentity = {
+    name: 'Paciente VIP',
+    contact: `Dispositivo ${randomSuffix.toUpperCase()}`,
+    chatId: `chat_paciente_${randomSuffix}`,
+  };
+
+  try {
+    localStorage.setItem(STORAGE_CLIENT_IDENTITY, JSON.stringify(identity));
+  } catch {}
+
+  // Automatically register chat in Firestore so doctor sees it immediately
+  getOrCreateChat(identity.name, identity.contact, identity.chatId).catch(() => {});
+
+  return identity;
+}
+
 // Get or initialize a client conversation
 export async function getOrCreateChat(
   customerName: string,
   customerContact: string,
+  customChatId?: string,
   tenantId?: string
 ): Promise<ChatConversation> {
-  const chatId = generateChatId(customerContact);
+  const chatId = customChatId || generateChatId(customerContact);
   const now = new Date().toISOString();
 
   const isEmail = customerContact.includes('@');

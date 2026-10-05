@@ -10,13 +10,12 @@ import {
   endCall,
   ActiveCallData,
 } from '../services/callSignalingService';
-import { sendChatMessage } from '../services/chatService';
+import { sendChatMessage, ensureClientIdentity } from '../services/chatService';
 
-const STORAGE_CLIENT_IDENTITY = 'metaslim_client_chat_identity';
 const STORAGE_DEVICE_MODE = 'metaslim_device_mode';
 
 export const GlobalCallManager: React.FC = () => {
-  const { isTenantAdmin, isSuperAdmin, isAdminUser, setActiveTab, activeTab } = useStore();
+  const { isTenantAdmin, isSuperAdmin, isAdminUser, activeTab } = useStore();
 
   const [deviceMode, setDeviceMode] = useState<'customer' | 'doctor'>(() => {
     try {
@@ -42,12 +41,9 @@ export const GlobalCallManager: React.FC = () => {
 
   useEffect(() => {
     try {
-      const saved = localStorage.getItem(STORAGE_CLIENT_IDENTITY);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (parsed?.chatId) {
-          setClientChatId(parsed.chatId);
-        }
+      const identity = ensureClientIdentity();
+      if (identity?.chatId) {
+        setClientChatId(identity.chatId);
       }
       const savedMode = localStorage.getItem(STORAGE_DEVICE_MODE);
       if (savedMode === 'doctor' || savedMode === 'customer') {
@@ -89,7 +85,7 @@ export const GlobalCallManager: React.FC = () => {
 
   // 2. GLOBAL LISTENER FOR PATIENT / CLIENT (RECEIVE CALLS FROM DRA. VALÉRIA)
   useEffect(() => {
-    if (!clientChatId || isDoctor) return;
+    if (!clientChatId) return;
 
     const unsubscribe = subscribeToChatCall(clientChatId, (call) => {
       // If doctor is calling client and call is currently ringing
@@ -101,7 +97,7 @@ export const GlobalCallManager: React.FC = () => {
     });
 
     return () => unsubscribe();
-  }, [clientChatId, isDoctor]);
+  }, [clientChatId]);
 
   // 3. LISTEN TO ACTIVE CALL STATUS WHEN IN CALL
   useEffect(() => {
@@ -212,7 +208,7 @@ export const GlobalCallManager: React.FC = () => {
         caller: isDoctor ? 'customer' : 'admin',
         callerName: isDoctor ? 'Paciente VIP (Teste)' : 'Dra. Valéria Prado',
         callerAvatar: isDoctor
-          ? undefined
+          ? 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=400'
           : 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&q=80&w=400',
         receiver: isDoctor ? 'admin' : 'customer',
         receiverName: isDoctor ? 'Dra. Valéria Prado' : 'Você (Paciente)',
