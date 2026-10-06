@@ -19,6 +19,7 @@ import {
 import { StripeSalesDashboard } from './StripeSalesDashboard';
 import { SaaSTenantsManager } from './SaaSTenantsManager';
 import { WhatsAppAdminDashboard } from './WhatsAppAdminDashboard';
+import { PWAInstallPrompt } from './PWAInstallPrompt';
 import { ImageUploadField } from './ImageUploadField';
 import {
   testStripeConnection,
@@ -579,6 +580,24 @@ export const AdminPanel: React.FC = () => {
               </button>
             </div>
           )}
+
+          {/* Dedicated WhatsApp VIP Chat for Admin */}
+          <button
+            onClick={() => setActiveAdminTab('whatsapp-chat')}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shadow-xs cursor-pointer ${
+              activeAdminTab === 'whatsapp-chat'
+                ? 'bg-[#008069] text-white shadow-emerald-900/20 ring-2 ring-emerald-400'
+                : 'bg-emerald-50 hover:bg-emerald-100 text-[#008069] border border-emerald-300'
+            }`}
+            title="Abrir o Atendimento WhatsApp VIP com os Pacientes"
+          >
+            <MessageCircle className="w-3.5 h-3.5 text-emerald-600" />
+            <span>WhatsApp VIP</span>
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+          </button>
+
+          {/* Download App PWA in Admin */}
+          <PWAInstallPrompt variant="pill" title="Baixar App" />
 
           <button
             onClick={() => refreshFromFirebase()}

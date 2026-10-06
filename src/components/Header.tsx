@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { useStore } from '../context/StoreContext';
 import { Search, ShoppingBag, ShieldCheck, Dna, X, LogIn, LogOut, CloudCheck, UserCheck, User, Truck, TrendingUp, Stethoscope, Building2, Store, MessageSquare } from 'lucide-react';
-import { PWAInstallPrompt } from './PWAInstallPrompt';
 
 interface HeaderProps {
   onOpenCalculator?: () => void;
@@ -118,26 +117,6 @@ export const Header: React.FC<HeaderProps> = ({ onOpenCalculator }) => {
           >
             <Search className="w-4 h-4" />
           </button>
-
-          {/* Direct WhatsApp VIP Chat Link */}
-          <button
-            onClick={() => setActiveTab('chat')}
-            className={`flex items-center gap-1.5 text-[11px] font-semibold px-2.5 sm:px-3 py-1.5 rounded-full transition-all cursor-pointer ${
-              activeTab === 'chat'
-                ? 'bg-[#008069] text-white shadow-md shadow-emerald-900/20 ring-2 ring-emerald-400'
-                : 'text-[#008069] bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 shadow-2xs'
-            }`}
-            title="Atendimento Individual no WhatsApp VIP (Dra. Valéria Prado)"
-            id="header-whatsapp-chat-btn"
-          >
-            <MessageSquare className="w-3.5 h-3.5 text-emerald-600" />
-            <span className="hidden sm:inline font-bold">WhatsApp VIP</span>
-            <span className="sm:hidden font-bold">WhatsApp</span>
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-          </button>
-
-          {/* Quick PWA App Installation Button */}
-          <PWAInstallPrompt variant="pill" title="Baixar App" className="hidden lg:inline-flex" />
 
           {/* Delivery Policy Link */}
           <button

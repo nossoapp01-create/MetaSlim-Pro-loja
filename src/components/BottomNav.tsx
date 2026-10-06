@@ -11,7 +11,7 @@ interface NavItem {
 }
 
 export const BottomNav: React.FC = () => {
-  const { activeTab, setActiveTab, cartItemsCount } = useStore();
+  const { activeTab, setActiveTab, cartItemsCount, isAdminUser } = useStore();
   const [whatsappUnread, setWhatsappUnread] = useState(0);
 
   useEffect(() => {
@@ -25,7 +25,7 @@ export const BottomNav: React.FC = () => {
   const navItems: NavItem[] = [
     { id: 'inicio', label: 'Início', icon: Home },
     { id: 'produtos', label: 'Peptídeos', icon: Grid },
-    { id: 'chat', label: 'WhatsApp', icon: MessageSquare, badge: whatsappUnread > 0 ? whatsappUnread : undefined },
+    ...(isAdminUser ? [{ id: 'chat' as const, label: 'WhatsApp VIP', icon: MessageSquare, badge: whatsappUnread > 0 ? whatsappUnread : undefined }] : []),
     { id: 'carrinho', label: 'Carrinho', icon: ShoppingBag, badge: cartItemsCount },
     { id: 'admin', label: 'Admin', icon: ShieldCheck },
   ];
