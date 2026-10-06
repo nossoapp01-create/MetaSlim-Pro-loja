@@ -181,23 +181,29 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   // SaaS Multi-Tenant state
   const [allTenants, setAllTenants] = useState<TenantAccount[]>(() => {
     try {
+      const deletedRaw = localStorage.getItem('metaslim_deleted_tenants');
+      const deletedIds = new Set<string>(deletedRaw ? JSON.parse(deletedRaw) : []);
+
       const saved = localStorage.getItem('metaslim_all_tenants');
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          const validated = parsed.map((t) => ({
-            ...t,
-            status: t.status || 'active',
-          })) as TenantAccount[];
-          const existingIds = new Set(validated.map((t) => t.tenantId));
-          const missing = initialTenants.filter((t) => !existingIds.has(t.tenantId));
-          return missing.length > 0 ? [...validated, ...missing] : validated;
+          const validated = parsed
+            .filter((t) => t && t.tenantId && !deletedIds.has(t.tenantId))
+            .map((t) => ({
+              ...t,
+              status: t.status || 'active',
+            })) as TenantAccount[];
+          if (validated.length > 0) {
+            return validated;
+          }
         }
       }
+      return initialTenants.filter((t) => !deletedIds.has(t.tenantId));
     } catch (e) {
       console.warn('Erro ao carregar tenants do localStorage, usando padrões:', e);
+      return initialTenants;
     }
-    return initialTenants;
   });
 
   const [activeTenantId, setActiveTenantId] = useState<string>(() => {
@@ -798,9 +804,29 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       const target = allTenants.find((t) => t.tenantId === tenantId);
       const updated = allTenants.filter((t) => t.tenantId !== tenantId);
       setAllTenants(updated);
+
+      // Permanently record in localStorage so it is never re-injected upon refresh
       try {
         localStorage.setItem('metaslim_all_tenants', JSON.stringify(updated));
+        const deletedRaw = localStorage.getItem('metaslim_deleted_tenants');
+        const deletedList: string[] = deletedRaw ? JSON.parse(deletedRaw) : [];
+        if (!deletedList.includes(tenantId)) {
+          deletedList.push(tenantId);
+          localStorage.setItem('metaslim_deleted_tenants', JSON.stringify(deletedList));
+        }
+      } catch {}
+
+      // Delete from Firestore
+      try {
         await deleteDoc(doc(db, 'tenants', tenantId));
+        await setDoc(
+          doc(db, 'platform_meta', 'deleted_tenants'),
+          {
+            lastDeletedId: tenantId,
+            deletedAt: new Date().toISOString(),
+          },
+          { merge: true }
+        );
       } catch (e) {
         console.warn('Sync notice:', e);
       }
@@ -1126,6 +1152,26 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         }
       }
 
+      // Tenants
+      const tenantsSnap = await getDocs(collection(db, 'tenants')).catch(() => null);
+      if (tenantsSnap && !tenantsSnap.empty) {
+        const deletedRaw = localStorage.getItem('metaslim_deleted_tenants');
+        const deletedIds = new Set<string>(deletedRaw ? JSON.parse(deletedRaw) : []);
+        const loadedTenants: TenantAccount[] = [];
+        tenantsSnap.forEach((d) => {
+          const t = d.data() as TenantAccount;
+          if (t && t.tenantId && !deletedIds.has(t.tenantId) && (t.status as string) !== 'deleted') {
+            loadedTenants.push(t);
+          }
+        });
+        if (loadedTenants.length > 0) {
+          setAllTenants(loadedTenants);
+          try {
+            localStorage.setItem('metaslim_all_tenants', JSON.stringify(loadedTenants));
+          } catch {}
+        }
+      }
+
       setIsFirebaseConnected(true);
       showToast('Dados sincronizados com o Firebase Firestore!');
     } catch (err) {
@@ -1135,22 +1181,109 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   }, [showToast]);
 
-  // Real-time listener for public updates
+  // Automatically sync with Firestore on mount so any new browser gets fresh cloud prices & stores
+  useEffect(() => {
+    refreshFromFirebase().catch(() => {});
+  }, [refreshFromFirebase]);
+
+  // Real-time listener for public updates (Products, Tenants, and Deleted Tenants Sync)
   useEffect(() => {
     let unsubProducts: (() => void) | undefined;
+    let unsubTenantProducts: (() => void) | undefined;
+    let unsubTenants: (() => void) | undefined;
+    let unsubDeletedMeta: (() => void) | undefined;
+
+    const handleProductsSnapshot = (snapshot: any) => {
+      if (!snapshot.empty) {
+        const cloudList: Product[] = [];
+        snapshot.forEach((d: any) => {
+          const p = d.data() as Product;
+          if (p && p.id) cloudList.push(p);
+        });
+        if (cloudList.length > 0) {
+          setProducts((prev) => {
+            const base = prev && prev.length > 0 ? prev : getInitialProductsForTenant(activeTenantId);
+            const cloudMap = new Map<string, Product>();
+            cloudList.forEach((p) => cloudMap.set(p.id, p));
+
+            const merged = base.map((p) => (cloudMap.has(p.id) ? { ...p, ...cloudMap.get(p.id)! } : p));
+            const existingIds = new Set(base.map((p) => p.id));
+            cloudList.forEach((p) => {
+              if (!existingIds.has(p.id)) {
+                merged.push(p);
+              }
+            });
+
+            try {
+              localStorage.setItem(`metaslim_tenant_products_${activeTenantId}`, JSON.stringify(merged));
+              if (activeTenantId === initialTenants[0].tenantId) {
+                localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(merged));
+              }
+            } catch {}
+
+            return merged;
+          });
+        }
+      }
+    };
+
     try {
-      unsubProducts = onSnapshot(
-        collection(db, 'products'),
+      unsubProducts = onSnapshot(collection(db, 'products'), handleProductsSnapshot, (err) => {
+        console.warn('Realtime products notice:', err.message);
+      });
+
+      if (activeTenantId) {
+        unsubTenantProducts = onSnapshot(
+          collection(db, 'tenants', activeTenantId, 'products'),
+          handleProductsSnapshot,
+          (err) => console.warn('Tenant products notice:', err.message)
+        );
+      }
+
+      unsubTenants = onSnapshot(
+        collection(db, 'tenants'),
         (snapshot) => {
           if (!snapshot.empty) {
-            const list: Product[] = [];
-            snapshot.forEach((d) => list.push(d.data() as Product));
-            if (list.length > 0) setProducts(list);
+            const deletedRaw = localStorage.getItem('metaslim_deleted_tenants');
+            const deletedIds = new Set<string>(deletedRaw ? JSON.parse(deletedRaw) : []);
+            const cloudTenants: TenantAccount[] = [];
+            snapshot.forEach((d) => {
+              const t = d.data() as TenantAccount;
+              if (t && t.tenantId && !deletedIds.has(t.tenantId) && (t.status as string) !== 'deleted') {
+                cloudTenants.push(t);
+              }
+            });
+            if (cloudTenants.length > 0) {
+              setAllTenants(cloudTenants);
+              try {
+                localStorage.setItem('metaslim_all_tenants', JSON.stringify(cloudTenants));
+              } catch {}
+            }
           }
         },
-        (error) => {
-          console.warn('Realtime products snapshot notice:', error.message);
-        }
+        (err) => console.warn('Tenants notice:', err.message)
+      );
+
+      unsubDeletedMeta = onSnapshot(
+        doc(db, 'platform_meta', 'deleted_tenants'),
+        (snap) => {
+          if (snap.exists()) {
+            const data = snap.data();
+            const lastId = data?.lastDeletedId;
+            const deletedList = data?.deletedIds || [];
+            if (lastId || (Array.isArray(deletedList) && deletedList.length > 0)) {
+              const deletedRaw = localStorage.getItem('metaslim_deleted_tenants');
+              const localDeleted: string[] = deletedRaw ? JSON.parse(deletedRaw) : [];
+              const combined = Array.from(new Set([...localDeleted, ...(lastId ? [lastId] : []), ...deletedList]));
+              try {
+                localStorage.setItem('metaslim_deleted_tenants', JSON.stringify(combined));
+              } catch {}
+              const combinedSet = new Set(combined);
+              setAllTenants((prev) => prev.filter((t) => !combinedSet.has(t.tenantId)));
+            }
+          }
+        },
+        (err) => console.warn('Deleted meta notice:', err.message)
       );
     } catch (e) {
       console.warn('Listener setup notice:', e);
@@ -1158,8 +1291,11 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     return () => {
       if (unsubProducts) unsubProducts();
+      if (unsubTenantProducts) unsubTenantProducts();
+      if (unsubTenants) unsubTenants();
+      if (unsubDeletedMeta) unsubDeletedMeta();
     };
-  }, []);
+  }, [activeTenantId]);
 
   // Sync all current store datasets to Firebase Firestore
   const syncAllToFirebase = async () => {
@@ -1528,12 +1664,10 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     showToast(`Produto "${updated.name}" atualizado!`);
 
     try {
-      await setDoc(doc(db, 'tenants', activeTenantId, 'products', updated.id), updated);
-      if (activeTenantId === initialTenants[0].tenantId) {
-        await setDoc(doc(db, 'products', updated.id), updated).catch(() => {});
-      }
+      await setDoc(doc(db, 'tenants', activeTenantId, 'products', updated.id), updated, { merge: true });
+      await setDoc(doc(db, 'products', updated.id), updated, { merge: true }).catch(() => {});
     } catch (e) {
-      console.warn('Note: saved locally, cloud sync pending admin auth.');
+      console.warn('Note: saved locally, cloud sync pending:', e);
     }
   };
 
@@ -1550,12 +1684,10 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     showToast(`Novo produto "${product.name}" criado!`);
 
     try {
-      await setDoc(doc(db, 'tenants', activeTenantId, 'products', id), product);
-      if (activeTenantId === initialTenants[0].tenantId) {
-        await setDoc(doc(db, 'products', id), product).catch(() => {});
-      }
+      await setDoc(doc(db, 'tenants', activeTenantId, 'products', id), product, { merge: true });
+      await setDoc(doc(db, 'products', id), product, { merge: true }).catch(() => {});
     } catch (e) {
-      console.warn('Note: saved locally, cloud sync pending admin auth.');
+      console.warn('Note: saved locally, cloud sync pending:', e);
     }
   };
 
@@ -1598,10 +1730,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     try {
       for (const prod of createdList) {
-        await setDoc(doc(db, 'tenants', destTenantId, 'products', prod.id), prod).catch(() => {});
-        if (destTenantId === initialTenants[0].tenantId) {
-          await setDoc(doc(db, 'products', prod.id), prod).catch(() => {});
-        }
+        await setDoc(doc(db, 'tenants', destTenantId, 'products', prod.id), prod, { merge: true }).catch(() => {});
+        await setDoc(doc(db, 'products', prod.id), prod, { merge: true }).catch(() => {});
       }
     } catch (e) {
       console.warn('Sync notice:', e);
@@ -1623,12 +1753,10 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     showToast('Produto excluído do catálogo');
 
     try {
-      await deleteDoc(doc(db, 'tenants', activeTenantId, 'products', id));
-      if (activeTenantId === initialTenants[0].tenantId) {
-        await deleteDoc(doc(db, 'products', id)).catch(() => {});
-      }
+      await deleteDoc(doc(db, 'tenants', activeTenantId, 'products', id)).catch(() => {});
+      await deleteDoc(doc(db, 'products', id)).catch(() => {});
     } catch (e) {
-      console.warn('Note: removed locally, cloud sync pending admin auth.');
+      console.warn('Note: removed locally, cloud sync pending:', e);
     }
   };
 

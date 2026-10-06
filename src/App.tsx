@@ -35,15 +35,14 @@ const MainContent: React.FC = () => {
     setToast,
     setSelectedProductId,
     isTenantAdmin,
+    formatPrice,
   } = useStore();
 
   const [isCalculatorOpen, setIsCalculatorOpen] = useState(false);
 
-  // Filter products by category and search safely
+  // Filter products by search safely (categories are handled exclusively in the Admin panel)
   const filteredProducts = (products || []).filter((prod) => {
     if (!prod) return false;
-    const matchesCategory =
-      !selectedCategory || selectedCategory === 'todos' || prod.category === selectedCategory;
     const q = (searchQuery || '').trim().toLowerCase();
     const matchesSearch =
       !q ||
@@ -52,7 +51,7 @@ const MainContent: React.FC = () => {
       (prod.refCode || '').toLowerCase().includes(q) ||
       (prod.whatIsItFor || '').toLowerCase().includes(q);
 
-    return matchesCategory && matchesSearch;
+    return matchesSearch;
   });
 
   // Dedicated Full-Screen WhatsApp VIP Chat Mode (Zero Store Header, Zero Footer, 100% WhatsApp Web)
@@ -169,7 +168,7 @@ const MainContent: React.FC = () => {
                 <div className="flex flex-col sm:items-end">
                   <span className="text-[10px] text-emerald-200 font-mono">A partir de</span>
                   <span className="text-xl sm:text-2xl font-extrabold font-mono text-[#93f5d4]">
-                    €59,00
+                    {formatPrice(products[0]?.price || 59)}
                   </span>
                 </div>
                 <button

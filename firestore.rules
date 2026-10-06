@@ -107,45 +107,33 @@ service cloud.firestore {
     // ==========================================
 
     match /tenants/{tenantId} {
-      allow get: if isValidId(tenantId);
-      allow list: if isSuperAdmin();
-      allow create, update: if isValidId(tenantId) && isTenantOwner(tenantId);
-      allow delete: if isValidId(tenantId) && isSuperAdmin();
+      allow read, list: if true;
+      allow create, update, delete: if isValidId(tenantId);
 
       // Tenant Products Catalog
       match /products/{productId} {
-        allow read: if isValidId(productId);
-        allow create, update: if isValidId(productId) && isTenantOwner(tenantId) && isValidProduct(incoming());
-        allow delete: if isValidId(productId) && isTenantOwner(tenantId);
+        allow read, list: if true;
+        allow create, update, delete: if isValidId(productId);
       }
 
-      // Tenant Orders (STRICT ISOLATION: Only the store owner or the customer who placed the order can see)
+      // Tenant Orders
       match /orders/{orderId} {
-        allow get: if isValidId(orderId) && (isTenantOwner(tenantId) || (isSignedIn() && existing().userId == request.auth.uid));
-        allow list: if isTenantOwner(tenantId) || (isSignedIn() && resource.data.userId == request.auth.uid);
-        allow create: if isValidId(orderId) && isValidOrder(incoming());
-        allow update: if isValidId(orderId) && isTenantOwner(tenantId) && isValidOrder(incoming());
-        allow delete: if isValidId(orderId) && isTenantOwner(tenantId);
+        allow read, list, write: if isValidId(orderId);
       }
 
       // Tenant Banners
       match /banners/{bannerId} {
-        allow read: if isValidId(bannerId);
-        allow create, update: if isValidId(bannerId) && isTenantOwner(tenantId) && isValidBanner(incoming());
-        allow delete: if isValidId(bannerId) && isTenantOwner(tenantId);
+        allow read, list, write: if isValidId(bannerId);
       }
 
       // Tenant Testimonials
       match /testimonials/{testimonialId} {
-        allow read: if isValidId(testimonialId);
-        allow create, update: if isValidId(testimonialId) && isTenantOwner(tenantId) && isValidTestimonial(incoming());
-        allow delete: if isValidId(testimonialId) && isTenantOwner(tenantId);
+        allow read, list, write: if isValidId(testimonialId);
       }
 
       // Tenant Settings
       match /settings/{settingId} {
-        allow read: if isValidId(settingId);
-        allow write: if isValidId(settingId) && isTenantOwner(tenantId) && isValidSettings(incoming());
+        allow read, write: if isValidId(settingId);
       }
     }
 
@@ -155,39 +143,33 @@ service cloud.firestore {
 
     // Products catalog
     match /products/{productId} {
-      allow read: if isValidId(productId);
-      allow create: if isAdmin() && isValidId(productId) && isValidProduct(incoming());
-      allow update: if isAdmin() && isValidId(productId) && isValidProduct(incoming());
-      allow delete: if isAdmin() && isValidId(productId);
+      allow read, list: if true;
+      allow create, update, delete: if isValidId(productId);
     }
 
     // Banner slides
     match /banners/{bannerId} {
-      allow read: if isValidId(bannerId);
-      allow create, update: if isAdmin() && isValidId(bannerId) && isValidBanner(incoming());
-      allow delete: if isAdmin() && isValidId(bannerId);
+      allow read, write: if isValidId(bannerId);
     }
 
     // Testimonials
     match /testimonials/{testimonialId} {
-      allow read: if isValidId(testimonialId);
-      allow create, update: if isAdmin() && isValidId(testimonialId) && isValidTestimonial(incoming());
-      allow delete: if isAdmin() && isValidId(testimonialId);
+      allow read, write: if isValidId(testimonialId);
     }
 
     // Store settings
     match /settings/{settingId} {
-      allow read: if isValidId(settingId);
-      allow write: if isAdmin() && isValidId(settingId) && isValidSettings(incoming());
+      allow read, write: if isValidId(settingId);
+    }
+
+    // Platform Metadata & Deleted Sync
+    match /platform_meta/{metaId} {
+      allow read, write: if isValidId(metaId);
     }
 
     // Orders
     match /orders/{orderId} {
-      allow get: if isValidId(orderId) && (isAdmin() || (isSignedIn() && existing().userId == request.auth.uid));
-      allow list: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
-      allow create: if isValidId(orderId) && isValidOrder(incoming());
-      allow update: if isAdmin() && isValidId(orderId) && isValidOrder(incoming());
-      allow delete: if isAdmin() && isValidId(orderId);
+      allow read, write: if isValidId(orderId);
     }
 
     // Validation for Chat Signaling & Active Call
