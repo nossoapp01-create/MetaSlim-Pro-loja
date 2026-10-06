@@ -29,6 +29,7 @@ import {
   LogOut,
   X,
   Eye,
+  EyeOff,
   Sliders,
   Sparkles,
   Bot,
@@ -57,6 +58,7 @@ export const SuperAdminPanel: React.FC = () => {
 
   const [activeSuperAdminTab, setActiveSuperAdminTab] = useState<'tenants' | 'ai-extractor'>('tenants');
   const [pinInput, setPinInput] = useState('');
+  const [showPin, setShowPin] = useState(false);
   const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'active' | 'suspended'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -105,14 +107,24 @@ export const SuperAdminPanel: React.FC = () => {
           }}
           className="mt-6 flex flex-col gap-3"
         >
-          <input
-            type="password"
-            placeholder="Digite a Chave Mestra ou Senha..."
-            value={pinInput}
-            onChange={(e) => setPinInput(e.target.value)}
-            className="w-full h-11 px-4 rounded-xl bg-slate-50 border border-slate-200 text-sm text-slate-900 text-center font-mono focus:outline-none focus:ring-2 focus:ring-[#006750]"
-            autoFocus
-          />
+          <div className="relative w-full">
+            <input
+              type={showPin ? 'text' : 'password'}
+              placeholder="Digite a Chave Mestra ou Senha..."
+              value={pinInput}
+              onChange={(e) => setPinInput(e.target.value)}
+              className="w-full h-11 pl-4 pr-11 rounded-xl bg-slate-50 border border-slate-200 text-sm text-slate-900 text-center font-mono focus:outline-none focus:ring-2 focus:ring-[#006750]"
+              autoFocus
+            />
+            <button
+              type="button"
+              onClick={() => setShowPin(!showPin)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 p-1 cursor-pointer"
+              title={showPin ? 'Ocultar senha' : 'Ver senha digitada'}
+            >
+              {showPin ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+            </button>
+          </div>
           <button
             type="submit"
             className="w-full h-11 rounded-xl bg-[#006750] hover:bg-[#0b745c] text-white text-xs font-bold transition-all shadow-md active:scale-98 cursor-pointer flex items-center justify-center gap-2"

@@ -677,8 +677,24 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   // Super Admin Methods
   const unlockSuperAdmin = useCallback((pin: string) => {
-    const clean = pin.trim().toLowerCase();
-    if (clean === 'superadmin2026' || clean === 'admin123' || clean === 'metaslim99' || clean === 'nossoapp01') {
+    const raw = (pin || '').trim();
+    const clean = raw.toLowerCase();
+    const envMaster = (import.meta.env.VITE_SUPER_ADMIN_PASSWORD || '25091982Rm.').trim();
+
+    const validMasterPasswords = [
+      '25091982Rm.',
+      envMaster,
+      '25091982rm.',
+      'superadmin2026',
+      'admin123',
+      'metaslim99',
+      'nossoapp01',
+    ];
+
+    if (
+      validMasterPasswords.includes(raw) ||
+      validMasterPasswords.map((p) => p.toLowerCase()).includes(clean)
+    ) {
       setSuperAdminKeyUnlocked(true);
       try {
         localStorage.setItem('metaslim_super_admin_unlocked', 'true');
