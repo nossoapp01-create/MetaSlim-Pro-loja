@@ -242,6 +242,8 @@ export const GlobalCallManager: React.FC = () => {
         contactAvatar={liveCallContact.avatar}
         caller={isDoctor ? 'admin' : 'customer'}
         isInitiator={false}
+        activeChatId={activeCallSession?.chatId || undefined}
+        activeCallId={activeCallSession?.callId || undefined}
         callStatusSync={activeCallSession?.status}
         onClose={handleEndLiveCall}
       />

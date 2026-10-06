@@ -471,10 +471,8 @@ export function subscribeToAllConversations(
 
   try {
     const chatsRef = collection(db, CHATS_COLLECTION);
-    const q = query(chatsRef, orderBy('lastMessageAt', 'desc'));
-
     const unsubscribe = onSnapshot(
-      q,
+      chatsRef,
       (snapshot) => {
         const chats: ChatConversation[] = [];
         snapshot.forEach((docSnap) => {

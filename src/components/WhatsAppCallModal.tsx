@@ -9,8 +9,11 @@ import {
   Phone,
   PhoneOff,
   ShieldCheck,
+  CheckCircle2,
+  XCircle,
 } from 'lucide-react';
 import { callAudio } from '../utils/callAudio';
+import { answerCall, declineCall } from '../services/callSignalingService';
 
 interface WhatsAppCallModalProps {
   isOpen: boolean;
@@ -20,7 +23,9 @@ interface WhatsAppCallModalProps {
   contactAvatar?: string;
   caller: 'customer' | 'admin';
   isInitiator?: boolean;
-  callStatusSync?: 'ringing' | 'connected' | 'ended' | 'declined';
+  activeChatId?: string;
+  activeCallId?: string;
+  callStatusSync?: 'ringing' | 'connecting' | 'connected' | 'ended' | 'declined';
   onClose: (durationSeconds: number, callType: 'voice' | 'video', status: 'completed' | 'missed') => void;
 }
 
@@ -32,6 +37,8 @@ export const WhatsAppCallModal: React.FC<WhatsAppCallModalProps> = ({
   contactAvatar,
   caller,
   isInitiator = true,
+  activeChatId,
+  activeCallId,
   callStatusSync,
   onClose,
 }) => {
@@ -98,7 +105,7 @@ export const WhatsAppCallModal: React.FC<WhatsAppCallModalProps> = ({
       setCallStatus('calling');
       callAudio.startOutgoingRinging();
 
-      // Ring for 40 seconds before timing out as missed call (do NOT auto-answer!)
+      // Ring for 45 seconds before timing out as missed call (do NOT auto-answer compulsorily)
       const timeoutNoAnswer = setTimeout(() => {
         setCallStatus((curr) => {
           if (curr === 'calling') {
@@ -109,7 +116,7 @@ export const WhatsAppCallModal: React.FC<WhatsAppCallModalProps> = ({
           }
           return curr;
         });
-      }, 40000);
+      }, 45000);
 
       return () => clearTimeout(timeoutNoAnswer);
     }
@@ -166,7 +173,40 @@ export const WhatsAppCallModal: React.FC<WhatsAppCallModalProps> = ({
     setIsVideoDisabled(!isVideoDisabled);
   };
 
-  // End Call Handler
+  // Connect call immediately (e.g. simulation or direct answer)
+  const handleConnectCallNow = async () => {
+    callAudio.stopRinging();
+    callAudio.playCallConnectedChime();
+    setCallStatus('connected');
+    if (!timerRef.current) {
+      timerRef.current = setInterval(() => {
+        setCallDuration((prev) => prev + 1);
+      }, 1000);
+    }
+
+    // Sync to Firestore if IDs are provided
+    if (activeChatId && activeCallId) {
+      try {
+        await answerCall(activeChatId, activeCallId);
+      } catch (e) {
+        console.warn('Error answering in Firestore:', e);
+      }
+    }
+  };
+
+  // Decline call immediately (e.g. simulation or busy)
+  const handleSimulateDecline = async () => {
+    callAudio.stopRinging();
+    callAudio.playHangupTone();
+    if (activeChatId && activeCallId) {
+      try {
+        await declineCall(activeChatId, activeCallId);
+      } catch {}
+    }
+    handleEndCall('missed');
+  };
+
+  // Handle hangup
   const handleEndCall = (forcedStatus?: 'completed' | 'missed') => {
     callAudio.stopAll();
     callAudio.playHangupTone();
@@ -195,7 +235,7 @@ export const WhatsAppCallModal: React.FC<WhatsAppCallModalProps> = ({
   return (
     <div className="fixed inset-0 z-50 bg-[#0b141a] text-white flex flex-col justify-between overflow-hidden animate-in fade-in duration-200 select-none">
       {/* 1. TOP STATUS BAR */}
-      <div className="px-4 py-3 sm:py-4 bg-gradient-to-b from-black/60 to-transparent flex items-center justify-between z-20">
+      <div className="px-4 py-3 sm:py-4 bg-gradient-to-b from-black/70 to-transparent flex items-center justify-between z-20">
         <div className="flex items-center gap-2">
           <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
           <span className="text-xs font-semibold uppercase tracking-wider text-emerald-300">
@@ -231,13 +271,13 @@ export const WhatsAppCallModal: React.FC<WhatsAppCallModalProps> = ({
                 </div>
               </div>
             ) : (
-              <div className="flex flex-col items-center justify-center gap-4 text-center z-10 p-6">
+              <div className="flex flex-col items-center justify-center gap-4 text-center z-10 p-6 max-w-md w-full">
                 <div className="relative">
                   <div className="w-28 h-28 sm:w-36 sm:h-36 rounded-full p-1 border-2 border-emerald-400 overflow-hidden shadow-2xl animate-pulse">
                     <img src={avatarUrl} alt={contactName} className="w-full h-full object-cover rounded-full" />
                   </div>
-                  <span className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-emerald-600 text-white text-[10px] font-bold px-3 py-0.5 rounded-full uppercase tracking-wider">
-                    {callStatus === 'calling' ? 'Chamando...' : 'Conectando...'}
+                  <span className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-emerald-600 text-white text-[10px] font-bold px-3 py-0.5 rounded-full uppercase tracking-wider whitespace-nowrap">
+                    {callStatus === 'calling' ? 'Chamando no WhatsApp...' : 'Conectando...'}
                   </span>
                 </div>
 
@@ -248,25 +288,29 @@ export const WhatsAppCallModal: React.FC<WhatsAppCallModalProps> = ({
                   </p>
                 </div>
 
+                {/* TEST SIMULATION CONTROLS */}
                 {callStatus === 'calling' && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      callAudio.stopRinging();
-                      callAudio.playCallConnectedChime();
-                      setCallStatus('connected');
-                      if (!timerRef.current) {
-                        timerRef.current = setInterval(() => {
-                          setCallDuration((prev) => prev + 1);
-                        }, 1000);
-                      }
-                    }}
-                    className="mt-3 px-4 py-1.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center gap-1.5 transition-all shadow-md active:scale-95 cursor-pointer animate-pulse"
-                    title="Conectar chamada imediatamente para teste"
-                  >
-                    <Phone className="w-3.5 h-3.5" />
-                    <span>Conectar Chamada Agora</span>
-                  </button>
+                  <div className="mt-4 flex flex-col gap-2 w-full max-w-xs">
+                    <button
+                      type="button"
+                      onClick={handleConnectCallNow}
+                      className="w-full py-2.5 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs flex items-center justify-center gap-2 transition-all shadow-lg active:scale-95 cursor-pointer animate-pulse"
+                      title="Simular paciente atendendo a chamada imediatamente"
+                    >
+                      <CheckCircle2 className="w-4 h-4" />
+                      <span>Simular Atendimento Imediato (Testar)</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={handleSimulateDecline}
+                      className="w-full py-2 px-3 rounded-xl bg-white/10 hover:bg-white/20 text-red-300 font-semibold text-[11px] flex items-center justify-center gap-1.5 transition-all border border-white/10 active:scale-95 cursor-pointer"
+                      title="Simular paciente recusando ou sem resposta"
+                    >
+                      <XCircle className="w-3.5 h-3.5" />
+                      <span>Simular Paciente Ocupado / Recusar</span>
+                    </button>
+                  </div>
                 )}
               </div>
             )}
@@ -322,30 +366,34 @@ export const WhatsAppCallModal: React.FC<WhatsAppCallModalProps> = ({
                   </span>
                 ) : (
                   <span className="text-xs font-bold text-white/90">
-                    {callStatus === 'calling' ? 'Chamando...' : 'Conectando...'}
+                    {callStatus === 'calling' ? 'Chamando no WhatsApp...' : 'Conectando...'}
                   </span>
                 )}
               </div>
 
+              {/* TEST SIMULATION CONTROLS */}
               {callStatus === 'calling' && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    callAudio.stopRinging();
-                    callAudio.playCallConnectedChime();
-                    setCallStatus('connected');
-                    if (!timerRef.current) {
-                      timerRef.current = setInterval(() => {
-                        setCallDuration((prev) => prev + 1);
-                      }, 1000);
-                    }
-                  }}
-                  className="mt-3 px-4 py-1.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center gap-1.5 transition-all shadow-md active:scale-95 cursor-pointer animate-pulse"
-                  title="Conectar chamada imediatamente para teste"
-                >
-                  <Phone className="w-3.5 h-3.5" />
-                  <span>Conectar Chamada Agora</span>
-                </button>
+                <div className="mt-5 flex flex-col gap-2 w-full max-w-xs">
+                  <button
+                    type="button"
+                    onClick={handleConnectCallNow}
+                    className="w-full py-2.5 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs flex items-center justify-center gap-2 transition-all shadow-lg active:scale-95 cursor-pointer animate-pulse"
+                    title="Simular atendimento imediato para teste"
+                  >
+                    <CheckCircle2 className="w-4 h-4" />
+                    <span>Simular Atendimento Imediato (Testar)</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleSimulateDecline}
+                    className="w-full py-2 px-3 rounded-xl bg-white/10 hover:bg-white/20 text-red-300 font-semibold text-[11px] flex items-center justify-center gap-1.5 transition-all border border-white/10 active:scale-95 cursor-pointer"
+                    title="Simular recusa de chamada"
+                  >
+                    <XCircle className="w-3.5 h-3.5" />
+                    <span>Simular Paciente Ocupado / Recusar</span>
+                  </button>
+                </div>
               )}
             </div>
           </div>

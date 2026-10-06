@@ -580,20 +580,22 @@ export const WhatsAppClientChat: React.FC = () => {
             <button
               type="button"
               onClick={() => handleStartCall('video')}
-              className="p-2 text-white hover:bg-emerald-700/60 rounded-full transition-colors cursor-pointer"
+              className="p-1.5 sm:px-2.5 sm:py-1 bg-emerald-600/80 hover:bg-emerald-600 border border-emerald-400/50 text-white rounded-full sm:rounded-xl font-bold text-xs flex items-center gap-1 transition-all shadow-xs active:scale-95 cursor-pointer"
               title="Iniciar Chamada de Vídeo com a Dra. Valéria"
             >
-              <Video className="w-5 h-5" />
+              <Video className="w-4 h-4 text-emerald-100" />
+              <span className="hidden md:inline text-[11px]">Vídeo</span>
             </button>
 
             {/* Voice Call Button */}
             <button
               type="button"
               onClick={() => handleStartCall('voice')}
-              className="p-2 text-white hover:bg-emerald-700/60 rounded-full transition-colors cursor-pointer"
+              className="p-1.5 sm:px-2.5 sm:py-1 bg-emerald-600/80 hover:bg-emerald-600 border border-emerald-400/50 text-white rounded-full sm:rounded-xl font-bold text-xs flex items-center gap-1 transition-all shadow-xs active:scale-95 cursor-pointer"
               title="Iniciar Chamada de Voz com a Dra. Valéria"
             >
-              <Phone className="w-4.5 h-4.5" />
+              <Phone className="w-3.5 h-3.5 text-emerald-100" />
+              <span className="hidden md:inline text-[11px]">Voz</span>
             </button>
 
             {/* Switch to Doctor Mode on this phone */}
@@ -911,6 +913,8 @@ export const WhatsAppClientChat: React.FC = () => {
         contactRole="Médica Endocrinologista • CRM 62.180-SP"
         caller="customer"
         isInitiator={isCallInitiator}
+        activeChatId={clientIdentity?.chatId}
+        activeCallId={activeCallSession?.callId}
         callStatusSync={activeCallSession?.status}
         onClose={handleCallEnded}
       />

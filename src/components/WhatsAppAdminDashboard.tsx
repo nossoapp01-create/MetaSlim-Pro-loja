@@ -951,20 +951,22 @@ export const WhatsAppAdminDashboard: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => handleStartCall('video')}
-                    className="p-2 text-slate-600 hover:text-emerald-700 hover:bg-slate-200/70 rounded-full transition-colors cursor-pointer"
-                    title="Iniciar Chamada de Vídeo VIP"
+                    className="p-2 sm:px-3 sm:py-1.5 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 text-emerald-800 rounded-full sm:rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all shadow-xs active:scale-95 cursor-pointer"
+                    title="Iniciar Chamada de Vídeo VIP com o Paciente"
                   >
-                    <Video className="w-5 h-5 text-emerald-700" />
+                    <Video className="w-4.5 h-4.5 sm:w-4 sm:h-4 text-emerald-700" />
+                    <span className="hidden md:inline">Vídeo</span>
                   </button>
 
                   {/* Voice Call Button */}
                   <button
                     type="button"
                     onClick={() => handleStartCall('voice')}
-                    className="p-2 text-slate-600 hover:text-emerald-700 hover:bg-slate-200/70 rounded-full transition-colors cursor-pointer"
-                    title="Iniciar Chamada de Voz VIP"
+                    className="p-2 sm:px-3 sm:py-1.5 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 text-emerald-800 rounded-full sm:rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all shadow-xs active:scale-95 cursor-pointer"
+                    title="Iniciar Chamada de Voz VIP com o Paciente"
                   >
-                    <Phone className="w-4.5 h-4.5 text-emerald-700" />
+                    <Phone className="w-4 h-4 sm:w-3.5 sm:h-3.5 text-emerald-700" />
+                    <span className="hidden md:inline">Voz</span>
                   </button>
 
                   <button
@@ -1279,18 +1281,22 @@ export const WhatsAppAdminDashboard: React.FC = () => {
       />
 
       {/* 5. ACTIVE REALTIME WHATSAPP CALL MODAL */}
-      {activeConversation && (
-        <WhatsAppCallModal
-          isOpen={isCallModalOpen}
-          callType={activeCallType}
-          contactName={isCallInitiator ? activeConversation.customerName : (incomingCall?.callerName || activeConversation.customerName)}
-          contactRole={`Paciente VIP • ${activeConversation.customerContact}`}
-          caller="admin"
-          isInitiator={isCallInitiator}
-          callStatusSync={activeCallSession?.status}
-          onClose={handleCallEnded}
-        />
-      )}
+      <WhatsAppCallModal
+        isOpen={isCallModalOpen}
+        callType={activeCallType}
+        contactName={
+          isCallInitiator
+            ? (activeConversation?.customerName || 'Paciente VIP')
+            : (activeCallSession?.callerName || activeConversation?.customerName || 'Paciente VIP')
+        }
+        contactRole={`Paciente VIP • ${activeConversation?.customerContact || 'Atendimento Clínico'}`}
+        caller="admin"
+        isInitiator={isCallInitiator}
+        activeChatId={selectedChatId || activeCallSession?.chatId || undefined}
+        activeCallId={activeCallSession?.callId || undefined}
+        callStatusSync={activeCallSession?.status}
+        onClose={handleCallEnded}
+      />
     </div>
   );
 };

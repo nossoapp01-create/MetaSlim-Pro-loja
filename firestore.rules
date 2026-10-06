@@ -190,9 +190,28 @@ service cloud.firestore {
       allow delete: if isAdmin() && isValidId(orderId);
     }
 
+    // Validation for Chat Signaling & Active Call
+    function isValidActiveCall(call) {
+      return call == null || (
+        call is map &&
+        call.callId is string && call.callId.size() <= 128 &&
+        call.chatId is string && call.chatId.size() <= 128 &&
+        call.callType in ['voice', 'video'] &&
+        call.status in ['ringing', 'connecting', 'connected', 'ended', 'declined', 'missed'] &&
+        call.caller in ['customer', 'admin'] &&
+        call.receiver in ['customer', 'admin'] &&
+        (!('callerName' in call) || (call.callerName is string && call.callerName.size() <= 120)) &&
+        (!('receiverName' in call) || (call.receiverName is string && call.receiverName.size() <= 120))
+      );
+    }
+
     // Validation for Chat Conversation
     function isValidChat(data) {
-      return data.id is string && data.id.size() <= 128;
+      return data.id is string && data.id.size() <= 128 &&
+             (!('customerName' in data) || (data.customerName is string && data.customerName.size() <= 120)) &&
+             (!('customerContact' in data) || (data.customerContact is string && data.customerContact.size() <= 120)) &&
+             (!('lastMessage' in data) || (data.lastMessage is string && data.lastMessage.size() <= 4000)) &&
+             (!('activeCall' in data) || isValidActiveCall(data.activeCall));
     }
 
     // Validation for Chat Message
@@ -200,7 +219,9 @@ service cloud.firestore {
       return data.id is string && data.id.size() <= 128 &&
              data.chatId is string && data.chatId.size() <= 128 &&
              data.sender in ['customer', 'admin'] &&
-             data.text is string && data.text.size() <= 4000;
+             (!('text' in data) || (data.text is string && data.text.size() <= 4000)) &&
+             (!('audioUrl' in data) || (data.audioUrl is string && data.audioUrl.size() <= 2000000)) &&
+             (!('attachmentUrl' in data) || (data.attachmentUrl is string && data.attachmentUrl.size() <= 2000000));
     }
 
     // WhatsApp Direct Client Chats
