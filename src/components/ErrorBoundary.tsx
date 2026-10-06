@@ -1,5 +1,5 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
-import { AlertCircle, RefreshCw, Home } from 'lucide-react';
+import { AlertCircle, RefreshCw, Home, RotateCcw } from 'lucide-react';
 
 interface Props {
   children: ReactNode;
@@ -27,8 +27,24 @@ export class ErrorBoundary extends Component<Props, State> {
   private handleReset = () => {
     try {
       localStorage.removeItem('metaslim_active_tenant_id');
+      localStorage.removeItem('metaslim_device_mode');
     } catch {}
-    window.location.href = window.location.pathname;
+    // Reset state directly first to attempt re-render
+    this.setState({ hasError: false, error: null });
+    // If still failing, reload
+    setTimeout(() => {
+      if (this.state.hasError) {
+        window.location.href = '/';
+      }
+    }, 150);
+  };
+
+  private handleFullClear = () => {
+    try {
+      localStorage.clear();
+      sessionStorage.clear();
+    } catch {}
+    window.location.href = '/';
   };
 
   public render() {
@@ -39,11 +55,11 @@ export class ErrorBoundary extends Component<Props, State> {
             <div className="w-14 h-14 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center">
               <AlertCircle className="w-8 h-8" />
             </div>
-            
+
             <h1 className="text-xl font-bold text-slate-900">
               Estamos restaurando sua visualização
             </h1>
-            
+
             <p className="text-xs sm:text-sm text-slate-500 leading-relaxed">
               Ocorreu uma pequena instabilidade temporária na interface. Clique abaixo para restabelecer a loja com dados atualizados.
             </p>
@@ -54,17 +70,12 @@ export class ErrorBoundary extends Component<Props, State> {
                 className="flex-1 py-3 px-4 rounded-xl bg-[#006750] hover:bg-[#0b745c] text-white text-xs font-bold transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer active:scale-95"
               >
                 <RefreshCw className="w-4 h-4" />
-                <span>Recarregar Loja</span>
+                <span>Restaurar Agora</span>
               </button>
-              
+
               <button
-                onClick={() => {
-                  try {
-                    localStorage.clear();
-                  } catch {}
-                  window.location.href = '/';
-                }}
-                className="py-3 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                onClick={this.handleFullClear}
+                className="py-3 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
               >
                 <Home className="w-4 h-4" />
                 <span>Limpar Cache &amp; Iniciar</span>

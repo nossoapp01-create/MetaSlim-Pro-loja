@@ -71,16 +71,16 @@ export const StripeSalesDashboard: React.FC = () => {
   // Filtered orders list
   const filteredOrders = orders.filter((order) => {
     const matchesStatus = statusFilter === 'all' || order.status === statusFilter;
-    const q = searchQuery.toLowerCase();
+    const q = (searchQuery || '').trim().toLowerCase();
     const matchesSearch =
       !q ||
-      order.id.toLowerCase().includes(q) ||
-      order.shipping.fullName.toLowerCase().includes(q) ||
-      order.shipping.city.toLowerCase().includes(q) ||
-      order.shipping.postalCode.toLowerCase().includes(q) ||
-      order.shipping.phone.toLowerCase().includes(q) ||
-      order.customerEmail?.toLowerCase().includes(q) ||
-      (order.stripeSessionId && order.stripeSessionId.toLowerCase().includes(q));
+      (order.id || '').toLowerCase().includes(q) ||
+      (order.shipping?.fullName || '').toLowerCase().includes(q) ||
+      (order.shipping?.city || '').toLowerCase().includes(q) ||
+      (order.shipping?.postalCode || '').toLowerCase().includes(q) ||
+      (order.shipping?.phone || '').toLowerCase().includes(q) ||
+      (order.customerEmail || '').toLowerCase().includes(q) ||
+      (order.stripeSessionId || '').toLowerCase().includes(q);
 
     return matchesStatus && matchesSearch;
   });

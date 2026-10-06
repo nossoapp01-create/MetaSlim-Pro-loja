@@ -35,7 +35,9 @@ export const HeroBanner: React.FC = () => {
   };
 
   const handleCtaClick = (slide: typeof banners[0]) => {
-    if (slide.id === 6 || slide.ctaLink === '#revenda' || slide.title.toLowerCase().includes('revend')) {
+    const titleLower = (slide?.title || '').toLowerCase();
+    const ctaLinkLower = (slide?.ctaLink || '').toLowerCase();
+    if (slide?.id === 6 || ctaLinkLower.includes('revend') || titleLower.includes('revend')) {
       setActiveTab('revenda');
     } else if (slide.id === 1) {
       setSelectedProductId('retatrutide-10mg');

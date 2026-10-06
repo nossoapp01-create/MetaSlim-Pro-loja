@@ -144,10 +144,10 @@ export const SuperAdminPanel: React.FC = () => {
     if (filterStatus !== 'all' && t.status !== filterStatus) return false;
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
-      const matchName = t.storeName.toLowerCase().includes(q);
-      const matchOwner = t.ownerName.toLowerCase().includes(q);
-      const matchEmail = t.ownerEmail.toLowerCase().includes(q);
-      const matchSlug = t.storeSlug.toLowerCase().includes(q);
+      const matchName = (t.storeName || '').toLowerCase().includes(q);
+      const matchOwner = (t.ownerName || '').toLowerCase().includes(q);
+      const matchEmail = (t.ownerEmail || '').toLowerCase().includes(q);
+      const matchSlug = (t.storeSlug || '').toLowerCase().includes(q);
       return matchName || matchOwner || matchEmail || matchSlug;
     }
     return true;

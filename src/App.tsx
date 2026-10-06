@@ -39,16 +39,18 @@ const MainContent: React.FC = () => {
 
   const [isCalculatorOpen, setIsCalculatorOpen] = useState(false);
 
-  // Filter products by category and search
-  const filteredProducts = products.filter((prod) => {
+  // Filter products by category and search safely
+  const filteredProducts = (products || []).filter((prod) => {
+    if (!prod) return false;
     const matchesCategory =
-      selectedCategory === 'todos' || prod.category === selectedCategory;
+      !selectedCategory || selectedCategory === 'todos' || prod.category === selectedCategory;
+    const q = (searchQuery || '').trim().toLowerCase();
     const matchesSearch =
-      !searchQuery ||
-      prod.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      prod.subtitle.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      prod.refCode.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      prod.whatIsItFor.toLowerCase().includes(searchQuery.toLowerCase());
+      !q ||
+      (prod.name || '').toLowerCase().includes(q) ||
+      (prod.subtitle || '').toLowerCase().includes(q) ||
+      (prod.refCode || '').toLowerCase().includes(q) ||
+      (prod.whatIsItFor || '').toLowerCase().includes(q);
 
     return matchesCategory && matchesSearch;
   });

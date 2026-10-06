@@ -185,14 +185,16 @@ export const WhatsAppAdminDashboard: React.FC = () => {
 
   const activeConversation = conversations.find((c) => c.id === selectedChatId) || null;
 
-  // Filter and strictly sort conversations by latest message timestamp descending
-  const filteredConversations = conversations
+  // Filter and strictly sort conversations by latest message timestamp descending safely
+  const filteredConversations = (conversations || [])
     .filter((c) => {
+      if (!c) return false;
+      const q = (searchTerm || '').trim().toLowerCase();
       const matchesSearch =
-        !searchTerm ||
-        c.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        c.customerContact.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        c.lastMessage.toLowerCase().includes(searchTerm.toLowerCase());
+        !q ||
+        (c.customerName || '').toLowerCase().includes(q) ||
+        (c.customerContact || '').toLowerCase().includes(q) ||
+        (c.lastMessage || '').toLowerCase().includes(q);
 
       const matchesFilter = filterType === 'all' || (filterType === 'unread' && (c.unreadByAdmin || 0) > 0);
 
