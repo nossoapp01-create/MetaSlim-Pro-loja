@@ -10,7 +10,7 @@ service cloud.firestore {
 
     // Helper functions
     function isValidId(id) {
-      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-\\.]+$');
     }
 
     function incoming() {
@@ -207,19 +207,21 @@ service cloud.firestore {
 
     // Validation for Chat Conversation
     function isValidChat(data) {
-      return data.id is string && data.id.size() <= 128 &&
+      return data is map &&
+             (!('id' in data) || (data.id is string && data.id.size() <= 128)) &&
              (!('customerName' in data) || (data.customerName is string && data.customerName.size() <= 120)) &&
              (!('customerContact' in data) || (data.customerContact is string && data.customerContact.size() <= 120)) &&
-             (!('lastMessage' in data) || (data.lastMessage is string && data.lastMessage.size() <= 4000)) &&
+             (!('lastMessage' in data) || (data.lastMessage is string && data.lastMessage.size() <= 8000)) &&
              (!('activeCall' in data) || isValidActiveCall(data.activeCall));
     }
 
     // Validation for Chat Message
     function isValidChatMessage(data) {
-      return data.id is string && data.id.size() <= 128 &&
-             data.chatId is string && data.chatId.size() <= 128 &&
-             data.sender in ['customer', 'admin'] &&
-             (!('text' in data) || (data.text is string && data.text.size() <= 4000)) &&
+      return data is map &&
+             (!('id' in data) || (data.id is string && data.id.size() <= 128)) &&
+             (!('chatId' in data) || (data.chatId is string && data.chatId.size() <= 128)) &&
+             (!('sender' in data) || data.sender in ['customer', 'admin']) &&
+             (!('text' in data) || (data.text is string && data.text.size() <= 8000)) &&
              (!('audioUrl' in data) || (data.audioUrl is string && data.audioUrl.size() <= 2000000)) &&
              (!('attachmentUrl' in data) || (data.attachmentUrl is string && data.attachmentUrl.size() <= 2000000));
     }

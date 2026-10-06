@@ -576,6 +576,66 @@ Retorne um objeto JSON estritamente no seguinte formato:
     }
   });
 
+  // 4. Dra. Valéria Prado AI Clinical Consultation Endpoint
+  app.post('/api/ai/doctor-valeria', async (req, res) => {
+    try {
+      const { messages = [], patientName = 'Paciente VIP', patientContact = '', currentPhase = 1 } = req.body;
+      const key = process.env.GEMINI_API_KEY;
+
+      if (!key) {
+        return res.status(200).json({
+          success: false,
+          fallback: true,
+          message: 'No GEMINI_API_KEY configured',
+        });
+      }
+
+      const ai = new GoogleGenAI({ apiKey: key });
+
+      const historyText = messages
+        .map((m: any) => `${m.role === 'user' ? 'Paciente' : 'Dra. Valéria'}: ${m.content}`)
+        .join('\n');
+
+      const prompt = `Você é a Dra. Valéria Prado, médica especialista em Endocrinologia Metabólica, Medicina da Longevidade e Otimização Peptídica (CRM 62.180-SP / RQE 38.450).
+Sua missão clínica é conduzir protocolos de emagrecimento intensivo (6 a 8 kg/mês) preservando massa magra.
+
+DIRETRIZES DE COMUNICAÇÃO:
+- Máximo 2 a 3 parágrafos curtos.
+- No máximo 1 a 2 perguntas curtas por mensagem.
+- Interrompa a escrita e aguarde a resposta da paciente.
+- PROIBIÇÃO ABSOLUTA de citar preços, valores em R$, €, $ ou custos. Trate tudo estritamente sob a ótica médica e científica.
+- Respeite o fluxo de 4 fases (1: Acolhimento, 2: Investigação dos 3 eixos, 3: Stacking Peptídico de 3 compostos, 4: Prescrição estruturada, BAC water e dieta adaptada).
+- Banco de 20 peptídeos: Semaglutida, Tirzepatida, Retatrutida, Tesamorelina, AOD-9604, BPC-157, TB-500, GHK-Cu, KPV, Timosina Alfa-1, CJC-1295, Ipamorelina, Semax, Selank, DSIP, Oxitocina, Epitalon, MOTS-c, SS-31, FoxO4-DRI.
+- Contraindicações estritas: CMT/pancreatite (nunca GLP-1/GIP; usar AOD-9604+MOTS-c+BPC-157), gravidez (suspender tudo).
+
+DADOS DA CONSULTA:
+Paciente: ${patientName}
+Contato: ${patientContact || 'WhatsApp VIP'}
+Fase Sugerida: Fase ${currentPhase}
+
+HISTÓRICO DA CONVERSA:
+${historyText || 'Início da conversa.'}
+
+Gere a próxima resposta clínica da Dra. Valéria Prado:`;
+
+      const response = await ai.models.generateContent({
+        model: 'gemini-3.8-flash',
+        contents: prompt,
+      });
+
+      const text = response.text || '';
+
+      return res.status(200).json({
+        success: true,
+        text: text.trim(),
+        phase: currentPhase,
+      });
+    } catch (err: any) {
+      console.error('Doctor Valeria API Error:', err);
+      return res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
   // Vite middleware for development
   if (process.env.NODE_ENV !== 'production') {
     const vite = await createViteServer({

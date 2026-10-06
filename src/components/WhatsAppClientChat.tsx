@@ -53,6 +53,7 @@ import {
   AudioRecordingSession,
   formatAudioDuration,
 } from '../utils/audioUtils';
+import { getDoctorValeriaResponse } from '../services/doctorValeriaService';
 
 const STORAGE_CLIENT_IDENTITY = 'metaslim_client_chat_identity';
 
@@ -82,6 +83,7 @@ export const WhatsAppClientChat: React.FC = () => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [isSending, setIsSending] = useState(false);
+  const [isDoctorTyping, setIsDoctorTyping] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [isRecordingAudio, setIsRecordingAudio] = useState(false);
@@ -160,6 +162,37 @@ export const WhatsAppClientChat: React.FC = () => {
     }
   };
 
+  // Trigger Dra. Valéria Prado automated clinical response
+  const triggerDoctorAutoReply = (latestMsgs: ChatMessage[]) => {
+    const isAutoReplyOn = typeof window !== 'undefined' && localStorage.getItem('metaslim_valeria_autoreply') !== 'false';
+    if (!isAutoReplyOn || !clientIdentity) return;
+
+    setIsDoctorTyping(true);
+    setTimeout(async () => {
+      try {
+        const valeriaRes = await getDoctorValeriaResponse(
+          latestMsgs,
+          clientIdentity.name,
+          clientIdentity.contact
+        );
+
+        if (valeriaRes?.text) {
+          await sendChatMessage(
+            clientIdentity.chatId,
+            'admin',
+            'Dra. Valéria Prado',
+            valeriaRes.text
+          );
+        }
+      } catch (err) {
+        console.error('Error getting Dra. Valéria response:', err);
+      } finally {
+        setIsDoctorTyping(false);
+        setTimeout(() => scrollToBottom(true), 60);
+      }
+    }, 2400);
+  };
+
   // Handle message sending
   const handleSendMessage = async (textToSend?: string) => {
     const text = (textToSend || newMessage).trim();
@@ -170,8 +203,11 @@ export const WhatsAppClientChat: React.FC = () => {
     setShowEmojiPicker(false);
 
     try {
-      await sendChatMessage(clientIdentity.chatId, 'customer', clientIdentity.name, text);
+      const sentMsg = await sendChatMessage(clientIdentity.chatId, 'customer', clientIdentity.name, text);
       setTimeout(() => scrollToBottom(true), 50);
+
+      // Trigger Dra. Valéria AI auto consultation response
+      triggerDoctorAutoReply([...messages, sentMsg]);
     } catch (e) {
       console.error('Erro ao enviar mensagem:', e);
       showToast('Erro ao enviar mensagem. Verifique sua conexão.');
@@ -207,7 +243,7 @@ export const WhatsAppClientChat: React.FC = () => {
       setIsRecordingAudio(false);
       recordingSessionRef.current = null;
 
-      await sendChatMessage(
+      const sentMsg = await sendChatMessage(
         clientIdentity.chatId,
         'customer',
         clientIdentity.name,
@@ -220,6 +256,7 @@ export const WhatsAppClientChat: React.FC = () => {
       );
       showToast('Áudio de voz enviado!');
       setTimeout(() => scrollToBottom(true), 50);
+      triggerDoctorAutoReply([...messages, sentMsg]);
     } catch (e) {
       console.error('Error sending audio:', e);
       showToast('Erro ao processar gravação de áudio.');
@@ -262,7 +299,7 @@ export const WhatsAppClientChat: React.FC = () => {
       showToast('Processando e anexando arquivo...');
       const processed = await processFileAttachment(file);
 
-      await sendChatMessage(
+      const sentMsg = await sendChatMessage(
         clientIdentity.chatId,
         'customer',
         clientIdentity.name,
@@ -279,6 +316,7 @@ export const WhatsAppClientChat: React.FC = () => {
       const typeLabel = processed.attachmentType === 'image' ? 'Foto enviada' : 'PDF enviado';
       showToast(`${typeLabel} com sucesso!`);
       setTimeout(() => scrollToBottom(true), 50);
+      triggerDoctorAutoReply([...messages, sentMsg]);
     } catch (err: any) {
       console.error('File upload error:', err);
       showToast(err.message || 'Erro ao processar arquivo.');
@@ -772,6 +810,20 @@ export const WhatsAppClientChat: React.FC = () => {
               </div>
             );
           })}
+
+          {/* Doctor Typing Indicator */}
+          {isDoctorTyping && (
+            <div className="flex flex-col items-start animate-in fade-in duration-150">
+              <div className="bg-white text-[#111b21] rounded-2xl rounded-tl-xs px-3.5 py-2 text-sm shadow-xs border border-slate-200/70 flex items-center gap-2">
+                <div className="flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-bounce" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-bounce [animation-delay:0.2s]" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-bounce [animation-delay:0.4s]" />
+                </div>
+                <span className="text-xs font-semibold text-emerald-800">Dra. Valéria Prado está digitando...</span>
+              </div>
+            </div>
+          )}
 
           <div ref={messagesEndRef} />
         </div>

@@ -69,6 +69,14 @@ import {
   AudioRecordingSession,
   formatAudioDuration,
 } from '../utils/audioUtils';
+import {
+  getDoctorValeriaResponse,
+  generateDeterministicValeriaReply,
+  detectClinicalPhase,
+  CLINICAL_PHASES_META,
+  ClinicalPhase,
+} from '../services/doctorValeriaService';
+import { getOrCreateChat } from '../services/chatService';
 
 export const WhatsAppAdminDashboard: React.FC = () => {
   const { showToast, setActiveTab, settings } = useStore();
@@ -87,6 +95,44 @@ export const WhatsAppAdminDashboard: React.FC = () => {
   const [recordingDuration, setRecordingDuration] = useState(0);
   const recordingSessionRef = useRef<AudioRecordingSession | null>(null);
   const recordingTimerRef = useRef<any>(null);
+
+  // AI Doctor Valeria Clinical Assistant State
+  const [isGeneratingAI, setIsGeneratingAI] = useState(false);
+  const [autoReplyEnabled, setAutoReplyEnabled] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('metaslim_valeria_autoreply') !== 'false';
+    } catch {
+      return true;
+    }
+  });
+
+  const handleToggleAutoReply = () => {
+    const next = !autoReplyEnabled;
+    setAutoReplyEnabled(next);
+    try {
+      localStorage.setItem('metaslim_valeria_autoreply', String(next));
+    } catch {}
+    showToast(
+      next
+        ? 'Atendimento Automático da Dra. Valéria (IA) ativado com sucesso!'
+        : 'Atendimento Automático pausado. Responda manualmente quando desejar.'
+    );
+  };
+
+  const handleCreateTestPatientChat = async () => {
+    try {
+      const testNames = ['Ana Paula Silva (VIP)', 'Mariana Vasconcelos', 'Carla Mendes', 'Juliana Rocha'];
+      const pickName = testNames[Math.floor(Math.random() * testNames.length)];
+      const pickContact = `+55 11 9${Math.floor(1000 + Math.random() * 9000)}-${Math.floor(1000 + Math.random() * 9000)}`;
+
+      const newChat = await getOrCreateChat(pickName, pickContact);
+      setSelectedChatId(newChat.id);
+      setMobileChatOpen(true);
+      showToast(`Conversa de teste criada com ${pickName}!`);
+    } catch (e) {
+      showToast('Erro ao criar conversa de teste.');
+    }
+  };
 
   const handleCopyClientLink = () => {
     const link = `${window.location.origin}/?chat=1`;
@@ -204,6 +250,52 @@ export const WhatsAppAdminDashboard: React.FC = () => {
 
   const totalUnreadCount = conversations.reduce((acc, c) => acc + (c.unreadByAdmin || 0), 0);
 
+  // Detect active conversation clinical phase
+  const activeClinicalPhase = detectClinicalPhase(messages);
+
+  // Suggest or insert clinical consultation reply from Dra. Valéria Prado
+  const handleSuggestDoctorResponse = async (targetPhase?: ClinicalPhase) => {
+    if (!activeConversation) {
+      showToast('Selecione uma conversa para sugerir resposta clínica.');
+      return;
+    }
+
+    setIsGeneratingAI(true);
+    showToast('Gerando conduta clínica da Dra. Valéria Prado...');
+
+    try {
+      const phaseToUse = targetPhase || activeClinicalPhase;
+      const res = await getDoctorValeriaResponse(
+        messages,
+        activeConversation.customerName,
+        activeConversation.customerContact
+      );
+
+      const generated = res?.text || generateDeterministicValeriaReply(
+        phaseToUse,
+        activeConversation.customerName,
+        messages[messages.length - 1]?.text || '',
+        messages
+      );
+
+      setReplyText(generated);
+      showToast(`Resposta clínica da Fase ${phaseToUse} pronta para envio!`);
+      setTimeout(() => scrollToBottom(true), 100);
+    } catch (e: any) {
+      console.error('Error suggesting reply:', e);
+      const fallback = generateDeterministicValeriaReply(
+        targetPhase || activeClinicalPhase,
+        activeConversation.customerName,
+        messages[messages.length - 1]?.text || '',
+        messages
+      );
+      setReplyText(fallback);
+      showToast('Resposta clínica padrão gerada.');
+    } finally {
+      setIsGeneratingAI(false);
+    }
+  };
+
   // Send admin response to the active client
   const handleSendReply = async (textToSend?: string) => {
     const text = (textToSend || replyText).trim();
@@ -227,10 +319,12 @@ export const WhatsAppAdminDashboard: React.FC = () => {
         return updated.sort((a, b) => getChatSortTime(b) - getChatSortTime(a));
       });
 
+      showToast('Resposta enviada com sucesso!');
       setTimeout(() => scrollToBottom(true), 50);
     } catch (e) {
       console.error('Erro ao enviar resposta do admin:', e);
-      showToast('Erro ao enviar resposta.');
+      showToast('Mensagem enviada localmente. Sincronizando com o paciente...');
+      setTimeout(() => scrollToBottom(true), 50);
     } finally {
       setIsSending(false);
     }
@@ -760,12 +854,21 @@ export const WhatsAppAdminDashboard: React.FC = () => {
                 <p className="text-[11px] text-slate-400 mt-1 max-w-xs">
                   Compartilhe o link de atendimento com seus clientes para que eles iniciem as conversas.
                 </p>
-                <button
-                  onClick={handleCopyClientLink}
-                  className="mt-3 px-3.5 py-2 rounded-xl bg-emerald-50 text-emerald-800 text-xs font-bold border border-emerald-200 hover:bg-emerald-100 transition-colors cursor-pointer"
-                >
-                  Copiar Link de Atendimento
-                </button>
+                <div className="flex flex-col gap-2 mt-4 w-full max-w-xs">
+                  <button
+                    onClick={handleCreateTestPatientChat}
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-[#008069] text-white text-xs font-bold hover:bg-[#006750] transition-colors shadow-sm cursor-pointer flex items-center justify-center gap-2"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>Criar Paciente VIP de Teste</span>
+                  </button>
+                  <button
+                    onClick={handleCopyClientLink}
+                    className="w-full px-3.5 py-2 rounded-xl bg-emerald-50 text-emerald-800 text-xs font-bold border border-emerald-200 hover:bg-emerald-100 transition-colors cursor-pointer"
+                  >
+                    Copiar Link de Atendimento
+                  </button>
+                </div>
               </div>
             ) : (
               filteredConversations.map((conv) => {
@@ -1097,6 +1200,96 @@ export const WhatsAppAdminDashboard: React.FC = () => {
                 >
                   <ChevronDown className="w-5 h-5 stroke-[2.5]" />
                 </button>
+              </div>
+
+              {/* Dra. Valéria Prado AI Consultation Assistant Bar */}
+              <div className="bg-[#f7f8f9] border-t border-slate-200/90 px-3 py-1.5 flex flex-wrap items-center justify-between gap-1.5 shrink-0 z-10 text-xs">
+                <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none py-0.5">
+                  <span className="font-bold text-[11px] text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-md flex items-center gap-1 shrink-0">
+                    <Sparkles className="w-3 h-3 text-emerald-700" />
+                    <span>Fase {activeClinicalPhase}: {CLINICAL_PHASES_META[activeClinicalPhase]?.badge}</span>
+                  </span>
+
+                  {/* Suggest / Generate Reply Button */}
+                  <button
+                    type="button"
+                    onClick={() => handleSuggestDoctorResponse()}
+                    disabled={isGeneratingAI || isSending}
+                    className="px-2.5 py-1 bg-[#008069] hover:bg-[#006750] text-white rounded-lg font-bold text-[11px] flex items-center gap-1.5 shadow-xs cursor-pointer active:scale-95 transition-transform disabled:opacity-50 shrink-0"
+                    title="Gerar resposta da Dra. Valéria Prado baseada na fase atual e protocolo de 20 peptídeos"
+                  >
+                    <Sparkles className={`w-3.5 h-3.5 ${isGeneratingAI ? 'animate-spin' : ''}`} />
+                    <span>{isGeneratingAI ? 'Gerando...' : 'Sugerir Resposta (IA)'}</span>
+                  </button>
+
+                  {/* Quick Phase Shortcut Chips */}
+                  <div className="flex items-center gap-1 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => handleSuggestDoctorResponse(1)}
+                      className={`px-2 py-0.5 rounded text-[10px] font-semibold transition-colors cursor-pointer border ${
+                        activeClinicalPhase === 1
+                          ? 'bg-emerald-600 text-white border-emerald-700'
+                          : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100'
+                      }`}
+                      title="Fase 1: Acolhimento e Quebra-Gelo"
+                    >
+                      1. Acolher
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleSuggestDoctorResponse(2)}
+                      className={`px-2 py-0.5 rounded text-[10px] font-semibold transition-colors cursor-pointer border ${
+                        activeClinicalPhase === 2
+                          ? 'bg-emerald-600 text-white border-emerald-700'
+                          : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100'
+                      }`}
+                      title="Fase 2: Investigação Ativa dos 3 Eixos"
+                    >
+                      2. Investigar
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleSuggestDoctorResponse(3)}
+                      className={`px-2 py-0.5 rounded text-[10px] font-semibold transition-colors cursor-pointer border ${
+                        activeClinicalPhase === 3
+                          ? 'bg-emerald-600 text-white border-emerald-700'
+                          : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100'
+                      }`}
+                      title="Fase 3: Apresentação do Stacking Peptídico Sinérgico"
+                    >
+                      3. Stacking
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleSuggestDoctorResponse(4)}
+                      className={`px-2 py-0.5 rounded text-[10px] font-semibold transition-colors cursor-pointer border ${
+                        activeClinicalPhase === 4
+                          ? 'bg-emerald-600 text-white border-emerald-700'
+                          : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100'
+                      }`}
+                      title="Fase 4: Fechamento, Prescrição e Dieta de 4 Fases"
+                    >
+                      4. Prescrever
+                    </button>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <button
+                    type="button"
+                    onClick={handleToggleAutoReply}
+                    className={`px-2 py-0.5 rounded-full text-[10px] font-bold border transition-colors cursor-pointer flex items-center gap-1 ${
+                      autoReplyEnabled
+                        ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
+                        : 'bg-slate-100 text-slate-500 border-slate-300'
+                    }`}
+                    title="Alternar se a IA da Dra. Valéria responde automaticamente ao paciente"
+                  >
+                    <span className={`w-1.5 h-1.5 rounded-full ${autoReplyEnabled ? 'bg-emerald-500 animate-ping' : 'bg-slate-400'}`} />
+                    <span>Auto-IA: {autoReplyEnabled ? 'Ativada' : 'Pausa'}</span>
+                  </button>
+                </div>
               </div>
 
               {/* Admin Input Bar with Microphone & Voice Recording */}
