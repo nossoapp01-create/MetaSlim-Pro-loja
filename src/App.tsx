@@ -21,7 +21,7 @@ import { DosageCalculatorModal } from './components/DosageCalculatorModal';
 import { FloatingConsultationButton } from './components/FloatingConsultationButton';
 import { SaaSAuthModal } from './components/SaaSAuthModal';
 import { ErrorBoundary } from './components/ErrorBoundary';
-import { ShieldCheck, Sparkles, AlertCircle, ArrowRight, Dna, Calculator, X, Truck } from 'lucide-react';
+import { ShieldCheck, Sparkles, AlertCircle, ArrowRight, Dna, Calculator, X, Truck, ShoppingBag, ShoppingCart } from 'lucide-react';
 
 const MainContent: React.FC = () => {
   const {
@@ -36,6 +36,7 @@ const MainContent: React.FC = () => {
     setSelectedProductId,
     isTenantAdmin,
     formatPrice,
+    addToCart,
   } = useStore();
 
   const [isCalculatorOpen, setIsCalculatorOpen] = useState(false);
@@ -171,16 +172,30 @@ const MainContent: React.FC = () => {
                     {formatPrice(products[0]?.price || 59)}
                   </span>
                 </div>
-                <button
-                  onClick={() => {
-                    setSelectedProductId(products[0]?.id || 'retatrutide-10mg');
-                    setActiveTab('produto-detalhe');
-                  }}
-                  className="px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-lg sm:rounded-xl bg-white text-[#006750] hover:bg-emerald-50 font-bold text-xs shadow-xs transition-all active:scale-95 flex items-center justify-center gap-1 cursor-pointer"
-                >
-                  <span>Ver Frasco</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </button>
+                <div className="flex items-center gap-2 mt-1 sm:mt-1.5">
+                  <button
+                    onClick={() => {
+                      setSelectedProductId(products[0]?.id || 'retatrutide-10mg');
+                      setActiveTab('produto-detalhe');
+                    }}
+                    className="px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-lg sm:rounded-xl bg-white/15 hover:bg-white/25 text-white font-bold text-xs shadow-xs transition-all active:scale-95 flex items-center justify-center gap-1 cursor-pointer"
+                  >
+                    <span>Detalhes</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      const featured = products[0] || { id: 'retatrutide-10mg', name: 'Retatrutide (10mg a 100mg)', price: 59 } as any;
+                      const defaultDosage = featured.dosageOptions && featured.dosageOptions.length > 0 ? featured.dosageOptions[0].mg : undefined;
+                      addToCart(featured, 1, 1, defaultDosage);
+                      setActiveTab('carrinho');
+                    }}
+                    className="px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-lg sm:rounded-xl bg-white text-[#006750] hover:bg-emerald-50 font-extrabold text-xs shadow-sm transition-all active:scale-95 flex items-center justify-center gap-1 cursor-pointer"
+                    id="btn-hero-buy-now"
+                  >
+                    <ShoppingCart className="w-3.5 h-3.5" />
+                    <span>Comprar Agora</span>
+                  </button>
+                </div>
               </div>
 
               <div className="absolute -right-8 -bottom-8 w-44 h-44 rounded-full bg-white/5 pointer-events-none" />

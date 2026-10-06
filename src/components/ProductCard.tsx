@@ -16,7 +16,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
     setActiveTab('produto-detalhe');
   };
 
-  const hasDosages = Boolean(product.hasDosageSelector && product.dosageOptions && product.dosageOptions.length > 0);
+  const hasDosages = Boolean(product.dosageOptions && product.dosageOptions.length > 0);
 
   const discountPercent =
     product.originalPrice > product.price
@@ -111,17 +111,17 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
 
         <button
           onClick={() => {
-            if (hasDosages) {
-              handleOpenDetail();
-            } else {
-              addToCart(product, 1, 1);
-            }
+            const defaultDosage = hasDosages && product.dosageOptions && product.dosageOptions.length > 0
+              ? product.dosageOptions[0].mg
+              : undefined;
+            addToCart(product, 1, 1, defaultDosage);
+            setActiveTab('carrinho');
           }}
           className="h-7 sm:h-9 rounded-lg sm:rounded-xl bg-gradient-to-r from-[#006750] to-[#0d8267] hover:from-[#0d8267] hover:to-[#006750] text-white font-bold text-[10px] sm:text-xs flex items-center justify-center gap-1 shadow-2xs transition-all active:scale-95 cursor-pointer"
           id={`btn-add-cart-${product.id}`}
         >
           <ShoppingCart className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-[#93f5d4] shrink-0" />
-          <span>{hasDosages ? 'Comprar (10-100mg)' : 'Comprar'}</span>
+          <span>Comprar</span>
         </button>
       </div>
     </article>

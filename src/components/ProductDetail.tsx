@@ -39,6 +39,7 @@ export const ProductDetail: React.FC = () => {
   const [selectedVials, setSelectedVials] = useState<number>(1);
   const [isZoomed, setIsZoomed] = useState<boolean>(false);
   const [activeDetailTab, setActiveDetailTab] = useState<'didatico' | 'mecanismo' | 'tecnica'>('didatico');
+  const [showAddedModal, setShowAddedModal] = useState<boolean>(false);
 
   const product =
     products.find((p) => p.id === selectedProductId) || products[0];
@@ -83,11 +84,8 @@ export const ProductDetail: React.FC = () => {
     `${settings.defaultPaymentLink}?ref=${product.refCode}&vials=${selectedVials}${dosageQuery}&price=${currentTier.total}`;
 
   const handleDirectBuy = () => {
-    if (paymentUrl.startsWith('http')) {
-      window.open(paymentUrl, '_blank');
-    } else {
-      showToast('Redirecionando para o gateway de pagamento seguro...');
-    }
+    addToCart(product, selectedVials, 1, hasDosages ? selectedDosageMg : undefined);
+    setActiveTab('carrinho');
   };
 
   return (
@@ -369,7 +367,10 @@ export const ProductDetail: React.FC = () => {
 
           {/* Add to Cart Button */}
           <button
-            onClick={() => addToCart(product, selectedVials, 1, hasDosages ? selectedDosageMg : undefined)}
+            onClick={() => {
+              addToCart(product, selectedVials, 1, hasDosages ? selectedDosageMg : undefined);
+              setShowAddedModal(true);
+            }}
             className="w-full py-3 px-5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold text-sm flex items-center justify-center gap-2 transition-all active:scale-[0.98] cursor-pointer"
             id="product-add-to-cart-cta"
           >
@@ -458,7 +459,10 @@ export const ProductDetail: React.FC = () => {
           product={product}
           selectedVials={selectedVials}
           onSelectVials={setSelectedVials}
-          onAddToCart={(vials) => addToCart(product, vials, 1)}
+          onAddToCart={(vials) => {
+            addToCart(product, vials, 1, hasDosages ? selectedDosageMg : undefined);
+            setShowAddedModal(true);
+          }}
           onDirectBuy={handleDirectBuy}
           onOpenCalculator={() => {
             setActiveDetailTab('tecnica');
@@ -709,6 +713,51 @@ export const ProductDetail: React.FC = () => {
           <ArrowRight className="w-4 h-4" />
         </button>
       </div>
+
+      {/* Added to Cart Feedback Dialog */}
+      {showAddedModal && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-150">
+          <div className="bg-white rounded-3xl p-5 sm:p-6 max-w-sm w-full shadow-2xl border border-slate-200 flex flex-col items-center text-center relative">
+            <div className="w-14 h-14 rounded-2xl bg-emerald-100 text-[#006750] flex items-center justify-center mb-3">
+              <Check className="w-8 h-8 stroke-[2.5]" />
+            </div>
+
+            <span className="text-[10px] uppercase font-mono font-bold text-emerald-800 bg-emerald-50 px-2.5 py-0.5 rounded-full mb-1 border border-emerald-200">
+              Item Adicionado ao Carrinho
+            </span>
+
+            <h3 className="text-base sm:text-lg font-extrabold text-slate-900 mt-1">
+              {product.name}
+            </h3>
+
+            <p className="text-xs text-slate-500 mt-0.5">
+              {selectedVials}x Frasco{selectedVials > 1 ? 's' : ''} {hasDosages ? `• ${selectedDosageMg}mg` : ''} &bull; <strong className="font-mono text-[#006750]">{formatPrice(currentTier.total)}</strong>
+            </p>
+
+            <div className="mt-5 flex flex-col gap-2 w-full">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowAddedModal(false);
+                  setActiveTab('carrinho');
+                }}
+                className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-[#006750] via-[#0d8267] to-[#006750] hover:opacity-95 text-white font-extrabold text-xs flex items-center justify-center gap-2 shadow-md shadow-emerald-950/20 active:scale-95 transition-all cursor-pointer"
+              >
+                <ShoppingBag className="w-4 h-4 text-[#93f5d4]" />
+                <span>Ir para o Carrinho &bull; Pagar Agora</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setShowAddedModal(false)}
+                className="w-full py-2.5 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition-colors cursor-pointer"
+              >
+                <span>Continuar Comprando</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

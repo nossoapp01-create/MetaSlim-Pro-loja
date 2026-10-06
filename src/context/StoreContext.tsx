@@ -1539,9 +1539,22 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const addToCart = (product: Product, vialsCount = 1, quantity = 1, dosageMg?: number) => {
-    // If dosageMg is specified, find its configured price
-    const dosageOption = dosageMg ? product.dosageOptions?.find((d) => d.mg === dosageMg) : undefined;
-    const basePrice = dosageOption ? dosageOption.price : product.price;
+    if (!product || !product.id) return;
+
+    // Resolve dosage option: if dosageMg not provided, pick first available dosageOption if present
+    const effectiveDosageMg =
+      dosageMg !== undefined
+        ? dosageMg
+        : product.dosageOptions && product.dosageOptions.length > 0
+        ? product.dosageOptions[0].mg
+        : undefined;
+
+    const dosageOption = effectiveDosageMg
+      ? product.dosageOptions?.find((d) => d.mg === effectiveDosageMg)
+      : undefined;
+
+    const rawBasePrice = dosageOption ? dosageOption.price : product.price;
+    const basePrice = Number(rawBasePrice) > 0 ? Number(rawBasePrice) : 59;
 
     let unitPrice = basePrice;
     if (vialsCount === 2) {
@@ -1550,13 +1563,16 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       unitPrice = Math.round(basePrice * 3 * 0.7 * 100) / 100;
     }
 
-    const dosageKey = dosageMg ? `-${dosageMg}mg` : '';
+    const dosageKey = effectiveDosageMg !== undefined ? `-${effectiveDosageMg}mg` : '';
     const itemId = `${product.id}${dosageKey}-${vialsCount}vial`;
 
     setCart((prev) => {
-      const existing = prev.find((item) => item.id === itemId);
+      const safePrev = Array.isArray(prev) ? prev : [];
+      const existing = safePrev.find((item) => item.id === itemId);
+      let nextCart: CartItem[];
+
       if (existing) {
-        return prev.map((item) =>
+        nextCart = safePrev.map((item) =>
           item.id === itemId
             ? {
                 ...item,
@@ -1566,31 +1582,38 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             : item
         );
       } else {
-        return [
-          ...prev,
-          {
-            id: itemId,
-            productId: product.id,
-            product,
-            quantity,
-            vialsCount,
-            dosageMg,
-            dosageLabel: dosageOption ? dosageOption.label : dosageMg ? `${dosageMg} mg` : undefined,
-            unitPrice,
-            totalPrice: unitPrice * quantity,
-          },
-        ];
+        const newItem: CartItem = {
+          id: itemId,
+          productId: product.id,
+          product,
+          quantity,
+          vialsCount,
+          dosageMg: effectiveDosageMg,
+          dosageLabel: dosageOption ? dosageOption.label : effectiveDosageMg ? `${effectiveDosageMg} mg` : undefined,
+          unitPrice,
+          totalPrice: unitPrice * quantity,
+        };
+        nextCart = [...safePrev, newItem];
       }
+
+      try {
+        localStorage.setItem(STORAGE_KEYS.CART, JSON.stringify(nextCart));
+      } catch (e) {
+        console.warn('Could not persist cart:', e);
+      }
+
+      return nextCart;
     });
 
     const vialText = vialsCount > 1 ? ` (${vialsCount} Frascos)` : '';
-    const dosageText = dosageMg ? ` [${dosageMg}mg]` : '';
+    const dosageText = effectiveDosageMg ? ` [${effectiveDosageMg}mg]` : '';
     showToast(`Adicionado ao carrinho: ${product.name}${dosageText}${vialText}`);
   };
 
   const updateCartQty = (itemId: string, delta: number) => {
-    setCart((prev) =>
-      prev
+    setCart((prev) => {
+      const safePrev = Array.isArray(prev) ? prev : [];
+      const nextCart = safePrev
         .map((item) => {
           if (item.id === itemId) {
             const newQty = item.quantity + delta;
@@ -1603,17 +1626,33 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           }
           return item;
         })
-        .filter(Boolean) as CartItem[]
-    );
+        .filter(Boolean) as CartItem[];
+
+      try {
+        localStorage.setItem(STORAGE_KEYS.CART, JSON.stringify(nextCart));
+      } catch {}
+
+      return nextCart;
+    });
   };
 
   const removeFromCart = (itemId: string) => {
-    setCart((prev) => prev.filter((item) => item.id !== itemId));
+    setCart((prev) => {
+      const safePrev = Array.isArray(prev) ? prev : [];
+      const nextCart = safePrev.filter((item) => item.id !== itemId);
+      try {
+        localStorage.setItem(STORAGE_KEYS.CART, JSON.stringify(nextCart));
+      } catch {}
+      return nextCart;
+    });
     showToast('Item removido do carrinho');
   };
 
   const clearCart = () => {
     setCart([]);
+    try {
+      localStorage.setItem(STORAGE_KEYS.CART, JSON.stringify([]));
+    } catch {}
   };
 
   const applyCoupon = (code: string): boolean => {
