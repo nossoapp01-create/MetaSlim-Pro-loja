@@ -18,7 +18,6 @@ import {
 } from '../data/initialData';
 import { StripeSalesDashboard } from './StripeSalesDashboard';
 import { SaaSTenantsManager } from './SaaSTenantsManager';
-import { WhatsAppAdminDashboard } from './WhatsAppAdminDashboard';
 import { PWAInstallPrompt } from './PWAInstallPrompt';
 import { ImageUploadField } from './ImageUploadField';
 import {
@@ -117,7 +116,6 @@ export const AdminPanel: React.FC = () => {
   const [activeAdminTab, setActiveAdminTab] = useState<
     | 'saas-tenants'
     | 'vendas-stripe'
-    | 'whatsapp-chat'
     | 'produtos'
     | 'banners'
     | 'depoimentos'
@@ -140,7 +138,6 @@ export const AdminPanel: React.FC = () => {
     switch (tab) {
       case 'saas-tenants': return 'Lojas SaaS & Isolamento';
       case 'vendas-stripe': return 'Vendas Stripe & Envios';
-      case 'whatsapp-chat': return 'Atendimento Online (Clientes)';
       case 'produtos': return 'Editar Produtos';
       case 'banners': return 'Banners Rotativos';
       case 'depoimentos': return 'Antes & Depois';
@@ -582,21 +579,6 @@ export const AdminPanel: React.FC = () => {
             </div>
           )}
 
-          {/* Dedicated Chat for Admin */}
-          <button
-            onClick={() => setActiveAdminTab('whatsapp-chat')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shadow-xs cursor-pointer ${
-              activeAdminTab === 'whatsapp-chat'
-                ? 'bg-[#008069] text-white shadow-emerald-900/20 ring-2 ring-emerald-400'
-                : 'bg-emerald-50 hover:bg-emerald-100 text-[#008069] border border-emerald-300'
-            }`}
-            title="Abrir o Atendimento Online com os Pacientes"
-          >
-            <MessageCircle className="w-3.5 h-3.5 text-emerald-600" />
-            <span>Atendimento Chat</span>
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-          </button>
-
           {/* Download App PWA in Admin */}
           <PWAInstallPrompt variant="pill" title="Baixar App" />
 
@@ -763,34 +745,6 @@ export const AdminPanel: React.FC = () => {
                   }`}
                 >
                   {orders.length}
-                </span>
-              </button>
-
-              {/* Atendimento Online (Clientes) */}
-              <button
-                type="button"
-                onClick={() => {
-                  setActiveAdminTab('whatsapp-chat');
-                  setIsMobileSidebarOpen(false);
-                }}
-                className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                  activeAdminTab === 'whatsapp-chat'
-                    ? 'bg-[#008069] text-white shadow-sm ring-1 ring-emerald-400'
-                    : 'text-slate-700 hover:bg-slate-50 hover:text-slate-900'
-                }`}
-              >
-                <div className="flex items-center gap-2.5 truncate">
-                  <MessageCircle className={`w-4 h-4 shrink-0 ${activeAdminTab === 'whatsapp-chat' ? 'text-white' : 'text-[#008069]'}`} />
-                  <span className="truncate">Atendimento Chat (Clientes)</span>
-                </div>
-                <span
-                  className={`text-[10px] font-mono px-1.5 py-0.2 rounded-full font-bold shrink-0 ${
-                    activeAdminTab === 'whatsapp-chat'
-                      ? 'bg-white/20 text-white'
-                      : 'bg-emerald-50 text-[#008069]'
-                  }`}
-                >
-                  Direto
                 </span>
               </button>
 
@@ -1073,13 +1027,6 @@ export const AdminPanel: React.FC = () => {
       {/* TAB 0: Stripe Sales & Shipping Labels Dashboard */}
       {activeAdminTab === 'vendas-stripe' && (
         <StripeSalesDashboard />
-      )}
-
-      {/* TAB WHATSAPP: Dedicated WhatsApp Client Support Dashboard */}
-      {activeAdminTab === 'whatsapp-chat' && (
-        <div className="h-[760px] w-full rounded-2xl overflow-hidden shadow-xl border border-slate-200/90 bg-white">
-          <WhatsAppAdminDashboard />
-        </div>
       )}
 
       {/* TAB 1: Product Editor */}

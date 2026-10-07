@@ -7,7 +7,6 @@ import {
   markChatAsRead,
   deleteChat,
   generateChatId,
-  playIncomingWhatsAppChime,
   getChatSortTime,
 } from '../services/chatService';
 import { ChatConversation, ChatMessage } from '../types';
@@ -145,34 +144,6 @@ export const WhatsAppAdminDashboard: React.FC = () => {
   const [newClientName, setNewClientName] = useState('');
   const [newClientContact, setNewClientContact] = useState('');
   const [mobileChatOpen, setMobileChatOpen] = useState(false);
-
-  // Sound alert settings
-  const [soundEnabled, setSoundEnabled] = useState<boolean>(() => {
-    try {
-      return localStorage.getItem('metaslim_whatsapp_sound') !== 'false';
-    } catch {
-      return true;
-    }
-  });
-
-  const handleToggleSound = () => {
-    const next = !soundEnabled;
-    setSoundEnabled(next);
-    try {
-      localStorage.setItem('metaslim_whatsapp_sound', String(next));
-    } catch {}
-    if (next) {
-      playIncomingWhatsAppChime();
-      showToast('Som de alerta ativado!');
-    } else {
-      showToast('Som de alerta desativado.');
-    }
-  };
-
-  const handleTestSound = () => {
-    playIncomingWhatsAppChime();
-    showToast('Reproduzindo toque de mensagem...');
-  };
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatScrollContainerRef = useRef<HTMLDivElement>(null);
@@ -711,15 +682,6 @@ export const WhatsAppAdminDashboard: React.FC = () => {
           >
             {copiedLink ? <Check className="w-3.5 h-3.5 text-emerald-300" /> : <Users className="w-3.5 h-3.5" />}
             <span className="hidden sm:inline">{copiedLink ? 'Copiado!' : 'Link Clientes'}</span>
-          </button>
-
-          {/* Sound Toggle */}
-          <button
-            onClick={handleToggleSound}
-            className="p-1.5 rounded-full hover:bg-white/20 text-white transition-colors cursor-pointer"
-            title={soundEnabled ? 'Silenciar alertas' : 'Ativar som de mensagens'}
-          >
-            {soundEnabled ? <Volume2 className="w-4 h-4 text-emerald-300" /> : <VolumeX className="w-4 h-4 text-red-300" />}
           </button>
 
           {/* Return to Store */}

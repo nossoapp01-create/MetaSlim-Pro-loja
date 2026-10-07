@@ -5,8 +5,6 @@ import {
   subscribeToChatMessages,
   sendChatMessage,
   markChatAsRead,
-  playChatNotificationSound,
-  playIncomingWhatsAppChime,
 } from '../services/chatService';
 import { ChatMessage, ChatConversation } from '../types';
 import { PWAInstallPrompt } from './PWAInstallPrompt';
@@ -111,12 +109,6 @@ export const WhatsAppClientChat: React.FC = () => {
     const prevCountRef = { current: 0 };
     const unsubscribe = subscribeToChatMessages(clientIdentity.chatId, (updated) => {
       if (isMounted) {
-        if (prevCountRef.current > 0 && updated.length > prevCountRef.current) {
-          const lastMsg = updated[updated.length - 1];
-          if (lastMsg && lastMsg.sender === 'admin') {
-            playIncomingWhatsAppChime();
-          }
-        }
         prevCountRef.current = updated.length;
         setMessages(updated);
         markChatAsRead(clientIdentity.chatId, 'customer');

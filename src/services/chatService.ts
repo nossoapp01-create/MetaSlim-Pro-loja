@@ -31,84 +31,17 @@ export function generateChatId(contact: string): string {
   return `chat_${sanitized || Date.now().toString()}`;
 }
 
-// Authentic WhatsApp-style incoming message chime using Web Audio API
+// Audio and chimes completely silenced and disabled
 export function playIncomingWhatsAppChime() {
-  try {
-    const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
-    if (!AudioContextClass) return;
-    const ctx = new AudioContextClass();
-
-    if (ctx.state === 'suspended') {
-      ctx.resume().catch(() => {});
-    }
-
-    const t = ctx.currentTime;
-
-    // Tone 1: High bell chime intro (880 Hz - A5)
-    const osc1 = ctx.createOscillator();
-    const gain1 = ctx.createGain();
-    osc1.type = 'sine';
-    osc1.frequency.setValueAtTime(880, t);
-    gain1.gain.setValueAtTime(0.28, t);
-    gain1.gain.exponentialRampToValueAtTime(0.001, t + 0.12);
-    osc1.connect(gain1);
-    gain1.connect(ctx.destination);
-    osc1.start(t);
-    osc1.stop(t + 0.12);
-
-    // Tone 2: Bright harmonic chime peak (1318.5 Hz - E6)
-    const osc2 = ctx.createOscillator();
-    const gain2 = ctx.createGain();
-    osc2.type = 'sine';
-    osc2.frequency.setValueAtTime(1318.5, t + 0.08);
-    gain2.gain.setValueAtTime(0.32, t + 0.08);
-    gain2.gain.exponentialRampToValueAtTime(0.001, t + 0.45);
-    osc2.connect(gain2);
-    gain2.connect(ctx.destination);
-    osc2.start(t + 0.08);
-    osc2.stop(t + 0.45);
-
-    // Tone 3: Sweet high overtone (1760 Hz - A6) for authentic crispness
-    const osc3 = ctx.createOscillator();
-    const gain3 = ctx.createGain();
-    osc3.type = 'triangle';
-    osc3.frequency.setValueAtTime(1760, t + 0.09);
-    gain3.gain.setValueAtTime(0.12, t + 0.09);
-    gain3.gain.exponentialRampToValueAtTime(0.001, t + 0.35);
-    osc3.connect(gain3);
-    gain3.connect(ctx.destination);
-    osc3.start(t + 0.09);
-    osc3.stop(t + 0.35);
-  } catch (e) {
-    console.warn('Audio chime warning:', e);
-  }
+  // All audio completely silenced per user preference
 }
 
-// Outgoing message sound (light click / pop)
+// Outgoing message sound disabled
 export function playOutgoingWhatsAppTone() {
-  try {
-    const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
-    if (!AudioContextClass) return;
-    const ctx = new AudioContextClass();
-    if (ctx.state === 'suspended') {
-      ctx.resume().catch(() => {});
-    }
-    const t = ctx.currentTime;
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(600, t);
-    osc.frequency.exponentialRampToValueAtTime(300, t + 0.06);
-    gain.gain.setValueAtTime(0.15, t);
-    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.06);
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.start(t);
-    osc.stop(t + 0.06);
-  } catch (e) {}
+  // All audio completely silenced per user preference
 }
 
-export const playChatNotificationSound = playIncomingWhatsAppChime;
+export const playChatNotificationSound = () => {};
 
 // Desktop Notification helper
 export async function requestNotificationPermission(): Promise<boolean> {
@@ -414,7 +347,6 @@ export async function sendChatMessage(
 
   // 1. Immediately store in local cache
   saveMessageToLocal(chatId, message);
-  playChatNotificationSound();
 
   // 2. Persist to Firestore
   try {

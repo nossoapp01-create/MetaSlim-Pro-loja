@@ -2,13 +2,12 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useStore } from '../context/StoreContext';
 import {
   subscribeToAllConversations,
-  playIncomingWhatsAppChime,
   flashPageTitle,
   showSystemNotification,
   requestNotificationPermission,
 } from '../services/chatService';
 import { ChatConversation } from '../types';
-import { MessageSquare, Bell, ArrowRight, X, Volume2, ShieldCheck } from 'lucide-react';
+import { MessageSquare, Bell, ArrowRight, X, ShieldCheck } from 'lucide-react';
 
 export const GlobalChatNotifier: React.FC = () => {
   const { isAdminUser, isSuperAdmin, setActiveTab } = useStore();
@@ -47,10 +46,7 @@ export const GlobalChatNotifier: React.FC = () => {
         if (currentMsg && prevMsg !== currentMsg && (conv.unreadByAdmin || 0) > 0) {
           prevLastMessagesRef.current[conv.id] = currentMsg;
 
-          // 1. Play authentic WhatsApp Chime Sound
-          playIncomingWhatsAppChime();
-
-          // 2. Trigger browser title flash
+          // 1. Trigger browser title flash
           flashPageTitle(
             `🔔 (1) Mensagem de ${conv.customerName}!`,
             'MetaSlim-Pro-loja'
@@ -110,13 +106,6 @@ export const GlobalChatNotifier: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-1.5">
-            <button
-              onClick={() => playIncomingWhatsAppChime()}
-              className="p-1.5 text-slate-400 hover:text-[#25d366] rounded-lg transition-colors cursor-pointer"
-              title="Testar som"
-            >
-              <Volume2 className="w-3.5 h-3.5" />
-            </button>
             <button
               onClick={() => setActiveAlert(null)}
               className="p-1.5 text-slate-400 hover:text-white rounded-lg transition-colors cursor-pointer"
