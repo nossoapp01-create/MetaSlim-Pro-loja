@@ -177,6 +177,15 @@ const STORAGE_KEYS = {
 
 const SUPER_ADMIN_EMAIL = 'nossoapp01@gmail.com';
 
+function sanitizeProductBadges(prods: Product[]): Product[] {
+  return (prods || []).map((p) => {
+    if (p.badge && /compre\s*[12]\s*(e\s*leve\s*2|ganhe\s*1)/i.test(p.badge)) {
+      return { ...p, badge: p.featured ? 'Mais Vendido' : undefined };
+    }
+    return p;
+  });
+}
+
 export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   // SaaS Multi-Tenant state
   const [allTenants, setAllTenants] = useState<TenantAccount[]>(() => {
@@ -242,17 +251,17 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       const saved = localStorage.getItem(tenantKey);
       if (saved) {
         const parsed = JSON.parse(saved) as Product[];
-        if (parsed.length > 0) return parsed;
+        if (parsed.length > 0) return sanitizeProductBadges(parsed);
       }
       if (activeTenantId === initialTenants[0].tenantId) {
         const legacySaved = localStorage.getItem(STORAGE_KEYS.PRODUCTS);
         if (legacySaved) {
           const parsed = JSON.parse(legacySaved) as Product[];
-          if (parsed.length > 0) return parsed;
+          if (parsed.length > 0) return sanitizeProductBadges(parsed);
         }
       }
     } catch {}
-    return getInitialProductsForTenant(activeTenantId, currentTenant?.storeName);
+    return sanitizeProductBadges(getInitialProductsForTenant(activeTenantId, currentTenant?.storeName));
   });
 
   const [banners, setBanners] = useState<BannerSlide[]>(() => {
@@ -1082,7 +1091,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         if (loadedProds.length > 0) {
           const loadedIds = new Set(loadedProds.map((p) => p.id));
           const missing = initialProducts.filter((p) => !loadedIds.has(p.id));
-          setProducts(missing.length > 0 ? [...loadedProds, ...missing] : loadedProds);
+          const prodsToSet = missing.length > 0 ? [...loadedProds, ...missing] : loadedProds;
+          setProducts(sanitizeProductBadges(prodsToSet));
         }
       }
 

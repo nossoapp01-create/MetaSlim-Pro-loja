@@ -256,7 +256,7 @@ export const initialProducts: Product[] = [
     formula: 'C₁₈₇H₂₉₁N₄₅O₅₉',
     paymentLink: '',
     featured: true,
-    badge: 'COMPRE 1 E LEVE 2',
+    badge: 'Mais Vendido',
   },
   {
     id: 'aod-9604-10mg',
@@ -584,7 +584,7 @@ export const initialProducts: Product[] = [
     formula: 'C₃₇H₅₁N₉O₁₀S',
     paymentLink: '',
     featured: true,
-    badge: 'COMPRE 1 E LEVE 2',
+    badge: 'SALE',
   },
   {
     id: 'hcg-5000iu',
@@ -682,7 +682,7 @@ export const initialProducts: Product[] = [
     formula: 'C₁₆H₃₁N₅O₄',
     paymentLink: '',
     featured: false,
-    badge: 'COMPRE 1 E LEVE 2',
+    badge: 'SALE',
   },
   {
     id: 'dsip-10mg',
@@ -753,7 +753,7 @@ export const initialProducts: Product[] = [
     batchNumber: 'BBG70-MSP26',
     paymentLink: '',
     featured: true,
-    badge: 'COMPRE 1 E LEVE 2',
+    badge: 'Bulk Pack',
   },
   {
     id: 'bpc-157-tb-500-20mg',
@@ -775,7 +775,7 @@ export const initialProducts: Product[] = [
     batchNumber: 'BB20-MSP26',
     paymentLink: '',
     featured: true,
-    badge: 'COMPRE 1 E LEVE 2',
+    badge: 'Stack Sinérgico',
   },
   {
     id: 'agua-bacteriostatica-30ml',
@@ -799,7 +799,7 @@ export const initialProducts: Product[] = [
     molecularWeight: '~126.15 g/mol',
     paymentLink: '',
     featured: false,
-    badge: 'COMPRE 1 E LEVE 2',
+    badge: 'Grau Farmacêutico',
   },
 ];
 
@@ -830,7 +830,7 @@ export const initialBanners: BannerSlide[] = [
   },
   {
     id: 3,
-    title: 'Leve 2 + Frete Grátis',
+    title: 'Protocolos Completos + Frete Grátis',
     subtitle:
       'Protocolos de ciclo completo com desconto progressivo para Portugal e toda a União Europeia com entrega em 24-48h.',
     tag: 'Economia Escalar',

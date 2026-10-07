@@ -44,7 +44,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
           <span className="px-1.5 sm:px-2 py-0.5 rounded-full bg-rose-100 text-rose-800 font-mono text-[8px] sm:text-[9px] font-bold uppercase tracking-wider shrink-0">
             Offline
           </span>
-        ) : product.badge ? (
+        ) : product.badge && !/compre\s*[12]\s*(e\s*leve\s*2|ganhe\s*1)/i.test(product.badge) ? (
           <span className="px-1.5 sm:px-2 py-0.5 rounded-full bg-gradient-to-r from-[#006750] to-[#0d8267] text-white font-mono text-[8px] sm:text-[9px] font-bold uppercase tracking-wider shadow-2xs shrink-0">
             {product.badge}
           </span>

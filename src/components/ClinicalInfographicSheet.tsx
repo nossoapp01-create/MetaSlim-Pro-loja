@@ -108,7 +108,11 @@ export const ClinicalInfographicSheet: React.FC<ClinicalInfographicSheetProps> =
         {/* Green "O Mais Vendido" / Highlight Strip */}
         <div className="bg-gradient-to-r from-emerald-500 via-emerald-600 to-[#006750] py-2.5 px-4 text-center text-white text-xs sm:text-sm font-black tracking-widest uppercase flex items-center justify-center gap-2 shadow-xs">
           <span>★</span>
-          <span>{product.badge ? product.badge.toUpperCase() : 'O MAIS VENDIDO • LAUDO HPLC >99%'}</span>
+          <span>
+            {product.badge && !/compre\s*[12]\s*(e\s*leve\s*2|ganhe\s*1)/i.test(product.badge)
+              ? product.badge.toUpperCase()
+              : 'O MAIS VENDIDO • LAUDO HPLC >99%'}
+          </span>
           <span>★</span>
         </div>
       </div>
