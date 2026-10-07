@@ -138,7 +138,7 @@ export const WhatsAppClientChat: React.FC = () => {
       return;
     }
     if (!inputContact.trim()) {
-      showToast('Por favor, informe seu WhatsApp ou E-mail.');
+      showToast('Por favor, informe seu Telefone ou E-mail.');
       return;
     }
 
@@ -452,7 +452,7 @@ export const WhatsAppClientChat: React.FC = () => {
     const directUrl = `${window.location.origin}${window.location.pathname}?chat=1`;
     navigator.clipboard.writeText(directUrl);
     setCopiedLink(true);
-    showToast('Link do WhatsApp de Atendimento copiado!');
+    showToast('Link de Atendimento copiado!');
     setTimeout(() => setCopiedLink(false), 3000);
   };
 
@@ -471,7 +471,7 @@ export const WhatsAppClientChat: React.FC = () => {
   if (!clientIdentity) {
     return (
       <div className="fixed inset-0 w-screen h-screen bg-[#eae6df] flex flex-col items-center justify-center p-4 z-50 overflow-y-auto">
-        {/* WhatsApp Signature Top Green Header */}
+        {/* Signature Top Green Header */}
         <div className="fixed top-0 left-0 right-0 h-44 bg-[#00a884] shadow-md z-0" />
 
         <div className="relative z-10 max-w-md w-full my-auto p-6 sm:p-8 bg-white rounded-3xl shadow-2xl border border-slate-200/80 font-sans animate-in zoom-in-95 duration-200">
@@ -486,14 +486,14 @@ export const WhatsAppClientChat: React.FC = () => {
 
             <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-mono font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 uppercase tracking-wider mb-2">
               <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-              WhatsApp VIP • Canal Direto
+              Atendimento VIP • Canal Direto
             </span>
 
             <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">
               Dra. Valéria Prado
             </h2>
             <p className="text-xs text-slate-500 mt-1 max-w-xs leading-relaxed">
-              Informe seu nome e WhatsApp ou e-mail para conectar ao seu atendimento médico individual.
+              Informe seu nome e telefone ou e-mail para conectar ao seu atendimento médico individual.
             </p>
           </div>
 
@@ -521,7 +521,7 @@ export const WhatsAppClientChat: React.FC = () => {
 
             <div>
               <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                Seu WhatsApp ou E-mail *
+                Seu Telefone ou E-mail *
               </label>
               <div className="relative">
                 <input
@@ -545,7 +545,7 @@ export const WhatsAppClientChat: React.FC = () => {
               className="w-full mt-2 py-3.5 px-4 rounded-xl bg-gradient-to-r from-[#008069] to-[#00a884] hover:from-[#006e5a] hover:to-[#009677] text-white font-bold text-sm shadow-md shadow-emerald-800/20 flex items-center justify-center gap-2 transition-all active:scale-98 cursor-pointer disabled:opacity-50"
             >
               <MessageSquare className="w-4 h-4" />
-              <span>{isInitializing ? 'Iniciando canal...' : 'Entrar no WhatsApp de Atendimento'}</span>
+              <span>{isInitializing ? 'Iniciando canal...' : 'Entrar no Chat de Atendimento'}</span>
             </button>
 
             <button

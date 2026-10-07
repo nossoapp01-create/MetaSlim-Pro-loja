@@ -429,7 +429,7 @@ export const SaaSAuthModal: React.FC<SaaSAuthModalProps> = ({
 
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    WhatsApp para Pedidos (Opcional)
+                    Telefone para Pedidos (Opcional)
                   </label>
                   <div className="relative">
                     <Phone className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />

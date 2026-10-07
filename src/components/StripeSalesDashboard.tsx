@@ -467,7 +467,7 @@ export const StripeSalesDashboard: React.FC = () => {
                     </span>
                   </div>
 
-                  {/* Actions: Shipping Label, WhatsApp, Status change */}
+                  {/* Actions: Shipping Label, Direct Call, Status change */}
                   <div className="flex flex-wrap items-center gap-2">
                     <button
                       onClick={() => setSelectedOrderForLabel(order)}
@@ -480,15 +480,11 @@ export const StripeSalesDashboard: React.FC = () => {
 
                     {cleanPhone && (
                       <a
-                        href={`https://wa.me/${cleanPhone}?text=${encodeURIComponent(
-                          `Olá ${order.shipping.fullName}! Agradecemos a sua compra do pedido #${order.id} na MetaSlim Pro. Seu protocolo já está em preparação com embalagem térmica e controle de temperatura.`
-                        )}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
+                        href={`tel:${cleanPhone}`}
                         className="p-2 rounded-xl bg-slate-100 hover:bg-emerald-50 text-slate-700 hover:text-emerald-700 text-xs font-bold transition-colors"
-                        title="Enviar mensagem para o cliente no WhatsApp"
+                        title="Ligar para o cliente"
                       >
-                        <MessageSquare className="w-4 h-4" />
+                        <Phone className="w-4 h-4" />
                       </a>
                     )}
 

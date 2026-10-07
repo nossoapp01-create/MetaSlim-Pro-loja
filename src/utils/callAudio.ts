@@ -1,4 +1,4 @@
-// Web Audio API & HTML5 Audio Hybrid Synthesizer for Authentic WhatsApp Call Tones & Mobile Ringing
+// Web Audio API & HTML5 Audio Hybrid Synthesizer for Call Tones & Mobile Ringing
 
 // Clean programmatic WAV base64 data URI for 100% reliable mobile browser audio playback
 function generateRingtoneWavUri(): string {
@@ -27,7 +27,7 @@ function generateRingtoneWavUri(): string {
     view.setUint32(36, 0x64617461, false); // 'data'
     view.setUint32(40, numSamples * 2, true);
 
-    // Synthesize authentic WhatsApp marimba ring melody (notes: E5, G#5, B5, E6, B5, G#5)
+    // Synthesize harmonic marimba ring melody (notes: E5, G#5, B5, E6, B5, G#5)
     const notes = [
       { freq: 659.25, start: 0.0, end: 0.22 },
       { freq: 830.61, start: 0.24, end: 0.46 },

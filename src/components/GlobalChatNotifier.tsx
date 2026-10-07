@@ -90,7 +90,7 @@ export const GlobalChatNotifier: React.FC = () => {
 
   return (
     <aside
-      aria-label="Alerta de Nova Mensagem WhatsApp"
+      aria-label="Alerta de Nova Mensagem de Atendimento"
       className="fixed top-4 right-4 left-4 sm:left-auto sm:max-w-md z-[999] animate-in slide-in-from-top-4 duration-300 select-none"
     >
       <div className="bg-[#111b21] text-white p-4 rounded-2xl shadow-2xl border-2 border-[#00a884] flex flex-col gap-2.5 backdrop-blur-xl">
@@ -101,7 +101,7 @@ export const GlobalChatNotifier: React.FC = () => {
             </span>
             <div>
               <span className="font-mono text-[10px] uppercase font-bold text-[#25d366] bg-[#00a884]/20 px-2 py-0.5 rounded-full">
-                WhatsApp VIP • Nova Mensagem
+                Chat VIP • Nova Mensagem
               </span>
               <h4 className="text-xs font-bold text-white mt-0.5 truncate max-w-[200px]">
                 {activeAlert.conversation.customerName}

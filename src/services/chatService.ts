@@ -600,7 +600,7 @@ function updateLocalChatMeta(chatId: string, partial: Partial<ChatConversation>)
     } else {
       all.unshift({
         id: chatId,
-        customerName: partial.customerName || 'Contato WhatsApp',
+        customerName: partial.customerName || 'Paciente VIP',
         customerContact: partial.customerContact || chatId.replace('chat_', ''),
         lastMessage: partial.lastMessage || '',
         lastMessageAt: partial.lastMessageAt || new Date().toISOString(),

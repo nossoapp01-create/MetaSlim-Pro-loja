@@ -995,7 +995,7 @@ export const CartView: React.FC = () => {
                   <div className="flex flex-col gap-1.5">
                     <label className="text-xs font-semibold text-slate-700 flex items-center gap-1">
                       <Phone className="w-3.5 h-3.5 text-slate-400" />
-                      <span>Telefone / WhatsApp</span>
+                      <span>Telefone de Contato</span>
                     </label>
                     <input
                       type="tel"
@@ -1220,7 +1220,7 @@ export const CartView: React.FC = () => {
           <div className="flex flex-col gap-1.5">
             <label className="font-semibold text-slate-700 flex items-center gap-1.5">
               <Phone className="w-3.5 h-3.5 text-slate-400" />
-              <span>Contato Telefônico / WhatsApp *</span>
+              <span>Contato Telefônico *</span>
             </label>
             <input
               type="tel"
@@ -1761,7 +1761,7 @@ export const CartView: React.FC = () => {
             </div>
 
             <p className="text-xs text-slate-600 mb-4 leading-relaxed">
-              Para processar pagamentos reais no Stripe e receber os valores em sua conta bancária, configure sua <strong>Chave Secreta (sk_live_...)</strong> no Painel Admin ou finalize sua compra via WhatsApp / MB WAY.
+              Para processar pagamentos reais no Stripe e receber os valores em sua conta bancária, configure sua <strong>Chave Secreta (sk_live_...)</strong> no Painel Admin ou finalize sua compra com Cartão Direto ou MB WAY.
             </p>
 
             <div className="flex flex-col gap-2">
@@ -1898,18 +1898,6 @@ export const CartView: React.FC = () => {
                       3. Clique no botão de confirmação abaixo para emitir sua etiqueta CTT 24h imediatamente.
                     </p>
                   </div>
-
-                  <a
-                    href={`https://wa.me/${(settings.whatsappNumber || '351912345678').replace(/[^0-9]/g, '')}?text=${encodeURIComponent(
-                      `Olá ${settings.storeName}! Acabei de fazer o pagamento via MB WAY para o Pedido #${pendingOrderId || 'ORD-NOVO'} no valor de ${formatPrice(cartTotal)}. Segue em anexo o comprovativo.`
-                    )}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-full py-2.5 px-4 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-[#006750] font-bold text-xs flex items-center justify-center gap-2 border border-emerald-200 transition-colors"
-                  >
-                    <MessageSquare className="w-4 h-4" />
-                    <span>Enviar Comprovativo no WhatsApp</span>
-                  </a>
                 </div>
               ) : (
                 <div className="flex flex-col gap-3">

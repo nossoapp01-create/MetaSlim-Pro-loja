@@ -1,4 +1,4 @@
-// Universal Audio Recording and WAV Encoding for WhatsApp VIP
+// Universal Audio Recording and WAV Encoding for VIP Chat
 // Produces 100% cross-platform standard 16-bit PCM WAV that plays on iOS Safari, Android Chrome, and Desktop browsers.
 
 export interface AudioRecordingSession {

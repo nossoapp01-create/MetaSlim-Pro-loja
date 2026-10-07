@@ -11,10 +11,6 @@ import { AdminPanel } from './components/AdminPanel';
 import { SuperAdminPanel } from './components/SuperAdminPanel';
 import { DeliveryPolicy } from './components/DeliveryPolicy';
 import { ResaleWholesale } from './components/ResaleWholesale';
-import { WhatsAppClientChat } from './components/WhatsAppClientChat';
-import { WhatsAppAdminDashboard } from './components/WhatsAppAdminDashboard';
-import { GlobalChatNotifier } from './components/GlobalChatNotifier';
-import { GlobalCallManager } from './components/GlobalCallManager';
 import { Footer } from './components/Footer';
 import { BottomNav } from './components/BottomNav';
 import { DosageCalculatorModal } from './components/DosageCalculatorModal';
@@ -54,39 +50,6 @@ const MainContent: React.FC = () => {
 
     return matchesSearch;
   });
-
-  // Dedicated Full-Screen WhatsApp VIP Chat Mode (Zero Store Header, Zero Footer, 100% WhatsApp Web)
-  if (activeTab === 'chat') {
-    // Verified store administrators OR devices switched to Doctor Mode view the WhatsAppAdminDashboard
-    const isDoctorDevice = typeof window !== 'undefined' && localStorage.getItem('metaslim_device_mode') === 'doctor';
-    const isAuthorizedAdmin = Boolean(isTenantAdmin || isDoctorDevice);
-
-    return (
-      <div className="fixed inset-0 w-full h-[100dvh] max-h-[100dvh] z-50 bg-[#efeae2] overflow-hidden font-sans flex flex-col">
-        {/* Floating Toast Notification */}
-        {toast && (
-          <div className="fixed top-4 right-4 left-4 sm:left-auto sm:max-w-lg z-[100] bg-[#131b2e] text-white p-3.5 rounded-2xl shadow-2xl border border-slate-700/80 flex items-start gap-3 text-xs font-medium animate-in slide-in-from-top duration-200 backdrop-blur-md">
-            <span className="w-2.5 h-2.5 rounded-full bg-[#71face] shrink-0 mt-1 animate-ping" />
-            <div className="flex-1 leading-relaxed text-slate-100 break-words font-sans">
-              {toast}
-            </div>
-            <button
-              onClick={() => setToast && setToast(null)}
-              className="text-slate-400 hover:text-white p-0.5 ml-1 shrink-0 cursor-pointer"
-              title="Fechar aviso"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          </div>
-        )}
-
-        {/* 100% Full-Screen WhatsApp Web Interface */}
-        <div className="w-full h-full flex-1 flex flex-col overflow-hidden min-h-0">
-          {isAuthorizedAdmin ? <WhatsAppAdminDashboard /> : <WhatsAppClientChat />}
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-[#f8fafc] text-[#131b2e] flex flex-col font-sans selection:bg-[#71face] selection:text-[#002117]">
@@ -348,8 +311,6 @@ export function App() {
   return (
     <ErrorBoundary>
       <StoreProvider>
-        <GlobalChatNotifier />
-        <GlobalCallManager />
         <MainContent />
       </StoreProvider>
     </ErrorBoundary>

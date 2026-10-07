@@ -766,7 +766,7 @@ export const SuperAdminPanel: React.FC = () => {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1">Telefone / WhatsApp</label>
+                  <label className="block font-bold text-slate-700 mb-1">Telefone de Contato</label>
                   <input
                     type="text"
                     placeholder="+351 912 345 678"

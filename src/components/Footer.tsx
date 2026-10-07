@@ -6,11 +6,6 @@ export const Footer: React.FC = () => {
   const { settings, setActiveTab, allTenants, isSuperAdmin } = useStore();
   const pendingTenantsCount = (allTenants || []).filter((t) => t?.status === 'pending').length;
 
-  const handleWhatsapp = () => {
-    const cleanNumber = (settings?.whatsappNumber || '').replace(/[^0-9]/g, '');
-    window.open(`https://wa.me/${cleanNumber}?text=Olá,%20gostaria%20de%20informações%20sobre%20os%20peptídeos%20MetaSlim%20Pro`, '_blank');
-  };
-
   return (
     <footer className="w-full bg-[#131b2e] text-slate-300 pt-12 pb-24 border-t border-slate-800" id="store-footer">
       <div className="max-w-7xl mx-auto px-4 flex flex-col gap-10">
@@ -39,13 +34,13 @@ export const Footer: React.FC = () => {
             </p>
 
             <div className="flex items-center gap-3 pt-2">
-              <button
-                onClick={handleWhatsapp}
+              <a
+                href={`tel:${(settings?.whatsappNumber || '+351912345678').replace(/[^0-9+]/g, '')}`}
                 className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-500/10 hover:bg-emerald-500/20 text-[#71face] border border-emerald-500/30 text-xs font-semibold transition-colors"
               >
-                <MessageSquare className="w-3.5 h-3.5" />
-                <span>Suporte Clínico: {settings.whatsappNumber}</span>
-              </button>
+                <PhoneCall className="w-3.5 h-3.5" />
+                <span>Atendimento Telefônico: {settings.whatsappNumber || '+351 912 345 678'}</span>
+              </a>
             </div>
           </div>
 

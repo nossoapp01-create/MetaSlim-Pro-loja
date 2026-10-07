@@ -1,10 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { useStore } from '../context/StoreContext';
-import { Home, Grid, Users, ShoppingBag, ShieldCheck, MessageSquare } from 'lucide-react';
-import { subscribeToAllConversations } from '../services/chatService';
+import { Home, Grid, ShoppingBag, ShieldCheck } from 'lucide-react';
 
 interface NavItem {
-  id: 'inicio' | 'produtos' | 'chat' | 'carrinho' | 'admin';
+  id: 'inicio' | 'produtos' | 'carrinho' | 'admin';
   label: string;
   icon: React.ElementType;
   badge?: number;
@@ -12,22 +11,12 @@ interface NavItem {
 
 export const BottomNav: React.FC = () => {
   const { activeTab, setActiveTab, cartItemsCount, isAdminUser } = useStore();
-  const [whatsappUnread, setWhatsappUnread] = useState(0);
-
-  useEffect(() => {
-    const unsubscribe = subscribeToAllConversations((convs) => {
-      const total = convs.reduce((sum, c) => sum + (c.unreadByAdmin || 0), 0);
-      setWhatsappUnread(total);
-    });
-    return () => unsubscribe();
-  }, []);
 
   const navItems: NavItem[] = [
     { id: 'inicio', label: 'Início', icon: Home },
     { id: 'produtos', label: 'Peptídeos', icon: Grid },
-    ...(isAdminUser ? [{ id: 'chat' as const, label: 'WhatsApp VIP', icon: MessageSquare, badge: whatsappUnread > 0 ? whatsappUnread : undefined }] : []),
     { id: 'carrinho', label: 'Carrinho', icon: ShoppingBag, badge: cartItemsCount },
-    { id: 'admin', label: 'Admin', icon: ShieldCheck },
+    ...(isAdminUser ? [{ id: 'admin' as const, label: 'Admin', icon: ShieldCheck }] : []),
   ];
 
   return (

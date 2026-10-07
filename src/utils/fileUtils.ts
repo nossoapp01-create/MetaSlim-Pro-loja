@@ -1,4 +1,4 @@
-// Utility functions for WhatsApp image and PDF file attachments
+// Utility functions for image and PDF file attachments
 
 export interface ProcessedAttachment {
   attachmentUrl: string;

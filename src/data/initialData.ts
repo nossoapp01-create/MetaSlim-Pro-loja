@@ -93,7 +93,7 @@ export const initialResaleSettings: ResaleSettings = {
         'Margem líquida estimada superior a 345%',
         'Frete Expresso Térmico 100% Grátis',
         'Mix livre entre Retatrutide, Tirzepatide e Semaglutide',
-        'Canal de suporte direto prioritário via WhatsApp',
+        'Canal de suporte prioritário 24/7',
         'Material gráfico e digital para divulgação aos seus clientes',
       ],
     },

@@ -19,6 +19,7 @@ import {
   Layers,
   HelpCircle,
   Dna,
+  PhoneCall,
 } from 'lucide-react';
 
 export const ResaleWholesale: React.FC = () => {
@@ -45,20 +46,14 @@ export const ResaleWholesale: React.FC = () => {
     return activeCompoundInfo.defaultSellPriceEur || 89;
   });
 
-  // Target WhatsApp number from store settings (with fallback)
-  const targetWhatsapp =
+  // Target contact phone number from store settings (with fallback)
+  const targetContactPhone =
     settings.resaleWhatsappNumber?.trim() ||
     resaleConfig.whatsappNumber?.trim() ||
     settings.whatsappNumber?.trim() ||
     '+351912345678';
-  const cleanPhone = targetWhatsapp.replace(/\D/g, '');
-
-  const createWhatsAppLink = (customText?: string) => {
-    const defaultMsg =
-      `Olá! Tenho interesse no Programa Oficial de Revenda MetaSlim Pro (Pedido mínimo a partir de ${packs[0]?.units || 20} unidades). Gostaria de receber a tabela de atacado e tirar algumas dúvidas.`;
-    const text = customText || defaultMsg;
-    return `https://wa.me/${cleanPhone}?text=${encodeURIComponent(text)}`;
-  };
+  const cleanPhone = targetContactPhone.replace(/[^0-9+]/g, '');
+  const contactTelLink = `tel:${cleanPhone}`;
 
   const handleCompoundChange = (comp: ResaleCompoundConfig) => {
     setSelectedCompoundId(comp.id);
@@ -133,13 +128,11 @@ export const ResaleWholesale: React.FC = () => {
           {/* CTAs */}
           <div className="flex flex-wrap items-center gap-3.5 pt-3">
             <a
-              href={createWhatsAppLink()}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-gradient-to-r from-[#25D366] to-[#1ebe5d] hover:from-[#1ebe5d] hover:to-[#25D366] text-white font-bold text-sm sm:text-base shadow-lg shadow-emerald-950/40 active:scale-95 transition-all group cursor-pointer"
+              href={contactTelLink}
+              className="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-sm sm:text-base shadow-lg shadow-emerald-950/40 active:scale-95 transition-all group cursor-pointer"
             >
-              <MessageCircle className="w-5 h-5 fill-white/20" />
-              <span>Saiba Mais no WhatsApp</span>
+              <PhoneCall className="w-5 h-5" />
+              <span>Falar com Consultor B2B</span>
               <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
             </a>
 
@@ -267,7 +260,7 @@ export const ResaleWholesale: React.FC = () => {
             </div>
             <h3 className="font-bold text-base text-slate-900">Material de Apoio & Consultoria</h3>
             <p className="text-xs text-slate-600 leading-relaxed">
-              Você recebe tabelas completas de reconstituição com água BAC estéril, fichas clínicas dos compostos e atendimento direto via WhatsApp para orientar os seus pedidos de reposição.
+              Você recebe tabelas completas de reconstituição com água BAC estéril, fichas clínicas dos compostos e assessoria médica especializada para orientar os seus pedidos de reposição.
             </p>
           </div>
         </div>
@@ -424,21 +417,17 @@ export const ResaleWholesale: React.FC = () => {
               </div>
             </div>
 
-            {/* Direct WhatsApp CTA with simulation text */}
+            {/* Direct Contact CTA with simulation text */}
             <div className="pt-5 mt-4 border-t border-white/10 flex flex-col gap-2">
               <a
-                href={createWhatsAppLink(
-                  `Olá! Fiz uma simulação na página de revenda para o Pack de ${selectedPackUnits} unidades (${activeCompoundInfo.name}). Gostaria de fechar essa condição de atacado.`
-                )}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-[#25D366] to-[#1ebe5d] hover:from-[#1ebe5d] hover:to-[#25D366] text-white font-bold text-xs sm:text-sm text-center flex items-center justify-center gap-2 shadow-lg shadow-emerald-950/60 active:scale-95 transition-all cursor-pointer"
+                href={contactTelLink}
+                className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs sm:text-sm text-center flex items-center justify-center gap-2 shadow-lg shadow-emerald-950/60 active:scale-95 transition-all cursor-pointer"
               >
-                <MessageCircle className="w-4 h-4 fill-white/20" />
-                <span>Garantir Pack de {selectedPackUnits} Unidades no WhatsApp</span>
+                <PhoneCall className="w-4 h-4" />
+                <span>Garantir Pack de {selectedPackUnits} Unidades (Consultoria B2B)</span>
               </a>
               <span className="text-[10px] text-center text-slate-400">
-                Atendimento direto com consultor B2B • Resposta média em 15 minutos
+                Atendimento direto com consultor B2B • Resposta imediata
               </span>
             </div>
           </div>
@@ -525,18 +514,14 @@ export const ResaleWholesale: React.FC = () => {
               {/* Pack CTA Button */}
               <div className="pt-5 mt-4 border-t border-slate-100 flex flex-col gap-2">
                 <a
-                  href={createWhatsAppLink(
-                    `Olá! Tenho interesse no ${pack.name} (${pack.units} unidades). Gostaria de ver as opções de compostos e formas de envio.`
-                  )}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                  href={contactTelLink}
                   className={`w-full py-3 px-4 rounded-xl font-bold text-xs sm:text-sm text-center flex items-center justify-center gap-2 transition-all shadow-xs cursor-pointer ${
                     pack.popular
                       ? 'bg-[#006750] hover:bg-[#005240] text-white shadow-emerald-950/20'
                       : 'bg-slate-900 hover:bg-slate-800 text-white'
                   }`}
                 >
-                  <MessageCircle className="w-4 h-4" />
+                  <PhoneCall className="w-4 h-4" />
                   <span>Pedir {pack.name}</span>
                 </a>
               </div>
@@ -563,7 +548,7 @@ export const ResaleWholesale: React.FC = () => {
             </span>
             <h4 className="font-bold text-sm text-slate-900 mt-1">Contato & Seleção do Pack</h4>
             <p className="text-xs text-slate-600 leading-relaxed">
-              Clique no botão do WhatsApp e defina com nosso consultor os peptídeos do seu pack (mínimo de 20 unidades).
+              Entre em contato com nossa equipe e defina com o consultor os peptídeos do seu pack (mínimo de 20 unidades).
             </p>
           </div>
 
@@ -658,16 +643,14 @@ export const ResaleWholesale: React.FC = () => {
           Pronto para Ter a Sua Própria Operação de Peptídeos com Mais de 300% de Lucro?
         </h2>
         <p className="text-emerald-100 text-xs sm:text-sm max-w-xl leading-relaxed">
-          Inicie agora com o <strong>pack mínimo oficial de 20 unidades</strong>. Clique abaixo e fale diretamente com o nosso responsável de atacado no WhatsApp para receber o catálogo completo com preços de revenda.
+          Inicie agora com o <strong>pack mínimo oficial de 20 unidades</strong>. Entre em contato diretamente com o nosso responsável de atacado para receber o catálogo completo com preços de revenda.
         </p>
         <a
-          href={createWhatsAppLink()}
-          target="_blank"
-          rel="noopener noreferrer"
+          href={contactTelLink}
           className="inline-flex items-center justify-center gap-2.5 px-8 py-4 rounded-2xl bg-white text-[#006750] hover:bg-emerald-50 font-black text-sm sm:text-base shadow-lg shadow-emerald-950/30 active:scale-95 transition-all cursor-pointer"
         >
-          <MessageCircle className="w-5 h-5 text-[#25D366] fill-[#25D366]" />
-          <span>Falar com o Consultor de Revenda no WhatsApp</span>
+          <PhoneCall className="w-5 h-5 text-[#006750]" />
+          <span>Falar com o Consultor de Revenda B2B</span>
           <ArrowRight className="w-4 h-4" />
         </a>
       </section>

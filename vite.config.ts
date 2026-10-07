@@ -13,15 +13,15 @@ export default defineConfig(() => {
         registerType: 'autoUpdate',
         includeAssets: ['icon.svg', 'apple-touch-icon.png', 'pwa-192x192.png', 'pwa-512x512.png'],
         manifest: {
-          id: '/?chat=1',
-          name: 'WhatsApp VIP - Dra. Valéria Prado',
-          short_name: 'WhatsApp VIP',
-          description: 'Canal de atendimento VIP individual, prescrições peptídicas e acompanhamento metabólico com Dra. Valéria Prado.',
-          theme_color: '#008069',
-          background_color: '#111b21',
+          id: '/',
+          name: 'MetaSlim Pro - Dra. Valéria Prado',
+          short_name: 'MetaSlim Pro',
+          description: 'Plataforma oficial de peptídeos bioidênticos e acompanhamento metabólico com Dra. Valéria Prado.',
+          theme_color: '#006750',
+          background_color: '#131b2e',
           display: 'standalone',
           orientation: 'portrait',
-          start_url: '/?chat=1',
+          start_url: '/',
           scope: '/',
           icons: [
             {

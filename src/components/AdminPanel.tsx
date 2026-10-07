@@ -58,6 +58,7 @@ import {
   CreditCard,
   ShieldCheck,
   Lock,
+  Phone,
   Info,
   Eye,
   EyeOff,
@@ -139,7 +140,7 @@ export const AdminPanel: React.FC = () => {
     switch (tab) {
       case 'saas-tenants': return 'Lojas SaaS & Isolamento';
       case 'vendas-stripe': return 'Vendas Stripe & Envios';
-      case 'whatsapp-chat': return 'WhatsApp VIP (Clientes)';
+      case 'whatsapp-chat': return 'Atendimento Online (Clientes)';
       case 'produtos': return 'Editar Produtos';
       case 'banners': return 'Banners Rotativos';
       case 'depoimentos': return 'Antes & Depois';
@@ -581,7 +582,7 @@ export const AdminPanel: React.FC = () => {
             </div>
           )}
 
-          {/* Dedicated WhatsApp VIP Chat for Admin */}
+          {/* Dedicated Chat for Admin */}
           <button
             onClick={() => setActiveAdminTab('whatsapp-chat')}
             className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shadow-xs cursor-pointer ${
@@ -589,10 +590,10 @@ export const AdminPanel: React.FC = () => {
                 ? 'bg-[#008069] text-white shadow-emerald-900/20 ring-2 ring-emerald-400'
                 : 'bg-emerald-50 hover:bg-emerald-100 text-[#008069] border border-emerald-300'
             }`}
-            title="Abrir o Atendimento WhatsApp VIP com os Pacientes"
+            title="Abrir o Atendimento Online com os Pacientes"
           >
             <MessageCircle className="w-3.5 h-3.5 text-emerald-600" />
-            <span>WhatsApp VIP</span>
+            <span>Atendimento Chat</span>
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
           </button>
 
@@ -765,7 +766,7 @@ export const AdminPanel: React.FC = () => {
                 </span>
               </button>
 
-              {/* WhatsApp VIP (Clientes) */}
+              {/* Atendimento Online (Clientes) */}
               <button
                 type="button"
                 onClick={() => {
@@ -780,7 +781,7 @@ export const AdminPanel: React.FC = () => {
               >
                 <div className="flex items-center gap-2.5 truncate">
                   <MessageCircle className={`w-4 h-4 shrink-0 ${activeAdminTab === 'whatsapp-chat' ? 'text-white' : 'text-[#008069]'}`} />
-                  <span className="truncate">WhatsApp VIP (Clientes)</span>
+                  <span className="truncate">Atendimento Chat (Clientes)</span>
                 </div>
                 <span
                   className={`text-[10px] font-mono px-1.5 py-0.2 rounded-full font-bold shrink-0 ${
@@ -2175,14 +2176,14 @@ export const AdminPanel: React.FC = () => {
             </div>
           </div>
 
-          {/* SECTION 3: WhatsApp Support for Resale */}
+          {/* SECTION 3: Official Contact Phone for Resale */}
           <div className="pt-4 border-t border-slate-200/80 flex flex-col gap-3">
             <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-              <MessageCircle className="w-4 h-4 text-[#25D366]" />
-              <span>3. WhatsApp Oficial para Contato de Revenda</span>
+              <Phone className="w-4 h-4 text-emerald-600" />
+              <span>3. Telefone Oficial para Contato de Revenda</span>
             </h3>
             <p className="text-xs text-slate-500">
-              Número internacional que recebe os leads do botão <strong>"Saiba Mais"</strong>, dos botões de <strong>"Pedir Pack"</strong> e do formulário da Página de Revenda.
+              Número internacional que recebe as ligações e contatos diretos da Página de Revenda e Atacado.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-2 max-w-xl">
@@ -2197,20 +2198,15 @@ export const AdminPanel: React.FC = () => {
                 type="button"
                 onClick={() => {
                   const cleanNum = (settings.resaleWhatsappNumber || settings.whatsappNumber).replace(
-                    /\D/g,
+                    /[^0-9+]/g,
                     ''
                   );
-                  window.open(
-                    `https://wa.me/${cleanNum}?text=${encodeURIComponent(
-                      'Olá! Este é um teste do botão Saiba Mais do Programa de Revenda MetaSlim Pro.'
-                    )}`,
-                    '_blank'
-                  );
+                  window.open(`tel:${cleanNum}`, '_self');
                 }}
-                className="h-10 px-4 rounded-xl bg-[#25D366] hover:bg-[#1ebe5d] text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-xs transition-colors shrink-0 cursor-pointer"
+                className="h-10 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-xs transition-colors shrink-0 cursor-pointer"
               >
-                <ExternalLink className="w-3.5 h-3.5" />
-                <span>Testar Chamada WhatsApp</span>
+                <Phone className="w-3.5 h-3.5" />
+                <span>Testar Ligação</span>
               </button>
             </div>
           </div>
@@ -2246,7 +2242,7 @@ export const AdminPanel: React.FC = () => {
           <div>
             <h2 className="text-lg font-bold text-slate-900">Configurações Gerais da Loja</h2>
             <p className="text-xs text-slate-500">
-              Personalize o nome da marca, WhatsApp de suporte farmacêutico, link de pagamento global e taxas.
+              Personalize o nome da marca, telefone de suporte farmacêutico, link de pagamento global e taxas.
             </p>
           </div>
 
@@ -2284,7 +2280,7 @@ export const AdminPanel: React.FC = () => {
             </div>
 
             <div className="flex flex-col gap-1">
-              <label className="text-xs font-bold text-slate-700">Número WhatsApp para Suporte</label>
+              <label className="text-xs font-bold text-slate-700">Telefone de Suporte ao Cliente</label>
               <input
                 type="text"
                 value={settings.whatsappNumber}
@@ -2304,22 +2300,22 @@ export const AdminPanel: React.FC = () => {
               />
             </div>
 
-            {/* Reseller WhatsApp Field */}
+            {/* Reseller Phone Field */}
             <div className="sm:col-span-2 p-4 rounded-xl bg-emerald-50/70 border border-emerald-300/80 flex flex-col gap-2.5">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-lg bg-[#25D366] text-white flex items-center justify-center shadow-xs">
-                    <MessageCircle className="w-4 h-4 fill-white" />
+                  <div className="w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center shadow-xs">
+                    <Phone className="w-4 h-4" />
                   </div>
                   <div>
                     <label className="text-xs font-bold text-slate-900 flex items-center gap-2">
-                      <span>WhatsApp Oficial para o Programa de Revenda &amp; Atacado</span>
+                      <span>Telefone Oficial para o Programa de Revenda &amp; Atacado</span>
                       <span className="text-[10px] font-mono font-black bg-amber-400 text-slate-950 px-1.5 py-0.5 rounded">
                         Packs 20+ Un. • Lucros &gt; 300%
                       </span>
                     </label>
                     <p className="text-[11px] text-slate-600">
-                      Este é o número acionado pelo botão <strong>"Saiba Mais"</strong>, pelo simulador interativo de lucros e pelos botões de pedido da nova <strong>Página de Revenda</strong>.
+                      Este é o número acionado pelos botões de contato, simulador e pedidos da <strong>Página de Revenda</strong>.
                     </p>
                   </div>
                 </div>
@@ -2336,18 +2332,13 @@ export const AdminPanel: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => {
-                    const cleanNum = (settings.resaleWhatsappNumber || settings.whatsappNumber).replace(/\D/g, '');
-                    window.open(
-                      `https://wa.me/${cleanNum}?text=${encodeURIComponent(
-                        'Olá! Este é um teste do botão Saiba Mais do Programa de Revenda MetaSlim Pro.'
-                      )}`,
-                      '_blank'
-                    );
+                    const cleanNum = (settings.resaleWhatsappNumber || settings.whatsappNumber).replace(/[^0-9+]/g, '');
+                    window.open(`tel:${cleanNum}`, '_self');
                   }}
-                  className="h-10 px-4 rounded-xl bg-[#25D366] hover:bg-[#1ebe5d] text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-xs transition-colors shrink-0 cursor-pointer"
+                  className="h-10 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-xs transition-colors shrink-0 cursor-pointer"
                 >
-                  <ExternalLink className="w-3.5 h-3.5" />
-                  <span>Testar WhatsApp</span>
+                  <Phone className="w-3.5 h-3.5" />
+                  <span>Testar Ligação</span>
                 </button>
                 <button
                   type="button"

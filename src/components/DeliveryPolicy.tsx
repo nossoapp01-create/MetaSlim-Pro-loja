@@ -15,19 +15,12 @@ import {
   CheckCircle2,
   Calendar,
   Layers,
-  Sparkles
+  Sparkles,
+  Phone,
 } from 'lucide-react';
 
 export const DeliveryPolicy: React.FC = () => {
   const { setActiveTab, settings } = useStore();
-
-  const handleWhatsapp = () => {
-    const cleanNumber = settings.whatsappNumber.replace(/[^0-9]/g, '');
-    window.open(
-      `https://wa.me/${cleanNumber}?text=Olá,%20gostaria%20de%20tirar%20uma%20dúvida%20sobre%20os%20prazos%20de%20entrega%20da%20minha%20encomenda`,
-      '_blank'
-    );
-  };
 
   return (
     <div className="flex flex-col gap-6 max-w-4xl mx-auto pb-16" id="delivery-policy-view">
@@ -296,19 +289,19 @@ export const DeliveryPolicy: React.FC = () => {
               Precisa de entrega urgente ou tem alguma dúvida?
             </h3>
             <p className="text-xs text-slate-500 leading-relaxed max-w-lg mt-0.5">
-              Nossa equipe médica e de apoio logístico está disponível via WhatsApp para confirmar a disponibilidade de stock em tempo real.
+              Nossa equipe médica e de apoio logístico está disponível para confirmar a disponibilidade de stock e expedição em tempo real.
             </p>
           </div>
         </div>
 
         <div className="flex items-center gap-2.5 w-full sm:w-auto">
-          <button
-            onClick={handleWhatsapp}
+          <a
+            href={`tel:${(settings.whatsappNumber || '+351912345678').replace(/[^0-9+]/g, '')}`}
             className="flex-1 sm:flex-initial px-5 py-2.5 rounded-xl bg-[#006750] hover:bg-[#0b745c] text-white font-bold text-xs shadow-sm transition-all active:scale-95 flex items-center justify-center gap-2"
           >
-            <MessageSquare className="w-4 h-4 text-[#71face]" />
-            <span>Falar no WhatsApp</span>
-          </button>
+            <Phone className="w-4 h-4 text-[#71face]" />
+            <span>Falar com Atendimento</span>
+          </a>
         </div>
       </section>
     </div>

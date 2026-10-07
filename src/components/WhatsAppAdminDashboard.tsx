@@ -163,7 +163,7 @@ export const WhatsAppAdminDashboard: React.FC = () => {
     } catch {}
     if (next) {
       playIncomingWhatsAppChime();
-      showToast('Som de alerta do WhatsApp ativado!');
+      showToast('Som de alerta ativado!');
     } else {
       showToast('Som de alerta desativado.');
     }
@@ -171,7 +171,7 @@ export const WhatsAppAdminDashboard: React.FC = () => {
 
   const handleTestSound = () => {
     playIncomingWhatsAppChime();
-    showToast('Reproduzindo toque de mensagem do WhatsApp...');
+    showToast('Reproduzindo toque de mensagem...');
   };
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -658,7 +658,7 @@ export const WhatsAppAdminDashboard: React.FC = () => {
           </div>
           <div className="flex items-center gap-2 truncate">
             <span className="font-bold text-sm leading-tight text-white truncate">
-              WhatsApp VIP • Dra. Valéria Prado
+              Central de Atendimento • Dra. Valéria Prado
             </span>
             <span className="hidden md:inline-block text-[10px] bg-emerald-950/40 text-emerald-200 border border-emerald-400/40 px-2 py-0.5 rounded-full font-mono uppercase">
               Admin
@@ -694,7 +694,7 @@ export const WhatsAppAdminDashboard: React.FC = () => {
               setTimeout(() => window.location.reload(), 400);
             }}
             className="px-2.5 py-1 rounded-full bg-white/10 hover:bg-white/20 text-white font-medium text-xs border border-white/20 transition-all flex items-center gap-1 cursor-pointer shadow-xs active:scale-95"
-            title="Ver o WhatsApp como Paciente"
+            title="Ver o Atendimento como Paciente"
           >
             <User className="w-3.5 h-3.5 text-emerald-300" />
             <span className="hidden md:inline">Ver como Paciente</span>
@@ -742,11 +742,11 @@ export const WhatsAppAdminDashboard: React.FC = () => {
             mobileChatOpen ? 'hidden md:flex' : 'flex'
           }`}
         >
-          {/* Authentic WhatsApp Top Header */}
+          {/* Chats Header */}
           <div className="px-4 py-3 bg-white flex items-center justify-between border-b border-slate-100 shrink-0">
             <div className="flex items-center gap-2">
               <h1 className="text-xl font-black text-slate-900 tracking-tight font-sans">
-                WhatsApp
+                Mensagens
               </h1>
               {activeConversation && (
                 <button
@@ -1010,14 +1010,12 @@ export const WhatsAppAdminDashboard: React.FC = () => {
                       <span className="truncate">{activeConversation.customerContact}</span>
                       {!activeConversation.customerContact.includes('@') && (
                         <a
-                          href={`https://wa.me/${activeConversation.customerContact.replace(/\D/g, '')}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
+                          href={`tel:${activeConversation.customerContact.replace(/[^0-9+]/g, '')}`}
                           className="text-emerald-700 hover:text-emerald-900 flex items-center gap-1 font-semibold shrink-0"
-                          title="Abrir no aplicativo WhatsApp oficial"
+                          title="Ligar para o contato"
                         >
-                          <ExternalLink className="w-3 h-3" />
-                          <span>WhatsApp Web</span>
+                          <Phone className="w-3 h-3" />
+                          <span>Ligar</span>
                         </a>
                       )}
                     </div>
@@ -1416,7 +1414,7 @@ export const WhatsAppAdminDashboard: React.FC = () => {
               Iniciar Atendimento com Novo Cliente
             </h3>
             <p className="text-xs text-slate-500 mt-1">
-              Cadastre o nome e WhatsApp ou E-mail do cliente para abrir uma linha direta de atendimento.
+              Cadastre o nome e Telefone ou E-mail do cliente para abrir uma linha direta de atendimento.
             </p>
 
             <form onSubmit={handleCreateNewManualChat} className="mt-4 flex flex-col gap-3">
@@ -1436,7 +1434,7 @@ export const WhatsAppAdminDashboard: React.FC = () => {
 
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">
-                  WhatsApp ou E-mail
+                  Telefone ou E-mail
                 </label>
                 <input
                   type="text"

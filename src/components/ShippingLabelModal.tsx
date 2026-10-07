@@ -40,7 +40,7 @@ export const ShippingLabelModal: React.FC<ShippingLabelModalProps> = ({
   const formattedAddressText = `
 DESTINATÁRIO:
 Nome: ${order.shipping.fullName}
-Telefone/WhatsApp: ${order.shipping.phone}
+Telefone: ${order.shipping.phone}
 E-mail: ${order.shipping.email}
 Endereço: ${order.shipping.address}${order.shipping.complement ? ', ' + order.shipping.complement : ''}
 Código Postal: ${order.shipping.postalCode}
@@ -61,11 +61,6 @@ Pedido: #${order.id}
       onUpdateStatus(order.id, 'shipped', trackingInput);
     }
   };
-
-  const cleanPhone = order.shipping.phone.replace(/[^0-9]/g, '');
-  const whatsappUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(
-    `Olá ${order.shipping.fullName}! Seu pedido #${order.id} da MetaSlim Pro foi preparado com embalagem isotérmica e despacho refrigerado. Código de Rastreio: ${trackingInput} (${carrierInput}).`
-  )}`;
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
@@ -170,24 +165,12 @@ Pedido: #${order.id}
             <div className="flex items-center gap-2">
               <button
                 onClick={handleCopy}
-                className="h-8 px-3 rounded-lg border border-slate-300 hover:bg-white text-slate-700 text-xs font-bold flex items-center gap-1.5 transition-colors"
+                className="h-8 px-3 rounded-lg border border-slate-300 hover:bg-white text-slate-700 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
                 title="Copiar dados para colar no site dos CTT / DHL / Correios"
               >
                 {copied ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5 text-slate-500" />}
                 <span>{copied ? 'Copiado!' : 'Copiar Dados'}</span>
               </button>
-
-              {cleanPhone && (
-                <a
-                  href={whatsappUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="h-8 px-3 rounded-lg bg-[#006750] hover:bg-[#0d8267] text-white text-xs font-bold flex items-center gap-1.5 transition-colors"
-                >
-                  <MessageSquare className="w-3.5 h-3.5" />
-                  <span>Avisar no WhatsApp</span>
-                </a>
-              )}
             </div>
           </div>
 
@@ -275,7 +258,7 @@ Pedido: #${order.id}
                 <div className="flex flex-wrap items-center gap-4 mt-2 pt-2 border-t border-slate-200 text-xs text-slate-800 font-bold">
                   <div className="flex items-center gap-1.5 bg-white border border-slate-300 px-2.5 py-1 rounded-lg">
                     <Phone className="w-3.5 h-3.5 text-[#006750]" />
-                    <span>Tel/WhatsApp: {order.shipping.phone}</span>
+                    <span>Tel: {order.shipping.phone}</span>
                   </div>
                   {order.shipping.email && (
                     <div className="flex items-center gap-1.5 bg-white border border-slate-300 px-2.5 py-1 rounded-lg">

@@ -55,7 +55,7 @@ interface StoreContextType {
   settings: StoreSettings;
   cart: CartItem[];
   orders: OrderRecord[];
-  activeTab: 'inicio' | 'produtos' | 'produto-detalhe' | 'resultados' | 'carrinho' | 'admin' | 'prazos-entrega' | 'revenda' | 'super-admin' | 'chat';
+  activeTab: 'inicio' | 'produtos' | 'produto-detalhe' | 'resultados' | 'carrinho' | 'admin' | 'prazos-entrega' | 'revenda' | 'super-admin';
   selectedProductId: string;
   currency: 'EUR' | 'BRL';
   selectedCategory: string;
@@ -104,7 +104,7 @@ interface StoreContextType {
   setAuthModalOpen: (open: boolean) => void;
   authModalDefaultTab: 'login' | 'register' | 'demo';
   openAuthModal: (tab?: 'login' | 'register' | 'demo') => void;
-  setActiveTab: (tab: 'inicio' | 'produtos' | 'produto-detalhe' | 'resultados' | 'carrinho' | 'admin' | 'prazos-entrega' | 'revenda' | 'super-admin' | 'chat') => void;
+  setActiveTab: (tab: 'inicio' | 'produtos' | 'produto-detalhe' | 'resultados' | 'carrinho' | 'admin' | 'prazos-entrega' | 'revenda' | 'super-admin') => void;
   setSelectedProductId: (id: string) => void;
   setSelectedCategory: (cat: string) => void;
   setSearchQuery: (query: string) => void;
@@ -342,28 +342,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     | 'prazos-entrega'
     | 'revenda'
     | 'super-admin'
-    | 'chat'
-  >(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        const params = new URLSearchParams(window.location.search);
-        if (
-          params.get('chat') === '1' ||
-          params.get('chat') === 'true' ||
-          params.get('atendimento') === '1' ||
-          params.get('whatsapp') === '1' ||
-          params.get('admin_whatsapp') === '1' ||
-          params.get('admin-whatsapp') === '1' ||
-          params.get('admin_chat') === '1' ||
-          window.location.hash === '#chat' ||
-          window.location.hash === '#whatsapp'
-        ) {
-          return 'chat';
-        }
-      } catch {}
-    }
-    return 'inicio';
-  });
+  >('inicio');
   const [selectedProductId, setSelectedProductId] = useState<string>('retatrutide-10mg');
   const [selectedCategory, setSelectedCategory] = useState<string>('todos');
   const [searchQuery, setSearchQuery] = useState<string>('');

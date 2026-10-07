@@ -41,7 +41,7 @@ export const PWAInstallPrompt: React.FC<PWAInstallPromptProps> = ({
         <button
           onClick={handleInstallClick}
           className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#00a884] hover:bg-[#008069] text-white text-xs font-bold shadow-md transition-all active:scale-95 cursor-pointer ${className}`}
-          title="Instalar WhatsApp VIP na tela do celular"
+          title="Instalar aplicativo na tela do celular"
         >
           <Smartphone className="w-3.5 h-3.5" />
           <span>{title}</span>
@@ -56,13 +56,13 @@ export const PWAInstallPrompt: React.FC<PWAInstallPromptProps> = ({
             </div>
             <div>
               <div className="flex items-center gap-1.5">
-                <span className="font-extrabold text-xs sm:text-sm">WhatsApp VIP no seu Celular</span>
+                <span className="font-extrabold text-xs sm:text-sm">Aplicativo no seu Celular</span>
                 <span className="bg-[#25d366] text-[#003816] text-[9px] font-black px-1.5 py-0.2 rounded-full uppercase">
                   App
                 </span>
               </div>
               <p className="text-[11px] text-emerald-100 leading-tight mt-0.5">
-                Instale direto na tela de início para receber alertas instantâneos de mensagens.
+                Instale direto na tela de início para acesso rápido e notificações exclusivas.
               </p>
             </div>
           </div>
@@ -100,14 +100,14 @@ export const PWAInstallPrompt: React.FC<PWAInstallPromptProps> = ({
             {/* Header with App Icon */}
             <div className="flex flex-col items-center text-center">
               <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-[#00a884] to-[#25d366] p-2 shadow-xl shadow-emerald-600/30 mb-3 flex items-center justify-center">
-                <img src="/icon.svg" alt="WhatsApp VIP" className="w-full h-full object-contain" />
+                <img src="/icon.svg" alt="App Icon" className="w-full h-full object-contain" />
               </div>
 
               <span className="text-[10px] font-mono uppercase font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full mb-1">
                 Instalação no Celular
               </span>
               <h3 className="text-lg font-extrabold text-slate-900">
-                Instalar WhatsApp VIP
+                Instalar Aplicativo Oficial
               </h3>
               <p className="text-xs text-slate-500 mt-1 max-w-xs">
                 Tenha o ícone oficial na tela inicial do seu celular, com abertura rápida e notificações.
@@ -143,7 +143,7 @@ export const PWAInstallPrompt: React.FC<PWAInstallPromptProps> = ({
                       3
                     </span>
                     <p className="text-slate-700 leading-relaxed">
-                      Toque em <strong>&ldquo;Adicionar&rdquo;</strong> no canto superior direito. Pronto! O app fica como o WA Business no seu celular.
+                      Toque em <strong>&ldquo;Adicionar&rdquo;</strong> no canto superior direito. Pronto! O app fica instalado no seu celular.
                     </p>
                   </div>
                 </>
@@ -172,7 +172,7 @@ export const PWAInstallPrompt: React.FC<PWAInstallPromptProps> = ({
                       3
                     </span>
                     <p className="text-slate-700 leading-relaxed">
-                      Confirme em <strong>&ldquo;Instalar&rdquo;</strong>. O ícone oficial verde do WhatsApp VIP será colocado na tela de início.
+                      Confirme em <strong>&ldquo;Instalar&rdquo;</strong>. O ícone oficial do App será colocado na tela de início.
                     </p>
                   </div>
                 </>

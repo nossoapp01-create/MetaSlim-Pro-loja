@@ -453,7 +453,7 @@ export const ProductDetail: React.FC = () => {
         </button>
       </div>
 
-      {/* 1. CLINICAL DIDACTIC INFOGRAPHIC SHEET (Matches User WhatsApp Reference Images) */}
+      {/* 1. CLINICAL DIDACTIC INFOGRAPHIC SHEET */}
       {activeDetailTab === 'didatico' && (
         <ClinicalInfographicSheet
           product={product}

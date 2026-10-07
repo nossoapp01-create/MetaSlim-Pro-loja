@@ -365,7 +365,7 @@ export const SaaSTenantsManager: React.FC = () => {
 
           <div>
             <label className="block text-xs font-semibold text-slate-700 mb-1">
-              WhatsApp para Suporte aos Seus Clientes
+              Telefone de Suporte aos Seus Clientes
             </label>
             <input
               type="text"
