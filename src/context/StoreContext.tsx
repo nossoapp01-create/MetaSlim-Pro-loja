@@ -1691,7 +1691,11 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const addProduct = async (newProd: Omit<Product, 'id'>) => {
     const id = newProd.name.toLowerCase().replace(/[^a-z0-9]/g, '-') + '-' + Date.now().toString().slice(-4);
-    const product: Product = { ...newProd, id };
+    const product: Product = {
+      status: newProd.status || 'online',
+      ...newProd,
+      id,
+    };
     setProducts((prev) => {
       const next = [product, ...prev];
       try {

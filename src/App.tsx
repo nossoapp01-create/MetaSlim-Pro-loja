@@ -37,8 +37,9 @@ const MainContent: React.FC = () => {
 
   const [isCalculatorOpen, setIsCalculatorOpen] = useState(false);
 
-  // Filter products by search safely (categories are handled exclusively in the Admin panel)
-  const filteredProducts = (products || []).filter((prod) => {
+  // Filter products: hide offline products from store catalog and apply search
+  const onlineProducts = (products || []).filter((prod) => prod && prod.status !== 'offline');
+  const filteredProducts = onlineProducts.filter((prod) => {
     if (!prod) return false;
     const q = (searchQuery || '').trim().toLowerCase();
     const matchesSearch =
@@ -50,6 +51,8 @@ const MainContent: React.FC = () => {
 
     return matchesSearch;
   });
+
+  const featuredProduct = onlineProducts[0] || products[0];
 
   return (
     <div className="min-h-screen bg-[#f8fafc] text-[#131b2e] flex flex-col font-sans selection:bg-[#71face] selection:text-[#002117]">
@@ -106,63 +109,64 @@ const MainContent: React.FC = () => {
 
 
             {/* Featured Product Banner (Retatrutide 10mg) */}
-            <div className="bg-gradient-to-r from-[#006750] via-[#0b745c] to-[#0d8267] rounded-xl sm:rounded-2xl p-3.5 sm:p-5 text-white shadow-md shadow-emerald-950/15 flex flex-col sm:flex-row items-center justify-between gap-3.5 sm:gap-5 relative overflow-hidden">
-              <div className="flex items-center gap-3 sm:gap-4 relative z-10 w-full sm:w-auto">
-                <div className="w-16 h-20 sm:w-24 sm:h-28 rounded-xl bg-white/10 backdrop-blur-md p-1.5 sm:p-2 flex items-center justify-center border border-white/20 shrink-0">
-                  <img
-                    src={products[0]?.image}
-                    alt={products[0]?.name}
-                    className="w-full h-full object-contain filter drop-shadow-md"
-                  />
+            {featuredProduct && (
+              <div className="bg-gradient-to-r from-[#006750] via-[#0b745c] to-[#0d8267] rounded-xl sm:rounded-2xl p-3.5 sm:p-5 text-white shadow-md shadow-emerald-950/15 flex flex-col sm:flex-row items-center justify-between gap-3.5 sm:gap-5 relative overflow-hidden">
+                <div className="flex items-center gap-3 sm:gap-4 relative z-10 w-full sm:w-auto">
+                  <div className="w-16 h-20 sm:w-24 sm:h-28 rounded-xl bg-white/10 backdrop-blur-md p-1.5 sm:p-2 flex items-center justify-center border border-white/20 shrink-0">
+                    <img
+                      src={featuredProduct.image}
+                      alt={featuredProduct.name}
+                      className="w-full h-full object-contain filter drop-shadow-md"
+                    />
+                  </div>
+                  <div className="flex flex-col min-w-0 flex-1">
+                    <span className="font-mono text-[9px] uppercase font-bold text-[#93f5d4] tracking-wider bg-black/20 px-2 py-0.5 rounded-full w-fit">
+                      Destaque • Tri-Agonista
+                    </span>
+                    <h3 className="text-base sm:text-xl font-extrabold mt-0.5 truncate">
+                      {featuredProduct.name}
+                    </h3>
+                    <p className="text-[11px] sm:text-xs text-slate-100 max-w-md mt-0.5 leading-relaxed line-clamp-2">
+                      {featuredProduct.whatIsItFor}
+                    </p>
+                  </div>
                 </div>
-                <div className="flex flex-col min-w-0 flex-1">
-                  <span className="font-mono text-[9px] uppercase font-bold text-[#93f5d4] tracking-wider bg-black/20 px-2 py-0.5 rounded-full w-fit">
-                    Destaque • Tri-Agonista
-                  </span>
-                  <h3 className="text-base sm:text-xl font-extrabold mt-0.5 truncate">
-                    {products[0]?.name || 'Retatrutide 10mg'}
-                  </h3>
-                  <p className="text-[11px] sm:text-xs text-slate-100 max-w-md mt-0.5 leading-relaxed line-clamp-2">
-                    {products[0]?.whatIsItFor}
-                  </p>
-                </div>
-              </div>
 
-              <div className="flex sm:flex-col items-center sm:items-end justify-between w-full sm:w-auto relative z-10 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-white/10">
-                <div className="flex flex-col sm:items-end">
-                  <span className="text-[10px] text-emerald-200 font-mono">A partir de</span>
-                  <span className="text-xl sm:text-2xl font-extrabold font-mono text-[#93f5d4]">
-                    {formatPrice(products[0]?.price || 59)}
-                  </span>
+                <div className="flex sm:flex-col items-center sm:items-end justify-between w-full sm:w-auto relative z-10 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-white/10">
+                  <div className="flex flex-col sm:items-end">
+                    <span className="text-[10px] text-emerald-200 font-mono">A partir de</span>
+                    <span className="text-xl sm:text-2xl font-extrabold font-mono text-[#93f5d4]">
+                      {formatPrice(featuredProduct.price || 59)}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 mt-1 sm:mt-1.5">
+                    <button
+                      onClick={() => {
+                        setSelectedProductId(featuredProduct.id);
+                        setActiveTab('produto-detalhe');
+                      }}
+                      className="px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-lg sm:rounded-xl bg-white/15 hover:bg-white/25 text-white font-bold text-xs shadow-xs transition-all active:scale-95 flex items-center justify-center gap-1 cursor-pointer"
+                    >
+                      <span>Detalhes</span>
+                    </button>
+                    <button
+                      onClick={() => {
+                        const defaultDosage = featuredProduct.dosageOptions && featuredProduct.dosageOptions.length > 0 ? featuredProduct.dosageOptions[0].mg : undefined;
+                        addToCart(featuredProduct, 1, 1, defaultDosage);
+                        setActiveTab('carrinho');
+                      }}
+                      className="px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-lg sm:rounded-xl bg-white text-[#006750] hover:bg-emerald-50 font-extrabold text-xs shadow-sm transition-all active:scale-95 flex items-center justify-center gap-1 cursor-pointer"
+                      id="btn-hero-buy-now"
+                    >
+                      <ShoppingCart className="w-3.5 h-3.5" />
+                      <span>Comprar Agora</span>
+                    </button>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2 mt-1 sm:mt-1.5">
-                  <button
-                    onClick={() => {
-                      setSelectedProductId(products[0]?.id || 'retatrutide-10mg');
-                      setActiveTab('produto-detalhe');
-                    }}
-                    className="px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-lg sm:rounded-xl bg-white/15 hover:bg-white/25 text-white font-bold text-xs shadow-xs transition-all active:scale-95 flex items-center justify-center gap-1 cursor-pointer"
-                  >
-                    <span>Detalhes</span>
-                  </button>
-                  <button
-                    onClick={() => {
-                      const featured = products[0] || { id: 'retatrutide-10mg', name: 'Retatrutide (10mg a 100mg)', price: 59 } as any;
-                      const defaultDosage = featured.dosageOptions && featured.dosageOptions.length > 0 ? featured.dosageOptions[0].mg : undefined;
-                      addToCart(featured, 1, 1, defaultDosage);
-                      setActiveTab('carrinho');
-                    }}
-                    className="px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-lg sm:rounded-xl bg-white text-[#006750] hover:bg-emerald-50 font-extrabold text-xs shadow-sm transition-all active:scale-95 flex items-center justify-center gap-1 cursor-pointer"
-                    id="btn-hero-buy-now"
-                  >
-                    <ShoppingCart className="w-3.5 h-3.5" />
-                    <span>Comprar Agora</span>
-                  </button>
-                </div>
-              </div>
 
-              <div className="absolute -right-8 -bottom-8 w-44 h-44 rounded-full bg-white/5 pointer-events-none" />
-            </div>
+                <div className="absolute -right-8 -bottom-8 w-44 h-44 rounded-full bg-white/5 pointer-events-none" />
+              </div>
+            )}
 
             {/* Products Section Header */}
             <div className="flex items-center justify-between px-0.5">

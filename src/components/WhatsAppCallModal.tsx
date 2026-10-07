@@ -277,7 +277,7 @@ export const WhatsAppCallModal: React.FC<WhatsAppCallModalProps> = ({
                     <img src={avatarUrl} alt={contactName} className="w-full h-full object-cover rounded-full" />
                   </div>
                   <span className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-emerald-600 text-white text-[10px] font-bold px-3 py-0.5 rounded-full uppercase tracking-wider whitespace-nowrap">
-                    {callStatus === 'calling' ? 'Chamando no WhatsApp...' : 'Conectando...'}
+                    {callStatus === 'calling' ? 'Chamando...' : 'Conectando...'}
                   </span>
                 </div>
 
@@ -366,7 +366,7 @@ export const WhatsAppCallModal: React.FC<WhatsAppCallModalProps> = ({
                   </span>
                 ) : (
                   <span className="text-xs font-bold text-white/90">
-                    {callStatus === 'calling' ? 'Chamando no WhatsApp...' : 'Conectando...'}
+                    {callStatus === 'calling' ? 'Chamando...' : 'Conectando...'}
                   </span>
                 )}
               </div>

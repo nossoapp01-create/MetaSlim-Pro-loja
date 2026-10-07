@@ -1,7 +1,6 @@
-import React, { useEffect, useState } from 'react';
-import { Phone, Video, PhoneOff, ShieldCheck, Volume2 } from 'lucide-react';
+import React from 'react';
+import { Phone, Video, PhoneOff, ShieldCheck } from 'lucide-react';
 import { ActiveCallData } from '../services/callSignalingService';
-import { callAudio } from '../utils/callAudio';
 
 interface WhatsAppIncomingCallModalProps {
   call: ActiveCallData | null;
@@ -14,28 +13,6 @@ export const WhatsAppIncomingCallModal: React.FC<WhatsAppIncomingCallModalProps>
   onAccept,
   onDecline,
 }) => {
-  const [isAudioBlocked, setIsAudioBlocked] = useState(false);
-
-  useEffect(() => {
-    const unsub = callAudio.onAutoplayBlockedChange((blocked) => {
-      setIsAudioBlocked(blocked);
-    });
-    return () => unsub();
-  }, []);
-
-  useEffect(() => {
-    if (call && call.status === 'ringing') {
-      // Start ringing melody and device vibration
-      callAudio.startIncomingRingtone();
-    } else {
-      callAudio.stopIncomingRingtone();
-    }
-
-    return () => {
-      callAudio.stopIncomingRingtone();
-    };
-  }, [call]);
-
   if (!call || call.status !== 'ringing') return null;
 
   const isVideo = call.callType === 'video';
@@ -46,37 +23,16 @@ export const WhatsAppIncomingCallModal: React.FC<WhatsAppIncomingCallModalProps>
 
   const avatarUrl = call.callerAvatar || defaultAvatar;
 
-  const handleModalClick = () => {
-    // If audio was blocked by mobile browser autoplay policy, force unlock now
-    callAudio.forceUnlockAndPlay();
-  };
-
   return (
     <div
-      onClick={handleModalClick}
-      className="fixed inset-0 z-50 bg-[#0b141a]/95 backdrop-blur-md text-white flex flex-col justify-between p-6 animate-in fade-in zoom-in-95 duration-200 select-none cursor-pointer"
+      className="fixed inset-0 z-50 bg-[#0b141a]/95 backdrop-blur-md text-white flex flex-col justify-between p-6 animate-in fade-in zoom-in-95 duration-200 select-none"
     >
-      {/* 1. TOP ENCRYPTION BADGE & AUTOPLAY UNLOCK BANNER */}
+      {/* 1. TOP ENCRYPTION BADGE */}
       <div className="flex flex-col items-center gap-2 mx-auto max-w-sm w-full">
         <div className="flex items-center justify-center gap-1.5 text-xs text-white/70 bg-black/40 py-1.5 px-4 rounded-full border border-white/10">
           <ShieldCheck className="w-4 h-4 text-emerald-400" />
-          <span>Chamada WhatsApp VIP criptografada</span>
+          <span>Chamada Segura Criptografada</span>
         </div>
-
-        {/* Audio blocked alert: prompts user to tap screen so mobile browser plays sound */}
-        {isAudioBlocked && (
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              callAudio.forceUnlockAndPlay();
-            }}
-            className="w-full bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs py-2 px-3 rounded-xl shadow-lg flex items-center justify-center gap-2 animate-bounce transition-all active:scale-95"
-          >
-            <Volume2 className="w-4 h-4 animate-pulse" />
-            <span>Toque Aqui Para Ativar Som e Vibração</span>
-          </button>
-        )}
       </div>
 
       {/* 2. CALLER INFORMATION & PULSING AVATAR */}
@@ -142,7 +98,6 @@ export const WhatsAppIncomingCallModal: React.FC<WhatsAppIncomingCallModalProps>
             type="button"
             onClick={(e) => {
               e.stopPropagation();
-              callAudio.forceUnlockAndPlay();
               onAccept();
             }}
             className="w-16 h-16 rounded-full bg-[#00a884] hover:bg-[#008069] text-white flex items-center justify-center shadow-2xl transition-transform active:scale-90 cursor-pointer ring-4 ring-emerald-400/40 animate-bounce duration-1000"

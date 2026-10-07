@@ -34,6 +34,7 @@ import {
   Save,
   CheckCircle,
   ExternalLink,
+  X,
   Upload,
   Link as LinkIcon,
   RefreshCw,
@@ -133,6 +134,22 @@ export const AdminPanel: React.FC = () => {
   const [showWebhookSecret, setShowWebhookSecret] = useState(false);
   const [copiedKeyField, setCopiedKeyField] = useState<string | null>(null);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+
+  // Modal para cadastrar produto com opção de deixar Online ou Offline
+  const [isNewProductModalOpen, setIsNewProductModalOpen] = useState(false);
+  const [newProductName, setNewProductName] = useState('');
+  const [newProductSubtitle, setNewProductSubtitle] = useState('');
+  const [newProductRefCode, setNewProductRefCode] = useState('');
+  const [newProductCategory, setNewProductCategory] = useState<'glp1' | 'muscular' | 'longevidade' | 'kits'>('glp1');
+  const [newProductPrice, setNewProductPrice] = useState<number>(49.0);
+  const [newProductOriginalPrice, setNewProductOriginalPrice] = useState<number>(80.0);
+  const [newProductStatus, setNewProductStatus] = useState<'online' | 'offline'>('online');
+  const [newProductStock, setNewProductStock] = useState<number>(100);
+  const [newProductPurity, setNewProductPurity] = useState('99.5% HPLC Grade');
+  const [newProductWhatIsItFor, setNewProductWhatIsItFor] = useState('Modulação e suporte de homeostase avançada para otimização de composição corporal.');
+  const [newProductImage, setNewProductImage] = useState(
+    'https://lh3.googleusercontent.com/aida-public/AB6AXuCUNGHYf5ysPyg9SVloHweRJLVtK7y5NHDOdgmRp-aIaz3Z8fjdAKwE2dDPcuIMx19hngOImZjWukDeXgDra6_XouFN9a8BTVO-hNK3VOwb3QxYPuka98-qURmbj16A4to2F1mJZyu5_qqcLBTpipCTA6cvQmD_7wCoN1qU7PPvBpSeKTcX_I1gpIIoff8NZhFOPZReAbmYzwa5c_1HhnMoZyp69ZmChlEq7iQdllvtjFQ1Tr_Tnoz0vnmHx4_mxB7E5O4'
+  );
 
   const getAdminTabTitle = (tab: typeof activeAdminTab) => {
     switch (tab) {
@@ -377,29 +394,67 @@ export const AdminPanel: React.FC = () => {
     updateTestimonial(updated);
   };
 
-  const handleAddNewProduct = () => {
-    addProduct({
-      name: 'Novo Peptídeo Liofilizado',
-      subtitle: 'MetaSlim Pro Research',
-      refCode: 'NX-' + Math.floor(10 + Math.random() * 90),
-      category: 'glp1',
-      categoryLabel: 'Emagrecimento & GLP-1',
-      price: 49.0,
-      originalPrice: 80.0,
-      purity: '99.5% HPLC Grade',
-      whatIsItFor: 'Modulação e suporte de homeostase avançada para otimização de composição corporal.',
+  const handleOpenNewProductModal = () => {
+    setNewProductName('');
+    setNewProductSubtitle('MetaSlim Pro Research');
+    setNewProductRefCode('NX-' + Math.floor(10 + Math.random() * 90));
+    setNewProductCategory('glp1');
+    setNewProductPrice(49.0);
+    setNewProductOriginalPrice(80.0);
+    setNewProductStatus('online'); // Default: Online, or user can toggle to Offline
+    setNewProductStock(100);
+    setNewProductPurity('99.5% HPLC Grade');
+    setNewProductWhatIsItFor('Modulação e suporte de homeostase avançada para otimização de composição corporal.');
+    setNewProductImage(
+      'https://lh3.googleusercontent.com/aida-public/AB6AXuCUNGHYf5ysPyg9SVloHweRJLVtK7y5NHDOdgmRp-aIaz3Z8fjdAKwE2dDPcuIMx19hngOImZjWukDeXgDra6_XouFN9a8BTVO-hNK3VOwb3QxYPuka98-qURmbj16A4to2F1mJZyu5_qqcLBTpipCTA6cvQmD_7wCoN1qU7PPvBpSeKTcX_I1gpIIoff8NZhFOPZReAbmYzwa5c_1HhnMoZyp69ZmChlEq7iQdllvtjFQ1Tr_Tnoz0vnmHx4_mxB7E5O4'
+    );
+    setIsNewProductModalOpen(true);
+  };
+
+  const handleCreateProductSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newProductName.trim()) {
+      showToast('Por favor, informe o nome do produto.');
+      return;
+    }
+    const catLabels: Record<string, string> = {
+      glp1: 'Emagrecimento & GLP-1',
+      muscular: 'Hipertrofia & Massa Magra',
+      longevidade: 'Longevidade & Celular',
+      kits: 'Kits & Combos Sinérgicos',
+    };
+    const defaultRef = newProductRefCode.trim() || 'NX-' + Math.floor(10 + Math.random() * 90);
+    const newProd = {
+      name: newProductName.trim(),
+      subtitle: newProductSubtitle.trim() || 'MetaSlim Pro Research',
+      refCode: defaultRef,
+      category: newProductCategory,
+      categoryLabel: catLabels[newProductCategory] || 'Emagrecimento & GLP-1',
+      price: newProductPrice || 49.0,
+      originalPrice: newProductOriginalPrice || (newProductPrice ? Math.round(newProductPrice * 1.5) : 80.0),
+      purity: newProductPurity || '99.5% HPLC Grade',
+      whatIsItFor: newProductWhatIsItFor || 'Modulação e suporte de homeostase avançada para otimização de composição corporal.',
       scientificDescription: 'Composto sintético liofilizado de grau laboratorial puro auditado por cromatografia.',
-      stock: 100,
-      image:
-        'https://lh3.googleusercontent.com/aida-public/AB6AXuCUNGHYf5ysPyg9SVloHweRJLVtK7y5NHDOdgmRp-aIaz3Z8fjdAKwE2dDPcuIMx19hngOImZjWukDeXgDra6_XouFN9a8BTVO-hNK3VOwb3QxYPuka98-qURmbj16A4to2F1mJZyu5_qqcLBTpipCTA6cvQmD_7wCoN1qU7PPvBpSeKTcX_I1gpIIoff8NZhFOPZReAbmYzwa5c_1HhnMoZyp69ZmChlEq7iQdllvtjFQ1Tr_Tnoz0vnmHx4_mxB7E5O4',
+      stock: newProductStock || 100,
+      image: newProductImage,
       batchNumber: 'NX-2026',
       casNumber: '000000-00-0',
       molecularWeight: '~3500 g/mol',
       formula: 'C₁₅₀H₂₄₀N₄₀O₅₀',
       paymentLink: settings.defaultPaymentLink,
       featured: false,
-    });
+      status: newProductStatus, // 'online' or 'offline'
+    };
+    await addProduct(newProd);
+    setIsNewProductModalOpen(false);
+    showToast(
+      newProductStatus === 'online'
+        ? `Produto "${newProd.name}" cadastrado como ONLINE (disponível na loja)!`
+        : `Produto "${newProd.name}" cadastrado como OFFLINE (oculto da loja pública)!`
+    );
   };
+
+  const handleAddNewProduct = handleOpenNewProductModal;
 
   const handleAddNewTestimonial = () => {
     addTestimonial({
@@ -1048,19 +1103,98 @@ export const AdminPanel: React.FC = () => {
                 onChange={(e) => setSelectedProdId(e.target.value)}
                 className="h-9 px-3 rounded-xl bg-slate-50 border border-slate-200 text-xs font-semibold text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#006750]"
               >
-                {products.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name} ({p.refCode})
-                  </option>
-                ))}
+                {products.map((p) => {
+                  const isOff = p.status === 'offline';
+                  return (
+                    <option key={p.id} value={p.id}>
+                      {isOff ? '🔴 [Offline] ' : '🟢 [Online] '} {p.name} ({p.refCode})
+                    </option>
+                  );
+                })}
               </select>
 
               <button
-                onClick={handleAddNewProduct}
-                className="h-9 px-3 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-[#006750] text-xs font-bold flex items-center gap-1 transition-colors"
+                type="button"
+                onClick={handleOpenNewProductModal}
+                className="h-9 px-3.5 rounded-xl bg-gradient-to-r from-[#006750] to-[#0d8267] hover:opacity-95 text-white text-xs font-bold flex items-center gap-1.5 shadow-xs transition-all cursor-pointer active:scale-95 shrink-0"
+                title="Cadastrar um novo produto com opção Online ou Offline"
               >
                 <Plus className="w-3.5 h-3.5" />
-                <span>Novo</span>
+                <span>+ Cadastrar Produto</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Status Online/Offline Banner & Quick Switcher */}
+          <div
+            className={`p-4 rounded-2xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-colors ${
+              selectedProduct.status === 'offline'
+                ? 'bg-rose-50/80 border-rose-200 text-rose-950'
+                : 'bg-emerald-50/80 border-emerald-200 text-emerald-950'
+            }`}
+          >
+            <div className="flex items-center gap-3">
+              <span
+                className={`w-3.5 h-3.5 rounded-full shrink-0 ${
+                  selectedProduct.status === 'offline'
+                    ? 'bg-rose-500 animate-pulse ring-4 ring-rose-200'
+                    : 'bg-emerald-500 ring-4 ring-emerald-200'
+                }`}
+              />
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="font-extrabold text-sm">
+                    {selectedProduct.status === 'offline'
+                      ? 'Status: OFFLINE (Oculto da Loja)'
+                      : 'Status: ONLINE (Ativo na Loja)'}
+                  </span>
+                  <span
+                    className={`text-[10px] font-mono uppercase font-black px-2 py-0.5 rounded-full ${
+                      selectedProduct.status === 'offline'
+                        ? 'bg-rose-200 text-rose-900'
+                        : 'bg-emerald-200 text-emerald-900'
+                    }`}
+                  >
+                    {selectedProduct.status === 'offline' ? 'Pausado' : 'Publicado'}
+                  </span>
+                </div>
+                <p className="text-xs text-slate-600 mt-0.5">
+                  {selectedProduct.status === 'offline'
+                    ? 'Este produto NÃO aparece para clientes na loja pública. Fica visível apenas aqui no Painel de Administração.'
+                    : 'Este produto está publicado e visível para todos os clientes comprarem na loja.'}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={() => {
+                  const nextStatus = selectedProduct.status === 'offline' ? 'online' : 'offline';
+                  handleProductFieldChange('status', nextStatus);
+                  showToast(
+                    nextStatus === 'online'
+                      ? `"${selectedProduct.name}" agora está ONLINE na loja!`
+                      : `"${selectedProduct.name}" agora está OFFLINE (oculto da loja)!`
+                  );
+                }}
+                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer ${
+                  selectedProduct.status === 'offline'
+                    ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-900/10'
+                    : 'bg-rose-600 hover:bg-rose-700 text-white shadow-rose-900/10'
+                }`}
+              >
+                {selectedProduct.status === 'offline' ? (
+                  <>
+                    <Eye className="w-3.5 h-3.5" />
+                    <span>Colocar Online na Loja</span>
+                  </>
+                ) : (
+                  <>
+                    <EyeOff className="w-3.5 h-3.5" />
+                    <span>Tirar do Ar (Deixar Offline)</span>
+                  </>
+                )}
               </button>
             </div>
           </div>
@@ -1145,6 +1279,55 @@ export const AdminPanel: React.FC = () => {
                 onChange={(e) => handleProductFieldChange('price', parseFloat(e.target.value) || 0)}
                 className="h-10 px-3 rounded-xl bg-emerald-50 border border-emerald-200 text-xs font-mono font-bold text-[#006750] focus:outline-none focus:ring-1 focus:ring-[#006750]"
               />
+            </div>
+
+            {/* Status de Publicação no Formulário */}
+            <div className="sm:col-span-2 p-3.5 bg-slate-50 rounded-xl border border-slate-200 flex flex-col gap-2">
+              <label className="text-xs font-bold text-slate-800 flex items-center justify-between">
+                <span>Disponibilidade na Loja (Online ou Offline)</span>
+                <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-full ${
+                  selectedProduct.status === 'offline' ? 'bg-rose-100 text-rose-800' : 'bg-emerald-100 text-emerald-800'
+                }`}>
+                  {selectedProduct.status === 'offline' ? '🔴 Atualmente Offline' : '🟢 Atualmente Online'}
+                </span>
+              </label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => handleProductFieldChange('status', 'online')}
+                  className={`p-3 rounded-xl border text-xs font-bold flex items-center gap-2.5 transition-all text-left cursor-pointer ${
+                    selectedProduct.status !== 'offline'
+                      ? 'bg-emerald-50 border-emerald-500 text-emerald-950 ring-2 ring-emerald-400/50 shadow-xs'
+                      : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                  }`}
+                >
+                  <span className={`w-3.5 h-3.5 rounded-full shrink-0 ${
+                    selectedProduct.status !== 'offline' ? 'bg-emerald-500 ring-2 ring-emerald-200' : 'bg-slate-300'
+                  }`} />
+                  <div className="flex flex-col">
+                    <span className="font-extrabold text-slate-900">🟢 Deixar Online</span>
+                    <span className="text-[10px] text-slate-500 font-normal">Visível no catálogo da loja para compra</span>
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleProductFieldChange('status', 'offline')}
+                  className={`p-3 rounded-xl border text-xs font-bold flex items-center gap-2.5 transition-all text-left cursor-pointer ${
+                    selectedProduct.status === 'offline'
+                      ? 'bg-rose-50 border-rose-500 text-rose-950 ring-2 ring-rose-400/50 shadow-xs'
+                      : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                  }`}
+                >
+                  <span className={`w-3.5 h-3.5 rounded-full shrink-0 ${
+                    selectedProduct.status === 'offline' ? 'bg-rose-500 ring-2 ring-rose-200' : 'bg-slate-300'
+                  }`} />
+                  <div className="flex flex-col">
+                    <span className="font-extrabold text-slate-900">🔴 Deixar Offline</span>
+                    <span className="text-[10px] text-slate-500 font-normal">Oculto na loja pública (rascunho / pausado)</span>
+                  </div>
+                </button>
+              </div>
             </div>
           </div>
 
@@ -3543,6 +3726,252 @@ VITE_FIREBASE_STORAGE_BUCKET=gen-lang-client-0356673859.firebasestorage.app`}
       )}
         </div>
       </div>
+
+      {/* Modal: Cadastrar Novo Produto com Opção Online ou Offline */}
+      {isNewProductModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto animate-in fade-in duration-150">
+          <div className="bg-white rounded-3xl max-w-xl w-full p-5 sm:p-7 shadow-2xl border border-slate-200/90 text-slate-900 my-auto animate-in zoom-in-95 duration-150 flex flex-col gap-5">
+            {/* Modal Header */}
+            <div className="flex items-start justify-between gap-3 border-b border-slate-100 pb-3">
+              <div>
+                <span className="text-[10px] font-mono uppercase font-bold text-[#006750] bg-emerald-50 px-2 py-0.5 rounded-full">
+                  Novo Cadastro
+                </span>
+                <h2 className="text-xl font-extrabold text-slate-900 tracking-tight mt-1">
+                  Cadastrar Novo Produto
+                </h2>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Preencha os dados e escolha se o composto fica <strong>Online</strong> (visível para clientes) ou <strong>Offline</strong> (rascunho).
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsNewProductModalOpen(false)}
+                className="p-1.5 rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-700 transition-colors cursor-pointer"
+                title="Fechar"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Registration Form */}
+            <form onSubmit={handleCreateProductSubmit} className="flex flex-col gap-4">
+              {/* OPÇÃO CRÍTICA: DEIXAR ONLINE OU OFFLINE */}
+              <div className="p-3.5 sm:p-4 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col gap-2.5">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-extrabold text-slate-900 flex items-center gap-1.5">
+                    <span>Status de Publicação na Loja</span>
+                    <span className="text-rose-500">*</span>
+                  </label>
+                  <span className="text-[11px] font-mono font-bold text-slate-600">
+                    {newProductStatus === 'online' ? '🟢 Modo Ativo' : '🔴 Modo Rascunho'}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  {/* Card Online */}
+                  <button
+                    type="button"
+                    onClick={() => setNewProductStatus('online')}
+                    className={`p-3.5 rounded-xl border text-left flex items-start gap-3 transition-all cursor-pointer ${
+                      newProductStatus === 'online'
+                        ? 'bg-emerald-50 border-emerald-500 ring-2 ring-emerald-500/30 text-emerald-950 shadow-xs'
+                        : 'bg-white border-slate-200 hover:bg-slate-100/60 text-slate-700'
+                    }`}
+                  >
+                    <span
+                      className={`w-4 h-4 rounded-full mt-0.5 shrink-0 flex items-center justify-center ${
+                        newProductStatus === 'online'
+                          ? 'bg-emerald-600 text-white'
+                          : 'border border-slate-300'
+                      }`}
+                    >
+                      {newProductStatus === 'online' && <span className="w-1.5 h-1.5 rounded-full bg-white" />}
+                    </span>
+                    <div className="flex flex-col">
+                      <span className="text-xs font-bold text-slate-900 flex items-center gap-1">
+                        <span>🟢 Deixar Online</span>
+                        <span className="text-[10px] bg-emerald-100 text-emerald-800 px-1.5 py-0.2 rounded font-mono font-bold">
+                          Ativo
+                        </span>
+                      </span>
+                      <span className="text-[11px] text-slate-500 leading-tight mt-1">
+                        Fica imediatamente visível no catálogo da loja para todos os clientes comprarem.
+                      </span>
+                    </div>
+                  </button>
+
+                  {/* Card Offline */}
+                  <button
+                    type="button"
+                    onClick={() => setNewProductStatus('offline')}
+                    className={`p-3.5 rounded-xl border text-left flex items-start gap-3 transition-all cursor-pointer ${
+                      newProductStatus === 'offline'
+                        ? 'bg-rose-50 border-rose-500 ring-2 ring-rose-500/30 text-rose-950 shadow-xs'
+                        : 'bg-white border-slate-200 hover:bg-slate-100/60 text-slate-700'
+                    }`}
+                  >
+                    <span
+                      className={`w-4 h-4 rounded-full mt-0.5 shrink-0 flex items-center justify-center ${
+                        newProductStatus === 'offline'
+                          ? 'bg-rose-600 text-white'
+                          : 'border border-slate-300'
+                      }`}
+                    >
+                      {newProductStatus === 'offline' && <span className="w-1.5 h-1.5 rounded-full bg-white" />}
+                    </span>
+                    <div className="flex flex-col">
+                      <span className="text-xs font-bold text-slate-900 flex items-center gap-1">
+                        <span>🔴 Deixar Offline</span>
+                        <span className="text-[10px] bg-rose-100 text-rose-800 px-1.5 py-0.2 rounded font-mono font-bold">
+                          Oculto
+                        </span>
+                      </span>
+                      <span className="text-[11px] text-slate-500 leading-tight mt-1">
+                        Fica salvo apenas no Painel Admin. Clientes NÃO verão este produto na loja.
+                      </span>
+                    </div>
+                  </button>
+                </div>
+              </div>
+
+              {/* Dados Básicos */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="sm:col-span-2">
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Nome do Produto *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={newProductName}
+                    onChange={(e) => setNewProductName(e.target.value)}
+                    placeholder="Ex: Tirzepatide (10mg a 100mg)"
+                    className="w-full h-10 px-3 rounded-xl bg-slate-50 border border-slate-200 text-xs font-semibold text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#006750]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Subtítulo / Apresentação
+                  </label>
+                  <input
+                    type="text"
+                    value={newProductSubtitle}
+                    onChange={(e) => setNewProductSubtitle(e.target.value)}
+                    placeholder="Ex: Coagonista GIP/GLP-1"
+                    className="w-full h-10 px-3 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#006750]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Código REF
+                  </label>
+                  <input
+                    type="text"
+                    value={newProductRefCode}
+                    onChange={(e) => setNewProductRefCode(e.target.value)}
+                    placeholder="Ex: TR10"
+                    className="w-full h-10 px-3 rounded-xl bg-slate-50 border border-slate-200 text-xs font-mono text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#006750]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Categoria
+                  </label>
+                  <select
+                    value={newProductCategory}
+                    onChange={(e) => setNewProductCategory(e.target.value as any)}
+                    className="w-full h-10 px-3 rounded-xl bg-slate-50 border border-slate-200 text-xs font-semibold text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#006750]"
+                  >
+                    <option value="glp1">Emagrecimento &amp; GLP-1</option>
+                    <option value="muscular">Hipertrofia &amp; Massa Magra</option>
+                    <option value="longevidade">Longevidade &amp; Celular</option>
+                    <option value="kits">Kits &amp; Combos Sinérgicos</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Estoque Inicial (Viais)
+                  </label>
+                  <input
+                    type="number"
+                    value={newProductStock}
+                    onChange={(e) => setNewProductStock(parseInt(e.target.value) || 0)}
+                    className="w-full h-10 px-3 rounded-xl bg-slate-50 border border-slate-200 text-xs font-mono text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#006750]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-emerald-800 mb-1">
+                    Preço Promocional (€) *
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    required
+                    value={newProductPrice}
+                    onChange={(e) => setNewProductPrice(parseFloat(e.target.value) || 0)}
+                    className="w-full h-10 px-3 rounded-xl bg-emerald-50 border border-emerald-300 text-xs font-mono font-bold text-[#006750] focus:outline-none focus:ring-1 focus:ring-[#006750]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Preço Normal (€)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={newProductOriginalPrice}
+                    onChange={(e) => setNewProductOriginalPrice(parseFloat(e.target.value) || 0)}
+                    className="w-full h-10 px-3 rounded-xl bg-slate-50 border border-slate-200 text-xs font-mono text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#006750]"
+                  />
+                </div>
+
+                <div className="sm:col-span-2">
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Para Que Serve (Resumo Breve)
+                  </label>
+                  <textarea
+                    rows={2}
+                    value={newProductWhatIsItFor}
+                    onChange={(e) => setNewProductWhatIsItFor(e.target.value)}
+                    className="w-full p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#006750]"
+                  />
+                </div>
+              </div>
+
+              {/* Modal Actions */}
+              <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setIsNewProductModalOpen(false)}
+                  className="px-4 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-600 text-xs font-bold transition-colors cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className={`px-5 py-2.5 rounded-xl text-white font-bold text-xs shadow-md transition-all active:scale-95 flex items-center gap-1.5 cursor-pointer ${
+                    newProductStatus === 'online'
+                      ? 'bg-gradient-to-r from-[#006750] to-[#0d8267] hover:opacity-95'
+                      : 'bg-gradient-to-r from-slate-800 to-slate-900 hover:bg-slate-800'
+                  }`}
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>
+                    Cadastrar Produto ({newProductStatus === 'online' ? '🟢 Como Online' : '🔴 Como Offline'})
+                  </span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Floating Save Bar */}
       <div className="fixed bottom-14 sm:bottom-16 left-0 right-0 z-40 bg-white/95 backdrop-blur-md px-4 py-3 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] border-t border-slate-200/80 flex items-center justify-between max-w-7xl mx-auto sm:rounded-t-2xl">

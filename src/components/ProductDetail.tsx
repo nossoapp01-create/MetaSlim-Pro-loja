@@ -182,6 +182,12 @@ export const ProductDetail: React.FC = () => {
 
       {/* Title & Pricing Summary */}
       <section className="bg-white rounded-2xl p-5 sm:p-7 shadow-sm border border-slate-200/70">
+        {product.status === 'offline' && (
+          <div className="mb-4 p-3.5 rounded-xl bg-amber-50 border border-amber-300 text-amber-900 text-xs flex items-center gap-2">
+            <span className="font-bold shrink-0">⚠️ Composto Offline:</span>
+            <span>Este produto está pausado no catálogo público e visível apenas para revisão interna.</span>
+          </div>
+        )}
         <div className="flex items-start justify-between gap-4">
           <div className="flex flex-col">
             <div className="inline-flex items-center gap-1.5 text-[#006750] font-bold text-xs mb-1">

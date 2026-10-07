@@ -28,6 +28,7 @@ export interface Product {
   badge?: string;
   dosageOptions?: DosageOption[];
   hasDosageSelector?: boolean;
+  status?: 'online' | 'offline';
 }
 
 export interface CartItem {
