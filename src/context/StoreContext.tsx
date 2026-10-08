@@ -131,6 +131,7 @@ interface StoreContextType {
   setToast: (toast: string | null) => void;
   loginWithGoogle: (useRedirect?: boolean) => Promise<void>;
   logout: () => Promise<void>;
+  loginAdmin: (email: string, pass: string) => Promise<{ success: boolean; message?: string }>;
   quickAdminLogin: () => void;
   customerUser: CustomerUser | null;
   isAuthenticated: boolean;
@@ -184,6 +185,15 @@ function sanitizeProductBadges(prods: Product[]): Product[] {
     }
     return p;
   });
+}
+
+function sanitizeBanners(bannerList: BannerSlide[]): BannerSlide[] {
+  return (bannerList || []).filter(
+    (b) =>
+      b.id !== 3 &&
+      !/compre\s*[12]|leve\s*2|ganhe\s*1/i.test(b.title || '') &&
+      !/compre\s*[12]|leve\s*2|ganhe\s*1/i.test(b.badgeText || '')
+  );
 }
 
 export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -269,20 +279,18 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       const saved = localStorage.getItem(STORAGE_KEYS.BANNERS);
       if (saved) {
         const parsed = JSON.parse(saved) as BannerSlide[];
-        const existingIds = new Set(parsed.map((b) => b.id));
-        const missing = initialBanners.filter((b) => !existingIds.has(b.id));
-        if (missing.length > 0) {
-          const merged = [...parsed, ...missing];
-          try {
-            localStorage.setItem(STORAGE_KEYS.BANNERS, JSON.stringify(merged));
-          } catch {}
-          return merged;
-        }
-        return parsed;
+        const filtered = sanitizeBanners(parsed);
+        const existingIds = new Set(filtered.map((b) => b.id));
+        const missing = sanitizeBanners(initialBanners).filter((b) => !existingIds.has(b.id));
+        const merged = [...filtered, ...missing];
+        try {
+          localStorage.setItem(STORAGE_KEYS.BANNERS, JSON.stringify(merged));
+        } catch {}
+        return merged;
       }
-      return initialBanners;
+      return sanitizeBanners(initialBanners);
     } catch {
-      return initialBanners;
+      return sanitizeBanners(initialBanners);
     }
   });
 
@@ -305,6 +313,12 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           ...getInitialSettingsForTenant(currentTenant),
           ...parsed,
           resale: parsed.resale || initialStoreSettings.resale,
+          enabledPaymentMethods: parsed.enabledPaymentMethods || {
+            stripe: true,
+            mbway: true,
+            mypos: false,
+            crypto: false,
+          },
         };
       }
       if (activeTenantId === initialTenants[0].tenantId) {
@@ -315,6 +329,12 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             ...initialStoreSettings,
             ...parsed,
             resale: parsed.resale || initialStoreSettings.resale,
+            enabledPaymentMethods: parsed.enabledPaymentMethods || {
+              stripe: true,
+              mbway: true,
+              mypos: false,
+              crypto: false,
+            },
           };
         }
       }
@@ -381,7 +401,13 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [localAdminUser, setLocalAdminUser] = useState<{ uid: string; email: string; displayName: string } | null>(() => {
     try {
       const saved = localStorage.getItem('metaslim_local_admin');
-      return saved ? JSON.parse(saved) : null;
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed?.email?.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase()) {
+          return parsed;
+        }
+      }
+      return null;
     } catch {
       return null;
     }
@@ -408,17 +434,14 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [isFirebaseConnected, setIsFirebaseConnected] = useState<boolean>(false);
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
 
+  // STRICT ACCESS: Only nossoapp01@gmail.com has access to admin
   const isSuperAdmin = Boolean(
     (firebaseUser && firebaseUser.email?.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase()) ||
-    (localAdminUser && localAdminUser.email?.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase()) ||
-    superAdminKeyUnlocked
+    (localAdminUser && localAdminUser.email?.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase())
   );
 
   const isAdminUser = Boolean(
-    isSuperAdmin ||
-    (firebaseUser &&
-      (firebaseUser.email?.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase() ||
-        firebaseUser.email?.includes('admin'))) ||
+    (firebaseUser && firebaseUser.email?.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase()) ||
     (localAdminUser && localAdminUser.email?.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase())
   );
 
@@ -681,11 +704,6 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       '25091982rm.',
       '25091982Rm',
       '25091982rm',
-      '25091982',
-      'superadmin2026',
-      'admin123',
-      'metaslim99',
-      'nossoapp01',
     ];
 
     if (
@@ -699,9 +717,60 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       showToast('Acesso de Super Admin liberado com sucesso!');
       return true;
     }
-    showToast('Chave de acesso de Super Admin incorreta.');
+    showToast('Chave de acesso incorreta.');
     return false;
   }, [showToast]);
+
+  const loginAdmin = useCallback(
+    async (email: string, pass: string): Promise<{ success: boolean; message?: string }> => {
+      const normalizedEmail = (email || '').trim().toLowerCase();
+      if (normalizedEmail !== SUPER_ADMIN_EMAIL.toLowerCase()) {
+        showToast('Área restrita: Acesso exclusivo para nossoapp01@gmail.com');
+        return {
+          success: false,
+          message: 'Área restrita: Acesso exclusivo para o administrador autorizado (nossoapp01@gmail.com).',
+        };
+      }
+
+      const trimmedPass = (pass || '').trim();
+      const validMasterPasswords = [
+        '25091982Rm.',
+        '25091982Rm',
+        '25091982rm.',
+        '25091982rm',
+        (import.meta.env.VITE_SUPER_ADMIN_PASSWORD || '').trim(),
+      ].filter(Boolean);
+
+      const isValid = validMasterPasswords.some(
+        (p) => p === trimmedPass || p.toLowerCase() === trimmedPass.toLowerCase()
+      );
+
+      if (!isValid) {
+        showToast('Senha incorreta. Verifique os dados digitados.');
+        return { success: false, message: 'Senha incorreta.' };
+      }
+
+      const adminObj = {
+        uid: 'super-admin-nossoapp01',
+        email: SUPER_ADMIN_EMAIL,
+        displayName: 'Administrador Oficial',
+      };
+      setLocalAdminUser(adminObj);
+      setSuperAdminKeyUnlocked(true);
+      try {
+        localStorage.setItem('metaslim_local_admin', JSON.stringify(adminObj));
+        localStorage.setItem('metaslim_super_admin_unlocked', 'true');
+      } catch {}
+
+      try {
+        await signInWithEmail(normalizedEmail, pass).catch(() => {});
+      } catch {}
+
+      showToast('Acesso administrativo autorizado com sucesso!');
+      return { success: true };
+    },
+    [showToast]
+  );
 
   const lockSuperAdmin = useCallback(() => {
     setSuperAdminKeyUnlocked(false);
@@ -897,98 +966,12 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     [allTenants, showToast]
   );
 
-  // Login tenant with email and password
+  // Login tenant/admin with email and password
   const loginTenantWithPassword = async (
     email: string,
     password: string
   ): Promise<{ success: boolean; message?: string }> => {
-    try {
-      const normalizedEmail = email.trim().toLowerCase();
-
-      const trimmedPass = (password || '').trim();
-      const isMasterKey = [
-        '25091982Rm.',
-        '25091982rm.',
-        '25091982Rm',
-        '25091982rm',
-        '25091982',
-        'superadmin2026',
-        (import.meta.env.VITE_SUPER_ADMIN_PASSWORD || '').trim(),
-      ].some((p) => p && (p === trimmedPass || p.toLowerCase() === trimmedPass.toLowerCase()));
-
-      // Try Firebase auth
-      let authUid = '';
-      try {
-        const fbUser = await signInWithEmail(normalizedEmail, password);
-        if (fbUser) {
-          authUid = fbUser.uid;
-        }
-      } catch (authErr: any) {
-        console.warn('Firebase email auth login notice:', authErr?.message);
-        if (!isMasterKey && (authErr?.code === 'auth/wrong-password' || authErr?.code === 'auth/invalid-credential')) {
-          showToast('Senha incorreta. Verifique os dados digitados.');
-          return { success: false, message: 'Senha incorreta' };
-        }
-      }
-
-      if (isMasterKey || normalizedEmail === SUPER_ADMIN_EMAIL.toLowerCase()) {
-        setSuperAdminKeyUnlocked(true);
-        try {
-          localStorage.setItem('metaslim_super_admin_unlocked', 'true');
-        } catch {}
-      }
-
-      // Find tenant associated with this email
-      let matchingTenant = allTenants.find(
-        (t) => t.ownerEmail.toLowerCase() === normalizedEmail
-      );
-
-      // If super admin email
-      if (!matchingTenant && normalizedEmail === SUPER_ADMIN_EMAIL.toLowerCase()) {
-        matchingTenant = allTenants[0];
-      }
-
-      // If not found, create a tenant on the fly for this account
-      if (!matchingTenant) {
-        const cleanName = email.split('@')[0];
-        const cleanSlug = cleanName.toLowerCase().replace(/[^a-z0-9]+/g, '-');
-        const newTId = `tenant_${cleanSlug}_${Date.now().toString(36)}`;
-        matchingTenant = {
-          tenantId: newTId,
-          ownerUid: authUid || `usr_${Date.now().toString(36)}`,
-          ownerEmail: normalizedEmail,
-          ownerName: cleanName.toUpperCase(),
-          storeName: `Loja ${cleanName.charAt(0).toUpperCase() + cleanName.slice(1)}`,
-          storeSlug: cleanSlug,
-          plan: 'starter',
-          createdAt: new Date().toISOString(),
-          status: 'active',
-        };
-        setAllTenants((prev) => [...prev, matchingTenant!]);
-        try {
-          localStorage.setItem('metaslim_all_tenants', JSON.stringify([...allTenants, matchingTenant]));
-        } catch {}
-      }
-
-      switchTenant(matchingTenant.tenantId);
-
-      const adminObj = {
-        uid: authUid || matchingTenant.ownerUid,
-        email: normalizedEmail,
-        displayName: matchingTenant.ownerName,
-      };
-      setLocalAdminUser(adminObj);
-      try {
-        localStorage.setItem('metaslim_local_admin', JSON.stringify(adminObj));
-      } catch {}
-
-      setActiveTab('admin');
-      showToast(`Bem-vindo(a) de volta ao seu painel, ${matchingTenant.ownerName}!`);
-      return { success: true };
-    } catch (err: any) {
-      showToast(`Erro ao entrar: ${err?.message || 'Verifique seus dados'}`);
-      return { success: false, message: err?.message };
-    }
+    return loginAdmin(email, password);
   };
 
   // Reset password
@@ -2116,6 +2099,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         setToast,
         loginWithGoogle,
         logout,
+        loginAdmin,
         quickAdminLogin,
         customerUser,
         isAuthenticated,

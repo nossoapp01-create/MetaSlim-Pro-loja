@@ -21,6 +21,7 @@ import {
   Building2,
   Zap,
   Bitcoin,
+  SlidersHorizontal,
   CheckCircle,
   HelpCircle,
   FileCheck,
@@ -64,6 +65,7 @@ export const CartView: React.FC = () => {
     deliveryNotes,
     setDeliveryNotes,
     settings,
+    updateSettings,
     orders,
     addOrder,
     setActiveTab,
@@ -90,6 +92,63 @@ export const CartView: React.FC = () => {
   const [isStripeLoading, setIsStripeLoading] = useState(false);
   const [stripeErrorModal, setStripeErrorModal] = useState<{ open: boolean; message: string } | null>(null);
   const [pendingOrderId, setPendingOrderId] = useState<string | null>(null);
+
+  // Payment methods activation: ONLY Stripe and MB WAY enabled by default; myPOS and Crypto togglable
+  const enabledMethods = {
+    stripe: settings.enabledPaymentMethods?.stripe ?? true,
+    mbway: settings.enabledPaymentMethods?.mbway ?? true,
+    mypos: settings.enabledPaymentMethods?.mypos ?? false,
+    crypto: settings.enabledPaymentMethods?.crypto ?? false,
+  };
+
+  // If currently selected method is disabled, safely fallback to stripe
+  useEffect(() => {
+    if (paymentMethod === 'mypos' && !enabledMethods.mypos) {
+      setPaymentMethod('stripe');
+    } else if (paymentMethod === 'crypto' && !enabledMethods.crypto) {
+      setPaymentMethod('stripe');
+    }
+  }, [enabledMethods.mypos, enabledMethods.crypto, paymentMethod]);
+
+  const togglePaymentMethod = async (method: 'mypos' | 'crypto') => {
+    const isCurrentlyActive = Boolean(enabledMethods[method]);
+    const nextState = !isCurrentlyActive;
+    const nextEnabledMethods = {
+      stripe: enabledMethods.stripe,
+      mbway: enabledMethods.mbway,
+      mypos: method === 'mypos' ? nextState : enabledMethods.mypos,
+      crypto: method === 'crypto' ? nextState : enabledMethods.crypto,
+    };
+
+    await updateSettings({
+      enabledPaymentMethods: nextEnabledMethods,
+      ...(method === 'mypos'
+        ? {
+            mypos: {
+              ...(settings.mypos || {
+                mode: 'production',
+                integrationType: 'paylink',
+                sid: '000000000000001',
+                walletNumber: '61938166666',
+                keyIndex: 1,
+                payLink: 'https://pay.mypos.com/metaslimpro',
+              }),
+              enabled: nextState,
+            },
+          }
+        : {}),
+    });
+
+    if (!nextState && paymentMethod === method) {
+      setPaymentMethod('stripe');
+    }
+
+    showToast(
+      nextState
+        ? `✅ Forma de pagamento "${method === 'mypos' ? 'myPOS Checkout' : 'Criptomoedas'}" ATIVADA no checkout!`
+        : `Forma de pagamento "${method === 'mypos' ? 'myPOS Checkout' : 'Criptomoedas'}" DESATIVADA. Apenas Stripe e MB WAY ativos.`
+    );
+  };
 
   // Instant Payment Modals (MB WAY, PIX, Direct Card, Crypto)
   const [showMBWayPixModal, setShowMBWayPixModal] = useState(false);
@@ -1342,171 +1401,328 @@ export const CartView: React.FC = () => {
 
       {/* Payment Method Selector */}
       <div className="bg-white rounded-2xl p-4 sm:p-5 shadow-sm border border-slate-200/70 flex flex-col gap-3.5">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <CreditCard className="w-4 h-4 text-[#635BFF]" />
             <h3 className="text-sm font-bold text-[#131b2e]">Forma de Pagamento</h3>
           </div>
-          <div className="flex items-center gap-1.5">
-            <span className="text-[10px] font-mono font-bold bg-indigo-50 text-[#635BFF] px-2 py-0.5 rounded-full border border-indigo-100 flex items-center gap-1">
-              <ShieldCheck className="w-3 h-3 text-[#635BFF]" />
-              <span>Stripe Ativo</span>
-            </span>
-            <span className="text-[10px] font-mono font-bold bg-emerald-50 text-[#006750] px-2 py-0.5 rounded-full border border-emerald-100 flex items-center gap-1">
-              <ShieldCheck className="w-3 h-3 text-[#006750]" />
-              <span>myPOS Ativo</span>
-            </span>
+          <div className="flex flex-wrap items-center gap-1.5">
+            {enabledMethods.stripe && (
+              <span className="text-[10px] font-mono font-bold bg-indigo-50 text-[#635BFF] px-2 py-0.5 rounded-full border border-indigo-100 flex items-center gap-1">
+                <ShieldCheck className="w-3 h-3 text-[#635BFF]" />
+                <span>Stripe Ativo</span>
+              </span>
+            )}
+            {enabledMethods.mbway && (
+              <span className="text-[10px] font-mono font-bold bg-emerald-50 text-[#006750] px-2 py-0.5 rounded-full border border-emerald-100 flex items-center gap-1">
+                <ShieldCheck className="w-3 h-3 text-[#006750]" />
+                <span>MB WAY Ativo</span>
+              </span>
+            )}
+            {enabledMethods.mypos && (
+              <span className="text-[10px] font-mono font-bold bg-emerald-50 text-[#006750] px-2 py-0.5 rounded-full border border-emerald-100 flex items-center gap-1">
+                <ShieldCheck className="w-3 h-3 text-[#006750]" />
+                <span>myPOS Ativo</span>
+              </span>
+            )}
+            {enabledMethods.crypto && (
+              <span className="text-[10px] font-mono font-bold bg-amber-50 text-amber-700 px-2 py-0.5 rounded-full border border-amber-200 flex items-center gap-1">
+                <Bitcoin className="w-3 h-3 text-amber-600" />
+                <span>Cripto Ativo</span>
+              </span>
+            )}
           </div>
         </div>
 
+        {/* Active Payment Method Cards Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
           {/* Method 1: Stripe Checkout (Global Standard) */}
-          <div
-            onClick={() => setPaymentMethod('stripe')}
-            className={`p-3.5 rounded-xl border-2 transition-all cursor-pointer flex flex-col justify-between ${
-              paymentMethod === 'stripe'
-                ? 'border-[#635BFF] bg-indigo-50/40 shadow-xs'
-                : 'border-slate-200 bg-white hover:border-slate-300'
-            }`}
-          >
-            <div className="flex items-start justify-between gap-2">
-              <div className="flex items-start gap-2.5">
-                <div className="w-5 h-5 rounded-full border-2 border-[#635BFF] flex items-center justify-center mt-0.5 shrink-0">
-                  {paymentMethod === 'stripe' && <div className="w-2.5 h-2.5 rounded-full bg-[#635BFF]" />}
+          {enabledMethods.stripe && (
+            <div
+              onClick={() => setPaymentMethod('stripe')}
+              className={`p-3.5 rounded-xl border-2 transition-all cursor-pointer flex flex-col justify-between ${
+                paymentMethod === 'stripe'
+                  ? 'border-[#635BFF] bg-indigo-50/40 shadow-xs'
+                  : 'border-slate-200 bg-white hover:border-slate-300'
+              }`}
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex items-start gap-2.5">
+                  <div className="w-5 h-5 rounded-full border-2 border-[#635BFF] flex items-center justify-center mt-0.5 shrink-0">
+                    {paymentMethod === 'stripe' && <div className="w-2.5 h-2.5 rounded-full bg-[#635BFF]" />}
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs font-bold text-slate-900">Stripe Checkout</span>
+                      <span className="text-[9px] font-bold bg-[#635BFF]/10 text-[#635BFF] px-1.5 py-0.2 rounded font-mono">
+                        GLOBAL &amp; APPLE PAY
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-500 mt-0.5 leading-snug">
+                      Cartões de Crédito/Débito, Apple Pay, Google Pay e Link Seguro Stripe.
+                    </p>
+                  </div>
                 </div>
-                <div>
+              </div>
+
+              <div className="mt-3 pt-2 border-t border-slate-100 flex items-center justify-between">
+                <span className="text-[10px] font-mono text-indigo-900 font-semibold flex items-center gap-1">
+                  <Lock className="w-3 h-3 text-[#635BFF]" />
+                  PCI-DSS Nível 1 Certificado
+                </span>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowStripeModal(true);
+                  }}
+                  className="text-[10px] text-[#635BFF] font-bold hover:underline"
+                >
+                  Ver Parâmetros
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Method 2: MB WAY / PIX Instantâneo */}
+          {enabledMethods.mbway && (
+            <div
+              onClick={() => setPaymentMethod('mbway_pix')}
+              className={`p-3.5 rounded-xl border-2 transition-all cursor-pointer flex flex-col justify-between ${
+                paymentMethod === 'mbway_pix'
+                  ? 'border-[#006750] bg-emerald-50/40 shadow-xs'
+                  : 'border-slate-200 bg-white hover:border-slate-300'
+              }`}
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex items-start gap-2.5">
+                  <div className="w-5 h-5 rounded-full border-2 border-[#006750] flex items-center justify-center mt-0.5 shrink-0">
+                    {paymentMethod === 'mbway_pix' && <div className="w-2.5 h-2.5 rounded-full bg-[#006750]" />}
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs font-bold text-slate-900">MB WAY / PIX Instantâneo</span>
+                      <span className="text-[9px] font-bold bg-emerald-100 text-[#006750] px-1.5 py-0.2 rounded font-mono">
+                        INSTANTÂNEO
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-500 mt-0.5 leading-snug">
+                      Liquidação em segundos para Portugal e Brasil.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-3 pt-2 border-t border-slate-100 flex items-center justify-between">
+                <span className="text-[10px] font-mono text-emerald-700 font-bold">Sem taxas de câmbio</span>
+                <Zap className="w-3 h-3 text-[#006750]" />
+              </div>
+            </div>
+          )}
+
+          {/* Method 3: myPOS Checkout (Official UE) - Exibido apenas se ativado */}
+          {enabledMethods.mypos && (
+            <div
+              onClick={() => setPaymentMethod('mypos')}
+              className={`p-3.5 rounded-xl border-2 transition-all cursor-pointer flex flex-col justify-between animate-in fade-in duration-200 ${
+                paymentMethod === 'mypos'
+                  ? 'border-[#006750] bg-emerald-50/40 shadow-xs'
+                  : 'border-slate-200 bg-white hover:border-slate-300'
+              }`}
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex items-start gap-2.5">
+                  <div className="w-5 h-5 rounded-full border-2 border-[#006750] flex items-center justify-center mt-0.5 shrink-0">
+                    {paymentMethod === 'mypos' && <div className="w-2.5 h-2.5 rounded-full bg-[#006750]" />}
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs font-bold text-slate-900">myPOS Checkout</span>
+                      <span className="text-[9px] font-bold bg-emerald-100 text-[#006750] px-1.5 py-0.2 rounded font-mono">
+                        OFICIAL UE
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-500 mt-0.5 leading-snug">
+                      Cartões Visa, MasterCard, Multibanco e terminais myPOS Europa.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-3 pt-2 border-t border-slate-100 flex items-center justify-between">
+                <span className="text-[10px] font-mono text-emerald-800 font-semibold flex items-center gap-1">
+                  <Lock className="w-3 h-3 text-[#006750]" />
+                  Licença Bancária EMI UE
+                </span>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowMyPOSModal(true);
+                  }}
+                  className="text-[10px] text-[#006750] font-bold hover:underline"
+                >
+                  Ver Parâmetros
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Method 4: Crypto - Exibido apenas se ativado */}
+          {enabledMethods.crypto && (
+            <div
+              onClick={() => setPaymentMethod('crypto')}
+              className={`p-3.5 rounded-xl border-2 transition-all cursor-pointer flex flex-col justify-between animate-in fade-in duration-200 ${
+                paymentMethod === 'crypto'
+                  ? 'border-[#006750] bg-emerald-50/40 shadow-xs'
+                  : 'border-slate-200 bg-white hover:border-slate-300'
+              }`}
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex items-start gap-2.5">
+                  <div className="w-5 h-5 rounded-full border-2 border-[#006750] flex items-center justify-center mt-0.5 shrink-0">
+                    {paymentMethod === 'crypto' && <div className="w-2.5 h-2.5 rounded-full bg-[#006750]" />}
+                  </div>
+                  <div>
+                    <span className="text-xs font-bold text-slate-900">Criptomoedas (USDT / BTC)</span>
+                    <p className="text-[11px] text-slate-500 mt-0.5 leading-snug">
+                      Pagamento discreto via USDT (TRC-20) ou Bitcoin.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-3 pt-2 border-t border-slate-100 flex items-center justify-between">
+                <span className="text-[10px] font-mono text-amber-700 font-bold">Confidencial</span>
+                <Bitcoin className="w-3.5 h-3.5 text-amber-600" />
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Dedicated Controls: Botões para Ativar ou Não outras formas de pagamento */}
+        <div className="mt-1 pt-3.5 border-t border-slate-100 flex flex-col gap-2.5">
+          <div className="flex flex-wrap items-center justify-between gap-1.5">
+            <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+              <SlidersHorizontal className="w-3.5 h-3.5 text-[#006750]" />
+              <span>Outras Formas de Pagamento</span>
+            </span>
+            <span className="text-[11px] text-slate-500">
+              {!enabledMethods.mypos && !enabledMethods.crypto
+                ? 'Apenas Stripe e MB WAY ativos no momento'
+                : 'Formas adicionais habilitadas'}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {/* Botão de Ativação myPOS */}
+            <div
+              className={`p-3 rounded-xl border flex items-center justify-between gap-2.5 transition-all ${
+                enabledMethods.mypos
+                  ? 'bg-emerald-50/70 border-emerald-300/80 shadow-2xs'
+                  : 'bg-slate-50 border-slate-200'
+              }`}
+            >
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div
+                  className={`w-7 h-7 rounded-lg flex items-center justify-center font-bold text-xs shrink-0 ${
+                    enabledMethods.mypos ? 'bg-[#006750] text-white shadow-xs' : 'bg-slate-200 text-slate-600'
+                  }`}
+                >
+                  mP
+                </div>
+                <div className="flex flex-col min-w-0">
                   <div className="flex items-center gap-1.5">
-                    <span className="text-xs font-bold text-slate-900">Stripe Checkout</span>
-                    <span className="text-[9px] font-bold bg-[#635BFF]/10 text-[#635BFF] px-1.5 py-0.2 rounded font-mono">
-                      GLOBAL &amp; APPLE PAY
+                    <span className="text-xs font-bold text-slate-900 truncate">myPOS Checkout</span>
+                    <span
+                      className={`text-[9px] font-mono font-bold px-1.5 py-0.2 rounded ${
+                        enabledMethods.mypos ? 'bg-emerald-200 text-emerald-900' : 'bg-slate-200 text-slate-600'
+                      }`}
+                    >
+                      {enabledMethods.mypos ? 'Ativado' : 'Desativado'}
                     </span>
                   </div>
-                  <p className="text-[11px] text-slate-500 mt-0.5 leading-snug">
-                    Cartões de Crédito/Débito, Apple Pay, Google Pay e Link Seguro Stripe.
-                  </p>
+                  <span className="text-[10px] text-slate-500 truncate">Cartões Visa/MC &amp; Multibanco</span>
                 </div>
               </div>
-            </div>
 
-            <div className="mt-3 pt-2 border-t border-slate-100 flex items-center justify-between">
-              <span className="text-[10px] font-mono text-indigo-900 font-semibold flex items-center gap-1">
-                <Lock className="w-3 h-3 text-[#635BFF]" />
-                PCI-DSS Nível 1 Certificado
-              </span>
               <button
                 type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setShowStripeModal(true);
-                }}
-                className="text-[10px] text-[#635BFF] font-bold hover:underline"
+                onClick={() => togglePaymentMethod('mypos')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer shrink-0 flex items-center gap-1 ${
+                  enabledMethods.mypos
+                    ? 'bg-rose-100 hover:bg-rose-200 text-rose-800 border border-rose-300'
+                    : 'bg-[#006750] hover:bg-[#005240] text-white shadow-xs active:scale-95'
+                }`}
+                title={enabledMethods.mypos ? 'Clique para desativar o myPOS' : 'Clique para ativar o myPOS'}
               >
-                Ver Parâmetros
+                {enabledMethods.mypos ? (
+                  <>
+                    <X className="w-3 h-3" />
+                    <span>Desativar</span>
+                  </>
+                ) : (
+                  <>
+                    <Plus className="w-3 h-3" />
+                    <span>Ativar myPOS</span>
+                  </>
+                )}
               </button>
             </div>
-          </div>
 
-          {/* Method 2: myPOS Checkout (Official UE) */}
-          <div
-            onClick={() => setPaymentMethod('mypos')}
-            className={`p-3.5 rounded-xl border-2 transition-all cursor-pointer flex flex-col justify-between ${
-              paymentMethod === 'mypos'
-                ? 'border-[#006750] bg-emerald-50/40 shadow-xs'
-                : 'border-slate-200 bg-white hover:border-slate-300'
-            }`}
-          >
-            <div className="flex items-start justify-between gap-2">
-              <div className="flex items-start gap-2.5">
-                <div className="w-5 h-5 rounded-full border-2 border-[#006750] flex items-center justify-center mt-0.5 shrink-0">
-                  {paymentMethod === 'mypos' && <div className="w-2.5 h-2.5 rounded-full bg-[#006750]" />}
+            {/* Botão de Ativação Criptomoedas */}
+            <div
+              className={`p-3 rounded-xl border flex items-center justify-between gap-2.5 transition-all ${
+                enabledMethods.crypto
+                  ? 'bg-amber-50/70 border-amber-300/80 shadow-2xs'
+                  : 'bg-slate-50 border-slate-200'
+              }`}
+            >
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div
+                  className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
+                    enabledMethods.crypto ? 'bg-amber-500 text-white shadow-xs' : 'bg-slate-200 text-slate-600'
+                  }`}
+                >
+                  <Bitcoin className="w-4 h-4" />
                 </div>
-                <div>
+                <div className="flex flex-col min-w-0">
                   <div className="flex items-center gap-1.5">
-                    <span className="text-xs font-bold text-slate-900">myPOS Checkout</span>
-                    <span className="text-[9px] font-bold bg-emerald-100 text-[#006750] px-1.5 py-0.2 rounded font-mono">
-                      OFICIAL UE
+                    <span className="text-xs font-bold text-slate-900 truncate">Criptomoedas</span>
+                    <span
+                      className={`text-[9px] font-mono font-bold px-1.5 py-0.2 rounded ${
+                        enabledMethods.crypto ? 'bg-amber-200 text-amber-900' : 'bg-slate-200 text-slate-600'
+                      }`}
+                    >
+                      {enabledMethods.crypto ? 'Ativado' : 'Desativado'}
                     </span>
                   </div>
-                  <p className="text-[11px] text-slate-500 mt-0.5 leading-snug">
-                    Cartões Visa, MasterCard, Multibanco e terminais myPOS Europa.
-                  </p>
+                  <span className="text-[10px] text-slate-500 truncate">USDT (TRC-20) e Bitcoin</span>
                 </div>
               </div>
-            </div>
 
-            <div className="mt-3 pt-2 border-t border-slate-100 flex items-center justify-between">
-              <span className="text-[10px] font-mono text-emerald-800 font-semibold flex items-center gap-1">
-                <Lock className="w-3 h-3 text-[#006750]" />
-                Licença Bancária EMI UE
-              </span>
               <button
                 type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setShowMyPOSModal(true);
-                }}
-                className="text-[10px] text-[#006750] font-bold hover:underline"
+                onClick={() => togglePaymentMethod('crypto')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer shrink-0 flex items-center gap-1 ${
+                  enabledMethods.crypto
+                    ? 'bg-rose-100 hover:bg-rose-200 text-rose-800 border border-rose-300'
+                    : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs active:scale-95'
+                }`}
+                title={enabledMethods.crypto ? 'Clique para desativar Cripto' : 'Clique para ativar Cripto'}
               >
-                Ver Parâmetros
+                {enabledMethods.crypto ? (
+                  <>
+                    <X className="w-3 h-3" />
+                    <span>Desativar</span>
+                  </>
+                ) : (
+                  <>
+                    <Plus className="w-3 h-3" />
+                    <span>Ativar Cripto</span>
+                  </>
+                )}
               </button>
-            </div>
-          </div>
-
-          {/* Method 3: MB WAY / PIX */}
-          <div
-            onClick={() => setPaymentMethod('mbway_pix')}
-            className={`p-3.5 rounded-xl border-2 transition-all cursor-pointer flex flex-col justify-between ${
-              paymentMethod === 'mbway_pix'
-                ? 'border-[#006750] bg-emerald-50/40 shadow-xs'
-                : 'border-slate-200 bg-white hover:border-slate-300'
-            }`}
-          >
-            <div className="flex items-start justify-between gap-2">
-              <div className="flex items-start gap-2.5">
-                <div className="w-5 h-5 rounded-full border-2 border-[#006750] flex items-center justify-center mt-0.5 shrink-0">
-                  {paymentMethod === 'mbway_pix' && <div className="w-2.5 h-2.5 rounded-full bg-[#006750]" />}
-                </div>
-                <div>
-                  <span className="text-xs font-bold text-slate-900">MB WAY / PIX Instantâneo</span>
-                  <p className="text-[11px] text-slate-500 mt-0.5 leading-snug">
-                    Liquidação em segundos para Portugal e Brasil.
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-3 pt-2 border-t border-slate-100 flex items-center justify-between">
-              <span className="text-[10px] font-mono text-emerald-700 font-bold">Sem taxas de câmbio</span>
-              <Zap className="w-3 h-3 text-[#006750]" />
-            </div>
-          </div>
-
-          {/* Method 4: Crypto */}
-          <div
-            onClick={() => setPaymentMethod('crypto')}
-            className={`p-3.5 rounded-xl border-2 transition-all cursor-pointer flex flex-col justify-between ${
-              paymentMethod === 'crypto'
-                ? 'border-[#006750] bg-emerald-50/40 shadow-xs'
-                : 'border-slate-200 bg-white hover:border-slate-300'
-            }`}
-          >
-            <div className="flex items-start justify-between gap-2">
-              <div className="flex items-start gap-2.5">
-                <div className="w-5 h-5 rounded-full border-2 border-[#006750] flex items-center justify-center mt-0.5 shrink-0">
-                  {paymentMethod === 'crypto' && <div className="w-2.5 h-2.5 rounded-full bg-[#006750]" />}
-                </div>
-                <div>
-                  <span className="text-xs font-bold text-slate-900">Criptomoedas (USDT / BTC)</span>
-                  <p className="text-[11px] text-slate-500 mt-0.5 leading-snug">
-                    Pagamento discreto via USDT (TRC-20) ou Bitcoin.
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-3 pt-2 border-t border-slate-100 flex items-center justify-between">
-              <span className="text-[10px] font-mono text-amber-700 font-bold">Confidencial</span>
-              <Bitcoin className="w-3.5 h-3.5 text-amber-600" />
             </div>
           </div>
         </div>
@@ -1612,29 +1828,37 @@ export const CartView: React.FC = () => {
             <div className="h-7 px-2.5 bg-indigo-50 border border-indigo-100 rounded-lg flex items-center gap-1.5 text-xs text-[#635BFF] font-mono font-bold">
               <span className="font-black text-sm">stripe</span>
             </div>
-            <div className="h-7 px-2.5 bg-emerald-50 border border-emerald-100 rounded-lg flex items-center gap-1.5 text-xs text-[#006750] font-mono font-bold">
-              <span className="font-black text-xs">myPOS</span>
-            </div>
+            {enabledMethods.mypos && (
+              <div className="h-7 px-2.5 bg-emerald-50 border border-emerald-100 rounded-lg flex items-center gap-1.5 text-xs text-[#006750] font-mono font-bold">
+                <span className="font-black text-xs">myPOS</span>
+              </div>
+            )}
             <div className="h-7 px-2.5 bg-slate-100 rounded-lg flex items-center gap-1.5 text-xs text-slate-700 font-mono font-bold">
               <CreditCard className="w-3.5 h-3.5 text-[#006750]" />
               <span>VISA / MC / AMEX</span>
             </div>
-            <div className="h-7 px-2.5 bg-slate-100 rounded-lg flex items-center gap-1.5 text-xs text-slate-700 font-mono font-bold">
-              <span className="w-2 h-2 rounded-full bg-rose-500" />
-              <span>MB WAY</span>
-            </div>
-            <div className="h-7 px-2.5 bg-slate-100 rounded-lg flex items-center gap-1.5 text-xs text-slate-700 font-mono">
-              <Building2 className="w-3.5 h-3.5 text-emerald-700" />
-              <span>Multibanco</span>
-            </div>
+            {enabledMethods.mbway && (
+              <div className="h-7 px-2.5 bg-slate-100 rounded-lg flex items-center gap-1.5 text-xs text-slate-700 font-mono font-bold">
+                <span className="w-2 h-2 rounded-full bg-rose-500" />
+                <span>MB WAY</span>
+              </div>
+            )}
+            {enabledMethods.mypos && (
+              <div className="h-7 px-2.5 bg-slate-100 rounded-lg flex items-center gap-1.5 text-xs text-slate-700 font-mono">
+                <Building2 className="w-3.5 h-3.5 text-emerald-700" />
+                <span>Multibanco</span>
+              </div>
+            )}
             <div className="h-7 px-2.5 bg-slate-100 rounded-lg flex items-center gap-1.5 text-xs text-slate-700 font-mono font-bold">
               <Zap className="w-3.5 h-3.5 text-[#006750]" />
               <span>Apple / Google Pay</span>
             </div>
-            <div className="h-7 px-2.5 bg-slate-100 rounded-lg flex items-center gap-1.5 text-xs text-slate-700 font-mono">
-              <Bitcoin className="w-3.5 h-3.5 text-amber-600" />
-              <span>USDT / BTC</span>
-            </div>
+            {enabledMethods.crypto && (
+              <div className="h-7 px-2.5 bg-slate-100 rounded-lg flex items-center gap-1.5 text-xs text-slate-700 font-mono">
+                <Bitcoin className="w-3.5 h-3.5 text-amber-600" />
+                <span>USDT / BTC</span>
+              </div>
+            )}
           </div>
         </div>
       </div>

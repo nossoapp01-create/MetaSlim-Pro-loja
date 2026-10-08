@@ -117,6 +117,13 @@ export interface ResaleSettings {
   packs: ResalePackConfig[];
 }
 
+export interface EnabledPaymentMethods {
+  stripe?: boolean;
+  mbway?: boolean;
+  mypos?: boolean;
+  crypto?: boolean;
+}
+
 export interface StoreSettings {
   storeName: string;
   storeSubtitle: string;
@@ -132,6 +139,7 @@ export interface StoreSettings {
   freeShippingThreshold: number;
   mypos?: MyPOSConfig;
   stripe?: StripeConfig;
+  enabledPaymentMethods?: EnabledPaymentMethods;
 }
 
 export interface CustomerShippingInfo {

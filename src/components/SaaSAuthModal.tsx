@@ -59,6 +59,7 @@ export const SaaSAuthModal: React.FC<SaaSAuthModalProps> = ({
   }, [authModalDefaultTab]);
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [loginError, setLoginError] = useState<string | null>(null);
 
   // Login form state
   const [loginEmail, setLoginEmail] = useState('');
@@ -76,8 +77,15 @@ export const SaaSAuthModal: React.FC<SaaSAuthModalProps> = ({
 
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setLoginError(null);
     if (!loginEmail || !loginPassword) {
       showToast('Preencha seu e-mail e senha');
+      return;
+    }
+    const cleanEmail = loginEmail.trim().toLowerCase();
+    if (cleanEmail !== 'nossoapp01@gmail.com') {
+      setLoginError('Área restrita: Acesso exclusivo para o administrador autorizado (nossoapp01@gmail.com).');
+      showToast('Área restrita: Acesso não autorizado.');
       return;
     }
     setLoading(true);
@@ -86,6 +94,8 @@ export const SaaSAuthModal: React.FC<SaaSAuthModalProps> = ({
     if (res.success) {
       handleClose();
       setActiveTab('admin');
+    } else {
+      setLoginError(res.message || 'Senha incorreta.');
     }
   };
 
@@ -218,6 +228,18 @@ export const SaaSAuthModal: React.FC<SaaSAuthModalProps> = ({
           {/* TAB 1: LOGIN */}
           {tab === 'login' && (
             <form onSubmit={handleLoginSubmit} className="space-y-4">
+              {loginError && (
+                <div className="p-3 rounded-xl bg-rose-50 border-2 border-rose-200 text-rose-900 text-xs flex items-start gap-2.5 animate-pulse">
+                  <ShieldCheck className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-bold block text-rose-800 uppercase tracking-wide text-[10px]">
+                      Área restrita
+                    </span>
+                    <span className="font-medium">{loginError}</span>
+                  </div>
+                </div>
+              )}
+
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">
                   E-mail do Administrador / Lojista

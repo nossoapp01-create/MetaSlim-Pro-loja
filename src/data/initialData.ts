@@ -132,8 +132,14 @@ export const initialStoreSettings: StoreSettings = {
   resale: initialResaleSettings,
   consultationUrl: 'https://consulta.metaslim-pro.shop/',
   freeShippingThreshold: 100,
+  enabledPaymentMethods: {
+    stripe: true,
+    mbway: true,
+    mypos: false,
+    crypto: false,
+  },
   mypos: {
-    enabled: true,
+    enabled: false,
     mode: 'production',
     integrationType: 'paylink',
     sid: '000000000000001',
@@ -827,18 +833,6 @@ export const initialBanners: BannerSlide[] = [
     ctaText: 'Ver Laudos',
     ctaLink: '#laudos',
     badgeText: 'Ref: BATCH-2025',
-  },
-  {
-    id: 3,
-    title: 'Protocolos Completos + Frete Grátis',
-    subtitle:
-      'Protocolos de ciclo completo com desconto progressivo para Portugal e toda a União Europeia com entrega em 24-48h.',
-    tag: 'Economia Escalar',
-    image:
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuD3VCA88KkH5EWlY2WY_wrf3du0X3Bd2BHAKWakeluMq2mb1bQJMisDKPermnP0E5vt4bMLEpz4G3O8ppgwJU8996WFgdgzNJMWTL8XUN7Rq1IXxAYaLgIDMKmoqNkR4HO7pxK45hru5km64e83P-OPZr7g5HXnFRzmj_dUS746uJTch6cn42wMYTIpn73HD6QWZfoJmdphLI0Dw-l8EMuSiqU3sn_zyDbsMaacOJWFYizXHs29esJBtg',
-    ctaText: 'Garantir Oferta',
-    ctaLink: '#catalogo',
-    badgeText: '24-48h UE',
   },
   {
     id: 4,

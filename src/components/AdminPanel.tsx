@@ -75,6 +75,8 @@ import {
   Layers,
   Dna,
   Menu,
+  Bitcoin,
+  Mail,
 } from 'lucide-react';
 
 export const AdminPanel: React.FC = () => {
@@ -102,6 +104,7 @@ export const AdminPanel: React.FC = () => {
     isSyncing,
     loginWithGoogle,
     logout,
+    loginAdmin,
     quickAdminLogin,
     syncAllToFirebase,
     refreshFromFirebase,
@@ -134,6 +137,44 @@ export const AdminPanel: React.FC = () => {
   const [showWebhookSecret, setShowWebhookSecret] = useState(false);
   const [copiedKeyField, setCopiedKeyField] = useState<string | null>(null);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+
+  // Strict Admin Gate state (Restricted exclusively to nossoapp01@gmail.com with password 25091982Rm.)
+  const [authEmailInput, setAuthEmailInput] = useState('');
+  const [authPasswordInput, setAuthPasswordInput] = useState('');
+  const [authError, setAuthError] = useState<string | null>(null);
+  const [isSubmittingAuth, setIsSubmittingAuth] = useState(false);
+  const [showAuthPassword, setShowAuthPassword] = useState(false);
+
+  const currentUserEmail = (firebaseUser?.email || localAdminUser?.email || '')?.trim().toLowerCase();
+  const isAuthorized = currentUserEmail === 'nossoapp01@gmail.com';
+
+  const handleAdminLoginSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAuthError(null);
+    const cleanEmail = authEmailInput.trim().toLowerCase();
+    const cleanPass = authPasswordInput.trim();
+
+    if (!cleanEmail || !cleanPass) {
+      setAuthError('Preencha o e-mail e a senha de administrador.');
+      return;
+    }
+
+    if (cleanEmail !== 'nossoapp01@gmail.com') {
+      setAuthError('Área restrita: Acesso exclusivo para o administrador autorizado (nossoapp01@gmail.com).');
+      showToast('Área restrita: Acesso não autorizado.');
+      return;
+    }
+
+    setIsSubmittingAuth(true);
+    const res = await loginAdmin(cleanEmail, cleanPass);
+    setIsSubmittingAuth(false);
+
+    if (!res.success) {
+      setAuthError(res.message || 'Senha incorreta.');
+    } else {
+      setAuthError(null);
+    }
+  };
 
   // Modal para cadastrar produto com opção de deixar Online ou Offline
   const [isNewProductModalOpen, setIsNewProductModalOpen] = useState(false);
@@ -496,6 +537,146 @@ export const AdminPanel: React.FC = () => {
     }
   };
 
+  // RESTRICTED AREA GATE: Only nossoapp01@gmail.com with password 25091982Rm. has access
+  if (!isAuthorized) {
+    return (
+      <div className="max-w-md mx-auto py-10 px-4 animate-fade-in" id="admin-restricted-area-gate">
+        <div className="bg-white rounded-3xl shadow-2xl border border-slate-200/80 overflow-hidden">
+          {/* Gate Header */}
+          <div className="bg-gradient-to-br from-[#0a231c] via-[#0e3b2f] to-[#131b2e] p-6 sm:p-7 text-white text-center relative">
+            <div className="w-16 h-16 rounded-2xl bg-white/10 backdrop-blur-md flex items-center justify-center mx-auto mb-3 border border-white/20 shadow-inner">
+              <Lock className="w-8 h-8 text-[#71face]" />
+            </div>
+            <span className="inline-block px-3 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/30 font-mono text-[10px] font-bold tracking-wider uppercase mb-1.5">
+              Área Restrita
+            </span>
+            <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight">Painel Administrativo</h1>
+            <p className="text-xs text-emerald-100/80 mt-1 max-w-xs mx-auto">
+              Identificação obrigatória. Acesso restrito ao administrador oficial.
+            </p>
+          </div>
+
+          <div className="p-6 sm:p-7 space-y-4">
+            {/* If currently connected with an unauthorized email */}
+            {currentUserEmail && currentUserEmail !== 'nossoapp01@gmail.com' && (
+              <div className="p-3.5 rounded-2xl bg-rose-50 border-2 border-rose-200 text-rose-900 text-xs flex items-start gap-3">
+                <ShieldAlert className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
+                <div className="space-y-1">
+                  <p className="font-extrabold uppercase tracking-wide text-[11px] text-rose-800">
+                    Área Restrita: Acesso Negado
+                  </p>
+                  <p className="leading-snug">
+                    O e-mail conectado (<strong className="font-mono">{currentUserEmail}</strong>) não possui autorização para gerenciar a loja.
+                  </p>
+                  <p className="text-[11px] text-rose-700 font-medium">
+                    Apenas <strong>nossoapp01@gmail.com</strong> tem acesso ao painel.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => logout()}
+                    className="mt-1 text-xs font-bold text-rose-800 hover:text-rose-950 underline cursor-pointer"
+                  >
+                    Desconectar desta conta
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Error Banner */}
+            {authError && (
+              <div className="p-3.5 rounded-2xl bg-rose-50 border-2 border-rose-300 text-rose-900 text-xs flex items-start gap-2.5 animate-pulse">
+                <ShieldAlert className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
+                <div>
+                  <span className="font-extrabold block text-rose-800 uppercase tracking-wider text-[10px]">
+                    Área restrita
+                  </span>
+                  <span className="font-medium">{authError}</span>
+                </div>
+              </div>
+            )}
+
+            <form onSubmit={handleAdminLoginSubmit} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  E-mail do Administrador *
+                </label>
+                <div className="relative">
+                  <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="email"
+                    required
+                    value={authEmailInput}
+                    onChange={(e) => {
+                      setAuthEmailInput(e.target.value);
+                      if (authError) setAuthError(null);
+                    }}
+                    placeholder="nossoapp01@gmail.com"
+                    className="w-full pl-10 pr-3.5 py-2.5 text-xs sm:text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-[#006750] focus:border-[#006750] outline-none font-medium bg-slate-50/50"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  Senha de Acesso *
+                </label>
+                <div className="relative">
+                  <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    type={showAuthPassword ? 'text' : 'password'}
+                    required
+                    value={authPasswordInput}
+                    onChange={(e) => {
+                      setAuthPasswordInput(e.target.value);
+                      if (authError) setAuthError(null);
+                    }}
+                    placeholder="Senha do administrador"
+                    className="w-full pl-10 pr-10 py-2.5 text-xs sm:text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-[#006750] focus:border-[#006750] outline-none font-medium bg-slate-50/50"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowAuthPassword(!showAuthPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
+                  >
+                    {showAuthPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={isSubmittingAuth}
+                className="w-full py-3 px-4 bg-[#006750] hover:bg-[#005240] text-white rounded-xl text-xs sm:text-sm font-bold transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 active:scale-98"
+              >
+                {isSubmittingAuth ? (
+                  <RefreshCw className="w-4 h-4 animate-spin" />
+                ) : (
+                  <>
+                    <ShieldCheck className="w-4 h-4" />
+                    <span>Acessar Painel de Administração</span>
+                  </>
+                )}
+              </button>
+            </form>
+
+            <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
+              <button
+                type="button"
+                onClick={() => setActiveTab('inicio')}
+                className="text-slate-500 hover:text-slate-900 font-semibold cursor-pointer"
+              >
+                ← Voltar para a Loja
+              </button>
+              <span className="text-[10px] text-slate-400 font-mono">
+                🔒 Criptografia SSL
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col gap-6 max-w-7xl mx-auto pb-24 px-3 sm:px-6" id="admin-panel">
       {/* SaaS Multi-Tenant Active Store Workspace Banner */}
@@ -605,34 +786,14 @@ export const AdminPanel: React.FC = () => {
         </div>
 
         <div className="flex flex-wrap items-center gap-2 shrink-0">
-          {(firebaseUser || localAdminUser) ? (
-            <button
-              onClick={() => logout()}
-              className="px-3 py-1.5 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-semibold flex items-center gap-1.5 transition-colors"
-            >
-              <LogOut className="w-3.5 h-3.5 text-slate-400" />
-              <span>Desconectar</span>
-            </button>
-          ) : (
-            <div className="flex items-center gap-1.5">
-              <button
-                onClick={() => loginWithGoogle()}
-                className="px-3 py-1.5 rounded-xl bg-white border border-emerald-300 hover:bg-emerald-50 text-[#006750] text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-xs cursor-pointer"
-                title="Entrar com conta Google do Firebase"
-              >
-                <LogIn className="w-3.5 h-3.5" />
-                <span>Login com Google</span>
-              </button>
-
-              <button
-                onClick={() => quickAdminLogin()}
-                className="px-2.5 py-1.5 rounded-xl bg-slate-100 border border-slate-200 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition-colors cursor-pointer"
-                title="Acesso de emergência direto para o Super Admin"
-              >
-                <span>1-Clique Admin</span>
-              </button>
-            </div>
-          )}
+          <button
+            onClick={() => logout()}
+            className="px-3.5 py-1.5 rounded-xl bg-rose-50 border border-rose-200 hover:bg-rose-100 text-rose-800 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+            title="Encerrar sessão de administrador"
+          >
+            <LogOut className="w-3.5 h-3.5 text-rose-600" />
+            <span>Sair / Bloquear Painel</span>
+          </button>
 
           {/* Download App PWA in Admin */}
           <PWAInstallPrompt variant="pill" title="Baixar App" />
@@ -2542,28 +2703,170 @@ export const AdminPanel: React.FC = () => {
             </div>
           </div>
 
-          {/* Quick myPOS Status Banner in Settings */}
-          <div className="p-4 bg-emerald-50/60 rounded-xl border border-emerald-200/80 flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-lg bg-[#006750] text-white flex items-center justify-center font-bold text-xs">
-                myPOS
-              </div>
+          {/* CONTROLE DE FORMAS DE PAGAMENTO NO CHECKOUT */}
+          <div className="p-4 sm:p-5 bg-slate-50/80 rounded-2xl border border-slate-200/90 flex flex-col gap-3.5">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200/60 pb-2.5">
               <div>
-                <h4 className="text-xs font-bold text-slate-900">
-                  myPOS Online Checkout ({settings.mypos?.enabled !== false ? 'Ativado' : 'Desativado'})
-                </h4>
-                <p className="text-[11px] text-slate-500">
-                  {settings.mypos?.mode === 'sandbox' ? 'Ambiente Sandbox (Testes)' : 'Ambiente Produção (Live)'} • SID: {settings.mypos?.sid || '000000000000001'}
+                <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                  <CreditCard className="w-4 h-4 text-[#006750]" />
+                  <span>Formas de Pagamento na Página de Checkout</span>
+                </h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Por padrão, apenas <strong>Stripe</strong> e <strong>MB WAY</strong> ficam ativos na página de pagamento. Use os botões abaixo para ativar ou desativar os outros métodos.
                 </p>
               </div>
+              <span className="text-[11px] font-mono font-bold bg-emerald-100 text-emerald-800 px-2.5 py-0.5 rounded-full">
+                Stripe &amp; MB WAY Padrão
+              </span>
             </div>
-            <button
-              type="button"
-              onClick={() => setActiveAdminTab('mypos')}
-              className="px-3 py-1.5 rounded-lg bg-[#006750] text-white text-xs font-bold hover:bg-[#0d8267] transition-all"
-            >
-              Configurar myPOS
-            </button>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {/* 1. Stripe Checkout */}
+              <div className="p-3.5 rounded-xl bg-white border border-slate-200 flex items-center justify-between gap-3 shadow-2xs">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-lg bg-indigo-50 border border-indigo-100 text-[#635BFF] flex items-center justify-center font-bold text-xs font-mono">
+                    S
+                  </div>
+                  <div>
+                    <span className="text-xs font-bold text-slate-900 block">Stripe Checkout</span>
+                    <span className="text-[10px] text-slate-500">Cartões Internacionais &amp; Apple Pay</span>
+                  </div>
+                </div>
+                <span className="text-[10px] font-mono font-bold bg-indigo-100 text-[#635BFF] px-2 py-1 rounded-md">
+                  🟢 Ativado
+                </span>
+              </div>
+
+              {/* 2. MB WAY / PIX */}
+              <div className="p-3.5 rounded-xl bg-white border border-slate-200 flex items-center justify-between gap-3 shadow-2xs">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-lg bg-emerald-50 border border-emerald-100 text-[#006750] flex items-center justify-center font-bold text-xs font-mono">
+                    MB
+                  </div>
+                  <div>
+                    <span className="text-xs font-bold text-slate-900 block">MB WAY / PIX Instantâneo</span>
+                    <span className="text-[10px] text-slate-500">Liquidação rápida PT / BR</span>
+                  </div>
+                </div>
+                <span className="text-[10px] font-mono font-bold bg-emerald-100 text-[#006750] px-2 py-1 rounded-md">
+                  🟢 Ativado
+                </span>
+              </div>
+
+              {/* 3. myPOS Checkout - Botão Ativar / Desativar */}
+              <div className={`p-3.5 rounded-xl border flex items-center justify-between gap-3 transition-all shadow-2xs ${
+                (settings.enabledPaymentMethods?.mypos ?? false)
+                  ? 'bg-emerald-50/70 border-emerald-300'
+                  : 'bg-white border-slate-200'
+              }`}>
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs font-mono shrink-0 ${
+                    (settings.enabledPaymentMethods?.mypos ?? false)
+                      ? 'bg-[#006750] text-white shadow-xs'
+                      : 'bg-slate-100 text-slate-600'
+                  }`}>
+                    mP
+                  </div>
+                  <div className="flex flex-col min-w-0">
+                    <span className="text-xs font-bold text-slate-900 truncate">myPOS Checkout</span>
+                    <span className="text-[10px] text-slate-500 truncate">Multibanco &amp; Cartões UE</span>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    const currentVal = Boolean(settings.enabledPaymentMethods?.mypos);
+                    const nextVal = !currentVal;
+                    updateSettings({
+                      enabledPaymentMethods: {
+                        ...(settings.enabledPaymentMethods || {
+                          stripe: true,
+                          mbway: true,
+                          mypos: false,
+                          crypto: false,
+                        }),
+                        mypos: nextVal,
+                      },
+                      mypos: {
+                        ...(settings.mypos || {
+                          mode: 'production',
+                          sid: '000000000000001',
+                          walletNumber: '61938166666',
+                          keyIndex: 1,
+                          payLink: 'https://pay.mypos.com/metaslimpro',
+                        }),
+                        enabled: nextVal,
+                      },
+                    });
+                    showToast(
+                      nextVal
+                        ? 'myPOS Checkout ATIVADO no checkout da loja!'
+                        : 'myPOS Checkout DESATIVADO no checkout da loja.'
+                    );
+                  }}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 flex items-center gap-1 ${
+                    (settings.enabledPaymentMethods?.mypos ?? false)
+                      ? 'bg-rose-100 hover:bg-rose-200 text-rose-800 border border-rose-300'
+                      : 'bg-[#006750] hover:bg-[#005240] text-white shadow-xs'
+                  }`}
+                >
+                  {(settings.enabledPaymentMethods?.mypos ?? false) ? '🔴 Desativar' : '🟢 Ativar myPOS'}
+                </button>
+              </div>
+
+              {/* 4. Criptomoedas - Botão Ativar / Desativar */}
+              <div className={`p-3.5 rounded-xl border flex items-center justify-between gap-3 transition-all shadow-2xs ${
+                (settings.enabledPaymentMethods?.crypto ?? false)
+                  ? 'bg-amber-50/70 border-amber-300'
+                  : 'bg-white border-slate-200'
+              }`}>
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+                    (settings.enabledPaymentMethods?.crypto ?? false)
+                      ? 'bg-amber-500 text-white shadow-xs'
+                      : 'bg-slate-100 text-slate-600'
+                  }`}>
+                    <Bitcoin className="w-4 h-4" />
+                  </div>
+                  <div className="flex flex-col min-w-0">
+                    <span className="text-xs font-bold text-slate-900 truncate">Criptomoedas</span>
+                    <span className="text-[10px] text-slate-500 truncate">USDT (TRC-20) / BTC</span>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    const currentVal = Boolean(settings.enabledPaymentMethods?.crypto);
+                    const nextVal = !currentVal;
+                    updateSettings({
+                      enabledPaymentMethods: {
+                        ...(settings.enabledPaymentMethods || {
+                          stripe: true,
+                          mbway: true,
+                          mypos: false,
+                          crypto: false,
+                        }),
+                        crypto: nextVal,
+                      },
+                    });
+                    showToast(
+                      nextVal
+                        ? 'Criptomoedas ATIVADAS no checkout da loja!'
+                        : 'Criptomoedas DESATIVADAS no checkout da loja.'
+                    );
+                  }}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 flex items-center gap-1 ${
+                    (settings.enabledPaymentMethods?.crypto ?? false)
+                      ? 'bg-rose-100 hover:bg-rose-200 text-rose-800 border border-rose-300'
+                      : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs'
+                  }`}
+                >
+                  {(settings.enabledPaymentMethods?.crypto ?? false) ? '🔴 Desativar' : '🟢 Ativar Cripto'}
+                </button>
+              </div>
+            </div>
           </div>
         </section>
       )}
@@ -2591,30 +2894,47 @@ export const AdminPanel: React.FC = () => {
             </div>
 
             <div className="flex items-center gap-2">
-              <span className="text-xs font-bold text-slate-700">Status do Gateway:</span>
+              <span className="text-xs font-bold text-slate-700">Status no Checkout:</span>
               <label className="relative inline-flex items-center cursor-pointer">
                 <input
                   type="checkbox"
-                  checked={settings.mypos?.enabled !== false}
-                  onChange={(e) =>
+                  checked={Boolean(settings.enabledPaymentMethods?.mypos)}
+                  onChange={(e) => {
+                    const isChecked = e.target.checked;
                     updateSettings({
+                      enabledPaymentMethods: {
+                        ...(settings.enabledPaymentMethods || {
+                          stripe: true,
+                          mbway: true,
+                          mypos: false,
+                          crypto: false,
+                        }),
+                        mypos: isChecked,
+                      },
                       mypos: {
                         ...(settings.mypos || {
-                          enabled: true,
                           mode: 'production',
                           sid: '000000000000001',
                           walletNumber: '61938166666',
                           keyIndex: 1,
                           payLink: 'https://pay.mypos.com/metaslimpro',
                         }),
-                        enabled: e.target.checked,
+                        enabled: isChecked,
                       },
-                    })
-                  }
+                    });
+                    showToast(
+                      isChecked
+                        ? 'myPOS Checkout ATIVADO no checkout da loja!'
+                        : 'myPOS Checkout DESATIVADO no checkout da loja.'
+                    );
+                  }}
                   className="sr-only peer"
                 />
                 <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#006750]"></div>
               </label>
+              <span className="text-xs font-bold text-slate-900">
+                {Boolean(settings.enabledPaymentMethods?.mypos) ? '🟢 Ativado' : '🔴 Desativado'}
+              </span>
             </div>
           </div>
 
