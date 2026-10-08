@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useStore } from '../context/StoreContext';
+import { MetaSlimLogo } from './MetaSlimLogo';
 import { Search, ShoppingBag, ShieldCheck, Dna, X, LogIn, LogOut, CloudCheck, UserCheck, User, Truck, TrendingUp, Stethoscope, Building2, Store, MessageSquare } from 'lucide-react';
 
 interface HeaderProps {
@@ -44,7 +45,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenCalculator }) => {
           className="flex items-center gap-2 text-left group transition-transform active:scale-95 cursor-pointer shrink-0"
           id="logo-button"
         >
-          {settings.logoUrl ? (
+          {settings.logoUrl && !settings.logoUrl.includes('metaslim-logo') ? (
             <div className="flex items-center gap-2">
               <img
                 src={settings.logoUrl}
@@ -63,20 +64,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenCalculator }) => {
               </div>
             </div>
           ) : (
-            <>
-              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-tr from-[#006750] to-[#0d8267] flex items-center justify-center text-white shadow-xs group-hover:scale-105 transition-transform shrink-0">
-                <Dna className="w-4 h-4 sm:w-5 sm:h-5 text-[#93f5d4]" />
-              </div>
-              <div className="flex flex-col">
-                <div className="flex items-center gap-1 leading-none">
-                  <span className="font-extrabold text-[15px] sm:text-[17px] tracking-tight text-[#006750]">{settings.storeName.split(' ')[0] || 'MetaSlim'}</span>
-                  <span className="font-light text-[15px] sm:text-[17px] tracking-tight text-[#131b2e]">{settings.storeName.split(' ')[1] || 'Pro'}</span>
-                </div>
-                <span className="text-[8px] sm:text-[9px] uppercase tracking-widest text-emerald-800/60 font-semibold font-mono mt-0.5">
-                  {settings.storeSubtitle || 'Clinical Peptide Labs'}
-                </span>
-              </div>
-            </>
+            <MetaSlimLogo size="md" />
           )}
         </button>
 

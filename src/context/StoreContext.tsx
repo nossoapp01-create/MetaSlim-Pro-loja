@@ -312,6 +312,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         return {
           ...getInitialSettingsForTenant(currentTenant),
           ...parsed,
+          logoUrl: parsed.logoUrl || '/metaslim-logo.svg',
           resale: parsed.resale || initialStoreSettings.resale,
           enabledPaymentMethods: parsed.enabledPaymentMethods || {
             stripe: true,
@@ -328,6 +329,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           return {
             ...initialStoreSettings,
             ...parsed,
+            logoUrl: parsed.logoUrl || '/metaslim-logo.svg',
             resale: parsed.resale || initialStoreSettings.resale,
             enabledPaymentMethods: parsed.enabledPaymentMethods || {
               stripe: true,

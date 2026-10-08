@@ -544,8 +544,8 @@ export const AdminPanel: React.FC = () => {
         <div className="bg-white rounded-3xl shadow-2xl border border-slate-200/80 overflow-hidden">
           {/* Gate Header */}
           <div className="bg-gradient-to-br from-[#0a231c] via-[#0e3b2f] to-[#131b2e] p-6 sm:p-7 text-white text-center relative">
-            <div className="w-16 h-16 rounded-2xl bg-white/10 backdrop-blur-md flex items-center justify-center mx-auto mb-3 border border-white/20 shadow-inner">
-              <Lock className="w-8 h-8 text-[#71face]" />
+            <div className="w-16 h-16 rounded-2xl bg-white/10 backdrop-blur-md flex items-center justify-center mx-auto mb-3 border border-white/20 shadow-inner overflow-hidden p-2">
+              <img src="/icon.svg" alt="MetaSlim Pro" className="w-full h-full object-contain" />
             </div>
             <span className="inline-block px-3 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/30 font-mono text-[10px] font-bold tracking-wider uppercase mb-1.5">
               Área Restrita

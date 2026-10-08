@@ -1,5 +1,6 @@
 import React from 'react';
 import { useStore } from '../context/StoreContext';
+import { MetaSlimLogo } from './MetaSlimLogo';
 import { Dna, ShieldCheck, Lock, PhoneCall, Mail, MessageSquare, Truck, TrendingUp } from 'lucide-react';
 
 export const Footer: React.FC = () => {
@@ -14,20 +15,20 @@ export const Footer: React.FC = () => {
           {/* Brand Info */}
           <div className="flex flex-col gap-3 md:col-span-2">
             <div className="flex items-center gap-3">
-              {settings.logoUrl ? (
-                <img
-                  src={settings.logoUrl}
-                  alt={settings.storeName}
-                  className="h-10 max-h-10 max-w-[160px] object-contain rounded-lg bg-white/5 p-1"
-                />
-              ) : (
-                <div className="w-8 h-8 rounded-xl bg-[#006750] flex items-center justify-center text-[#93f5d4] shadow-md">
-                  <Dna className="w-5 h-5" />
+              {settings.logoUrl && !settings.logoUrl.includes('metaslim-logo') ? (
+                <div className="flex items-center gap-3">
+                  <img
+                    src={settings.logoUrl}
+                    alt={settings.storeName}
+                    className="h-10 max-h-10 max-w-[160px] object-contain rounded-lg bg-white/5 p-1"
+                  />
+                  <span className="text-xl font-extrabold text-white tracking-tight">
+                    {settings.storeName}
+                  </span>
                 </div>
+              ) : (
+                <MetaSlimLogo size="lg" variant="white" />
               )}
-              <span className="text-xl font-extrabold text-white tracking-tight">
-                {settings.storeName}
-              </span>
             </div>
             <p className="text-xs text-slate-400 max-w-sm leading-relaxed">
               Líder em biossíntese de peptídeos agonistas triplos (GLP-1/GIP/Glucagon), tirzepatide e compostos regenerativos liofilizados com controle analítico por HPLC.

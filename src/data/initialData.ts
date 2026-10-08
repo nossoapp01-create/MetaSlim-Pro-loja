@@ -124,6 +124,7 @@ export const initialStoreSettings: StoreSettings = {
   storeName: 'MetaSlim Pro',
   storeSubtitle: 'Clinical Peptide Labs',
   logoText: 'MetaSlim Pro',
+  logoUrl: '/metaslim-logo.svg',
   currencySymbol: '€',
   currencyRateEurToBrl: 6.2,
   defaultPaymentLink: '',
