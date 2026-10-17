@@ -93,12 +93,12 @@ export const CartView: React.FC = () => {
   const [stripeErrorModal, setStripeErrorModal] = useState<{ open: boolean; message: string } | null>(null);
   const [pendingOrderId, setPendingOrderId] = useState<string | null>(null);
 
-  // Payment methods activation: ONLY Stripe and MB WAY enabled by default; myPOS and Crypto togglable
+  // Payment methods activation: ONLY Stripe enabled by default; all others hidden unless activated in Admin
   const enabledMethods = {
     stripe: settings.enabledPaymentMethods?.stripe ?? true,
-    mbway: settings.enabledPaymentMethods?.mbway ?? true,
-    mypos: settings.enabledPaymentMethods?.mypos ?? false,
-    crypto: settings.enabledPaymentMethods?.crypto ?? false,
+    mbway: Boolean(settings.enabledPaymentMethods?.mbway),
+    mypos: Boolean(settings.enabledPaymentMethods?.mypos),
+    crypto: Boolean(settings.enabledPaymentMethods?.crypto),
   };
 
   // If currently selected method is disabled, safely fallback to stripe
@@ -111,46 +111,6 @@ export const CartView: React.FC = () => {
       setPaymentMethod('stripe');
     }
   }, [enabledMethods.mypos, enabledMethods.crypto, enabledMethods.mbway, paymentMethod]);
-
-  const togglePaymentMethod = async (method: 'mypos' | 'crypto') => {
-    const isCurrentlyActive = Boolean(enabledMethods[method]);
-    const nextState = !isCurrentlyActive;
-    const nextEnabledMethods = {
-      stripe: enabledMethods.stripe,
-      mbway: enabledMethods.mbway,
-      mypos: method === 'mypos' ? nextState : enabledMethods.mypos,
-      crypto: method === 'crypto' ? nextState : enabledMethods.crypto,
-    };
-
-    await updateSettings({
-      enabledPaymentMethods: nextEnabledMethods,
-      ...(method === 'mypos'
-        ? {
-            mypos: {
-              ...(settings.mypos || {
-                mode: 'production',
-                integrationType: 'paylink',
-                sid: '000000000000001',
-                walletNumber: '61938166666',
-                keyIndex: 1,
-                payLink: 'https://pay.mypos.com/metaslimpro',
-              }),
-              enabled: nextState,
-            },
-          }
-        : {}),
-    });
-
-    if (!nextState && paymentMethod === method) {
-      setPaymentMethod('stripe');
-    }
-
-    showToast(
-      nextState
-        ? `✅ Forma de pagamento "${method === 'mypos' ? 'myPOS Checkout' : 'Criptomoedas'}" ATIVADA no checkout!`
-        : `Forma de pagamento "${method === 'mypos' ? 'myPOS Checkout' : 'Criptomoedas'}" DESATIVADA. Apenas Stripe e MB WAY ativos.`
-    );
-  };
 
   // Instant Payment Modals (MB WAY, PIX, Direct Card, Crypto)
   const [showMBWayPixModal, setShowMBWayPixModal] = useState(false);
@@ -1437,7 +1397,17 @@ export const CartView: React.FC = () => {
         </div>
 
         {/* Active Payment Method Cards Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+        <div
+          className={`grid gap-2.5 ${
+            Number(Boolean(enabledMethods.stripe)) +
+              Number(Boolean(enabledMethods.mbway)) +
+              Number(Boolean(enabledMethods.mypos)) +
+              Number(Boolean(enabledMethods.crypto)) >
+            1
+              ? 'grid-cols-1 sm:grid-cols-2'
+              : 'grid-cols-1'
+          }`}
+        >
           {/* Method 1: Stripe Checkout (Global Standard) */}
           {enabledMethods.stripe && (
             <div
@@ -1600,133 +1570,6 @@ export const CartView: React.FC = () => {
               </div>
             </div>
           )}
-        </div>
-
-        {/* Dedicated Controls: Botões para Ativar ou Não outras formas de pagamento */}
-        <div className="mt-1 pt-3.5 border-t border-slate-100 flex flex-col gap-2.5">
-          <div className="flex flex-wrap items-center justify-between gap-1.5">
-            <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-              <SlidersHorizontal className="w-3.5 h-3.5 text-[#006750]" />
-              <span>Outras Formas de Pagamento</span>
-            </span>
-            <span className="text-[11px] text-slate-500">
-              {!enabledMethods.mypos && !enabledMethods.crypto
-                ? 'Apenas Stripe e MB WAY ativos no momento'
-                : 'Formas adicionais habilitadas'}
-            </span>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            {/* Botão de Ativação myPOS */}
-            <div
-              className={`p-3 rounded-xl border flex items-center justify-between gap-2.5 transition-all ${
-                enabledMethods.mypos
-                  ? 'bg-emerald-50/70 border-emerald-300/80 shadow-2xs'
-                  : 'bg-slate-50 border-slate-200'
-              }`}
-            >
-              <div className="flex items-center gap-2.5 min-w-0">
-                <div
-                  className={`w-7 h-7 rounded-lg flex items-center justify-center font-bold text-xs shrink-0 ${
-                    enabledMethods.mypos ? 'bg-[#006750] text-white shadow-xs' : 'bg-slate-200 text-slate-600'
-                  }`}
-                >
-                  mP
-                </div>
-                <div className="flex flex-col min-w-0">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-xs font-bold text-slate-900 truncate">myPOS Checkout</span>
-                    <span
-                      className={`text-[9px] font-mono font-bold px-1.5 py-0.2 rounded ${
-                        enabledMethods.mypos ? 'bg-emerald-200 text-emerald-900' : 'bg-slate-200 text-slate-600'
-                      }`}
-                    >
-                      {enabledMethods.mypos ? 'Ativado' : 'Desativado'}
-                    </span>
-                  </div>
-                  <span className="text-[10px] text-slate-500 truncate">Cartões Visa/MC &amp; Multibanco</span>
-                </div>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => togglePaymentMethod('mypos')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer shrink-0 flex items-center gap-1 ${
-                  enabledMethods.mypos
-                    ? 'bg-rose-100 hover:bg-rose-200 text-rose-800 border border-rose-300'
-                    : 'bg-[#006750] hover:bg-[#005240] text-white shadow-xs active:scale-95'
-                }`}
-                title={enabledMethods.mypos ? 'Clique para desativar o myPOS' : 'Clique para ativar o myPOS'}
-              >
-                {enabledMethods.mypos ? (
-                  <>
-                    <X className="w-3 h-3" />
-                    <span>Desativar</span>
-                  </>
-                ) : (
-                  <>
-                    <Plus className="w-3 h-3" />
-                    <span>Ativar myPOS</span>
-                  </>
-                )}
-              </button>
-            </div>
-
-            {/* Botão de Ativação Criptomoedas */}
-            <div
-              className={`p-3 rounded-xl border flex items-center justify-between gap-2.5 transition-all ${
-                enabledMethods.crypto
-                  ? 'bg-amber-50/70 border-amber-300/80 shadow-2xs'
-                  : 'bg-slate-50 border-slate-200'
-              }`}
-            >
-              <div className="flex items-center gap-2.5 min-w-0">
-                <div
-                  className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
-                    enabledMethods.crypto ? 'bg-amber-500 text-white shadow-xs' : 'bg-slate-200 text-slate-600'
-                  }`}
-                >
-                  <Bitcoin className="w-4 h-4" />
-                </div>
-                <div className="flex flex-col min-w-0">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-xs font-bold text-slate-900 truncate">Criptomoedas</span>
-                    <span
-                      className={`text-[9px] font-mono font-bold px-1.5 py-0.2 rounded ${
-                        enabledMethods.crypto ? 'bg-amber-200 text-amber-900' : 'bg-slate-200 text-slate-600'
-                      }`}
-                    >
-                      {enabledMethods.crypto ? 'Ativado' : 'Desativado'}
-                    </span>
-                  </div>
-                  <span className="text-[10px] text-slate-500 truncate">USDT (TRC-20) e Bitcoin</span>
-                </div>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => togglePaymentMethod('crypto')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer shrink-0 flex items-center gap-1 ${
-                  enabledMethods.crypto
-                    ? 'bg-rose-100 hover:bg-rose-200 text-rose-800 border border-rose-300'
-                    : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs active:scale-95'
-                }`}
-                title={enabledMethods.crypto ? 'Clique para desativar Cripto' : 'Clique para ativar Cripto'}
-              >
-                {enabledMethods.crypto ? (
-                  <>
-                    <X className="w-3 h-3" />
-                    <span>Desativar</span>
-                  </>
-                ) : (
-                  <>
-                    <Plus className="w-3 h-3" />
-                    <span>Ativar Cripto</span>
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
         </div>
       </div>
 

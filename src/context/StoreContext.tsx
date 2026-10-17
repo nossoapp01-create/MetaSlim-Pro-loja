@@ -316,9 +316,9 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           resale: parsed.resale || initialStoreSettings.resale,
           enabledPaymentMethods: {
             stripe: parsed.enabledPaymentMethods?.stripe ?? true,
-            mbway: parsed.enabledPaymentMethods?.mbway ?? true,
-            mypos: parsed.enabledPaymentMethods?.mypos ?? false,
-            crypto: parsed.enabledPaymentMethods?.crypto ?? false,
+            mbway: Boolean(parsed.enabledPaymentMethods?.mbway),
+            mypos: Boolean(parsed.enabledPaymentMethods?.mypos),
+            crypto: Boolean(parsed.enabledPaymentMethods?.crypto),
           },
         };
       }
@@ -333,9 +333,9 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             resale: parsed.resale || initialStoreSettings.resale,
             enabledPaymentMethods: {
               stripe: parsed.enabledPaymentMethods?.stripe ?? true,
-              mbway: parsed.enabledPaymentMethods?.mbway ?? true,
-              mypos: parsed.enabledPaymentMethods?.mypos ?? false,
-              crypto: parsed.enabledPaymentMethods?.crypto ?? false,
+              mbway: Boolean(parsed.enabledPaymentMethods?.mbway),
+              mypos: Boolean(parsed.enabledPaymentMethods?.mypos),
+              crypto: Boolean(parsed.enabledPaymentMethods?.crypto),
             },
           };
         }

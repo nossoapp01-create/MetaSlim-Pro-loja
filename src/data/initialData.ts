@@ -135,7 +135,7 @@ export const initialStoreSettings: StoreSettings = {
   freeShippingThreshold: 100,
   enabledPaymentMethods: {
     stripe: true,
-    mbway: true,
+    mbway: false,
     mypos: false,
     crypto: false,
   },

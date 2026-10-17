@@ -2719,7 +2719,7 @@ export const AdminPanel: React.FC = () => {
                   </h3>
                 </div>
                 <p className="text-xs text-slate-500 mt-1 max-w-xl">
-                  Escolha exatamente quais métodos de pagamento estarão visíveis e ativos para o cliente ao finalizar a compra. <strong>Stripe Checkout</strong> está configurado e ativado por padrão.
+                  Apenas <strong>Stripe Checkout</strong> está visível e ativo por padrão na página de pagamento. As outras opções (MB WAY, myPOS e Criptomoedas) ficam 100% ocultas no checkout, a menos que você as ative aqui.
                 </p>
               </div>
 
@@ -2898,13 +2898,13 @@ export const AdminPanel: React.FC = () => {
 
               {/* 2. MB WAY / PIX Instantâneo */}
               <div className={`p-4 rounded-xl border-2 flex items-center justify-between gap-3 transition-all shadow-2xs ${
-                (settings.enabledPaymentMethods?.mbway ?? true)
+                Boolean(settings.enabledPaymentMethods?.mbway)
                   ? 'bg-emerald-50/70 border-emerald-300'
                   : 'bg-white border-slate-200'
               }`}>
                 <div className="flex items-center gap-3 min-w-0">
                   <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold text-xs font-mono shrink-0 ${
-                    (settings.enabledPaymentMethods?.mbway ?? true)
+                    Boolean(settings.enabledPaymentMethods?.mbway)
                       ? 'bg-[#006750] text-white shadow-xs'
                       : 'bg-slate-100 text-slate-600'
                   }`}>
@@ -2914,11 +2914,11 @@ export const AdminPanel: React.FC = () => {
                     <div className="flex items-center gap-1.5">
                       <span className="text-xs font-extrabold text-slate-900 truncate">MB WAY / PIX</span>
                       <span className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded ${
-                        (settings.enabledPaymentMethods?.mbway ?? true)
+                        Boolean(settings.enabledPaymentMethods?.mbway)
                           ? 'bg-emerald-100 text-[#006750]'
                           : 'bg-slate-100 text-slate-500'
                       }`}>
-                        {(settings.enabledPaymentMethods?.mbway ?? true) ? '🟢 Ativado' : '🔴 Desativado'}
+                        {Boolean(settings.enabledPaymentMethods?.mbway) ? '🟢 Ativado' : '🔴 Oculto / Desativado'}
                       </span>
                     </div>
                     <span className="text-[10px] text-slate-500 truncate">Liquidação Instantânea em Portugal e Brasil</span>
@@ -2928,32 +2928,29 @@ export const AdminPanel: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => {
-                    const currentVal = settings.enabledPaymentMethods?.mbway ?? true;
+                    const currentVal = Boolean(settings.enabledPaymentMethods?.mbway);
                     const nextVal = !currentVal;
                     updateSettings({
                       enabledPaymentMethods: {
-                        ...(settings.enabledPaymentMethods || {
-                          stripe: true,
-                          mbway: true,
-                          mypos: false,
-                          crypto: false,
-                        }),
+                        stripe: settings.enabledPaymentMethods?.stripe ?? true,
                         mbway: nextVal,
+                        mypos: Boolean(settings.enabledPaymentMethods?.mypos),
+                        crypto: Boolean(settings.enabledPaymentMethods?.crypto),
                       },
                     });
                     showToast(
                       nextVal
                         ? 'MB WAY / PIX ATIVADO no checkout da loja!'
-                        : 'MB WAY / PIX DESATIVADO no checkout da loja.'
+                        : 'MB WAY / PIX OCULTO no checkout da loja.'
                     );
                   }}
                   className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 flex items-center gap-1 ${
-                    (settings.enabledPaymentMethods?.mbway ?? true)
+                    Boolean(settings.enabledPaymentMethods?.mbway)
                       ? 'bg-rose-100 hover:bg-rose-200 text-rose-800 border border-rose-300'
                       : 'bg-[#006750] hover:bg-[#005240] text-white shadow-xs'
                   }`}
                 >
-                  {(settings.enabledPaymentMethods?.mbway ?? true) ? '🔴 Desativar' : '🟢 Ativar MB WAY'}
+                  {Boolean(settings.enabledPaymentMethods?.mbway) ? '🔴 Desativar' : '🟢 Ativar MB WAY'}
                 </button>
               </div>
 
@@ -3103,7 +3100,7 @@ export const AdminPanel: React.FC = () => {
                     Stripe Checkout (Cartões / Apple Pay)
                   </span>
                 )}
-                {(settings.enabledPaymentMethods?.mbway ?? true) && (
+                {Boolean(settings.enabledPaymentMethods?.mbway) && (
                   <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 border border-emerald-200 text-[#006750] text-xs font-bold font-mono">
                     <span className="w-2 h-2 rounded-full bg-[#006750] animate-pulse" />
                     MB WAY / PIX Instantâneo
@@ -4728,8 +4725,12 @@ VITE_FIREBASE_STORAGE_BUCKET=gen-lang-client-0356673859.firebasestorage.app`}
                   <div>
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-bold text-slate-900">MB WAY / PIX Instantâneo</span>
-                      <span className="text-[10px] font-mono font-bold bg-emerald-100 text-[#006750] px-2 py-0.5 rounded-full">
-                        {(settings.enabledPaymentMethods?.mbway ?? true) ? '🟢 Ativado' : '🔴 Desativado'}
+                      <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-full ${
+                        Boolean(settings.enabledPaymentMethods?.mbway)
+                          ? 'bg-emerald-100 text-[#006750]'
+                          : 'bg-slate-100 text-slate-500'
+                      }`}>
+                        {Boolean(settings.enabledPaymentMethods?.mbway) ? '🟢 Ativado' : '🔴 Oculto / Desativado'}
                       </span>
                     </div>
                     <p className="text-xs text-slate-500">
@@ -4741,27 +4742,24 @@ VITE_FIREBASE_STORAGE_BUCKET=gen-lang-client-0356673859.firebasestorage.app`}
                 <button
                   type="button"
                   onClick={() => {
-                    const nextVal = !(settings.enabledPaymentMethods?.mbway ?? true);
+                    const nextVal = !Boolean(settings.enabledPaymentMethods?.mbway);
                     updateSettings({
                       enabledPaymentMethods: {
-                        ...(settings.enabledPaymentMethods || {
-                          stripe: true,
-                          mbway: true,
-                          mypos: false,
-                          crypto: false,
-                        }),
+                        stripe: settings.enabledPaymentMethods?.stripe ?? true,
                         mbway: nextVal,
+                        mypos: Boolean(settings.enabledPaymentMethods?.mypos),
+                        crypto: Boolean(settings.enabledPaymentMethods?.crypto),
                       },
                     });
-                    showToast(nextVal ? 'MB WAY ATIVADO no checkout!' : 'MB WAY desativado.');
+                    showToast(nextVal ? 'MB WAY ATIVADO no checkout!' : 'MB WAY OCULTO no checkout!');
                   }}
                   className={`px-3.5 py-2 rounded-xl text-xs font-extrabold transition-all cursor-pointer ${
-                    (settings.enabledPaymentMethods?.mbway ?? true)
+                    Boolean(settings.enabledPaymentMethods?.mbway)
                       ? 'bg-rose-100 hover:bg-rose-200 text-rose-800 border border-rose-300'
                       : 'bg-[#006750] hover:bg-[#005240] text-white shadow-xs'
                   }`}
                 >
-                  {(settings.enabledPaymentMethods?.mbway ?? true) ? '🔴 Desativar' : '🟢 Ativar MB WAY'}
+                  {Boolean(settings.enabledPaymentMethods?.mbway) ? '🔴 Desativar' : '🟢 Ativar MB WAY'}
                 </button>
               </div>
 
