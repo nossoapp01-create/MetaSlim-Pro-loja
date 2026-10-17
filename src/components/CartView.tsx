@@ -107,8 +107,10 @@ export const CartView: React.FC = () => {
       setPaymentMethod('stripe');
     } else if (paymentMethod === 'crypto' && !enabledMethods.crypto) {
       setPaymentMethod('stripe');
+    } else if (paymentMethod === 'mbway_pix' && !enabledMethods.mbway) {
+      setPaymentMethod('stripe');
     }
-  }, [enabledMethods.mypos, enabledMethods.crypto, paymentMethod]);
+  }, [enabledMethods.mypos, enabledMethods.crypto, enabledMethods.mbway, paymentMethod]);
 
   const togglePaymentMethod = async (method: 'mypos' | 'crypto') => {
     const isCurrentlyActive = Boolean(enabledMethods[method]);

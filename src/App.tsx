@@ -37,6 +37,22 @@ const MainContent: React.FC = () => {
 
   const [isCalculatorOpen, setIsCalculatorOpen] = useState(false);
 
+  // Dynamic browser favicon synchronization with store logo
+  React.useEffect(() => {
+    const faviconUrl = settings.logoUrl || '/favicon.svg';
+    const linkElements = document.querySelectorAll("link[rel*='icon']");
+    if (linkElements.length > 0) {
+      linkElements.forEach((el) => {
+        (el as HTMLLinkElement).href = faviconUrl;
+      });
+    } else {
+      const link = document.createElement('link');
+      link.rel = 'icon';
+      link.href = faviconUrl;
+      document.head.appendChild(link);
+    }
+  }, [settings.logoUrl]);
+
   // Filter products: hide offline products from store catalog and apply search
   const onlineProducts = (products || []).filter((prod) => prod && prod.status !== 'offline');
   const filteredProducts = onlineProducts.filter((prod) => {

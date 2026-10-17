@@ -314,11 +314,11 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           ...parsed,
           logoUrl: parsed.logoUrl || '/metaslim-logo.svg',
           resale: parsed.resale || initialStoreSettings.resale,
-          enabledPaymentMethods: parsed.enabledPaymentMethods || {
-            stripe: true,
-            mbway: true,
-            mypos: false,
-            crypto: false,
+          enabledPaymentMethods: {
+            stripe: parsed.enabledPaymentMethods?.stripe ?? true,
+            mbway: parsed.enabledPaymentMethods?.mbway ?? true,
+            mypos: parsed.enabledPaymentMethods?.mypos ?? false,
+            crypto: parsed.enabledPaymentMethods?.crypto ?? false,
           },
         };
       }
@@ -331,11 +331,11 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             ...parsed,
             logoUrl: parsed.logoUrl || '/metaslim-logo.svg',
             resale: parsed.resale || initialStoreSettings.resale,
-            enabledPaymentMethods: parsed.enabledPaymentMethods || {
-              stripe: true,
-              mbway: true,
-              mypos: false,
-              crypto: false,
+            enabledPaymentMethods: {
+              stripe: parsed.enabledPaymentMethods?.stripe ?? true,
+              mbway: parsed.enabledPaymentMethods?.mbway ?? true,
+              mypos: parsed.enabledPaymentMethods?.mypos ?? false,
+              crypto: parsed.enabledPaymentMethods?.crypto ?? false,
             },
           };
         }

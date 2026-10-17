@@ -176,6 +176,9 @@ export const AdminPanel: React.FC = () => {
     }
   };
 
+  // Modal para escolher as formas de pagamento que aparecem no checkout
+  const [isPaymentSelectorModalOpen, setIsPaymentSelectorModalOpen] = useState(false);
+
   // Modal para cadastrar produto com opção de deixar Online ou Offline
   const [isNewProductModalOpen, setIsNewProductModalOpen] = useState(false);
   const [newProductName, setNewProductName] = useState('');
@@ -2703,64 +2706,265 @@ export const AdminPanel: React.FC = () => {
             </div>
           </div>
 
-          {/* CONTROLE DE FORMAS DE PAGAMENTO NO CHECKOUT */}
-          <div className="p-4 sm:p-5 bg-slate-50/80 rounded-2xl border border-slate-200/90 flex flex-col gap-3.5">
-            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200/60 pb-2.5">
+          {/* CONTROLE DE FORMAS DE PAGAMENTO NO ATO DO CHECKOUT */}
+          <div className="p-4 sm:p-6 bg-slate-50/90 rounded-2xl border-2 border-emerald-900/10 flex flex-col gap-4 shadow-sm" id="admin-payment-methods-selector">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200/80 pb-3.5">
               <div>
-                <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                  <CreditCard className="w-4 h-4 text-[#006750]" />
-                  <span>Formas de Pagamento na Página de Checkout</span>
-                </h3>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  Por padrão, apenas <strong>Stripe</strong> e <strong>MB WAY</strong> ficam ativos na página de pagamento. Use os botões abaixo para ativar ou desativar os outros métodos.
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-lg bg-[#006750] text-white flex items-center justify-center shadow-xs">
+                    <CreditCard className="w-4 h-4" />
+                  </div>
+                  <h3 className="text-base font-extrabold text-slate-900">
+                    Formas de Pagamento no Ato do Checkout
+                  </h3>
+                </div>
+                <p className="text-xs text-slate-500 mt-1 max-w-xl">
+                  Escolha exatamente quais métodos de pagamento estarão visíveis e ativos para o cliente ao finalizar a compra. <strong>Stripe Checkout</strong> está configurado e ativado por padrão.
                 </p>
               </div>
-              <span className="text-[11px] font-mono font-bold bg-emerald-100 text-emerald-800 px-2.5 py-0.5 rounded-full">
-                Stripe &amp; MB WAY Padrão
-              </span>
+
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setIsPaymentSelectorModalOpen(true)}
+                  className="px-3.5 py-2 rounded-xl bg-[#006750] hover:bg-[#005240] text-white text-xs font-extrabold shadow-sm hover:shadow flex items-center gap-1.5 cursor-pointer transition-all active:scale-95"
+                >
+                  <Sliders className="w-3.5 h-3.5" />
+                  <span>Escolher Formas de Pagamento</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('carrinho')}
+                  className="px-3 py-2 rounded-xl bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 text-xs font-bold flex items-center gap-1 cursor-pointer transition-colors"
+                  title="Testar a visualização real do cliente no carrinho"
+                >
+                  <ExternalLink className="w-3 h-3 text-[#006750]" />
+                  <span>Ver no Checkout</span>
+                </button>
+              </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {/* 1. Stripe Checkout */}
-              <div className="p-3.5 rounded-xl bg-white border border-slate-200 flex items-center justify-between gap-3 shadow-2xs">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-lg bg-indigo-50 border border-indigo-100 text-[#635BFF] flex items-center justify-center font-bold text-xs font-mono">
+            {/* Presets Rápidos com 1 Clique */}
+            <div className="flex flex-wrap items-center gap-2 pt-1">
+              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider font-mono">
+                Atalhos Rápidos:
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  updateSettings({
+                    enabledPaymentMethods: {
+                      stripe: true,
+                      mbway: false,
+                      mypos: false,
+                      crypto: false,
+                    },
+                    stripe: {
+                      ...currentStripe,
+                      enabled: true,
+                    },
+                  });
+                  showToast('Configuração salva: Somente Stripe Checkout ativo no ato do pagamento!');
+                }}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer flex items-center gap-1.5 ${
+                  settings.enabledPaymentMethods?.stripe &&
+                  !settings.enabledPaymentMethods?.mbway &&
+                  !settings.enabledPaymentMethods?.mypos &&
+                  !settings.enabledPaymentMethods?.crypto
+                    ? 'bg-indigo-600 text-white border-indigo-700 shadow-xs'
+                    : 'bg-white hover:bg-slate-100 text-slate-700 border-slate-200'
+                }`}
+              >
+                <span>⭐ Somente Stripe</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  updateSettings({
+                    enabledPaymentMethods: {
+                      stripe: true,
+                      mbway: true,
+                      mypos: false,
+                      crypto: false,
+                    },
+                    stripe: {
+                      ...currentStripe,
+                      enabled: true,
+                    },
+                  });
+                  showToast('Configuração salva: Stripe + MB WAY ativos no checkout (Padrão Recomendado)!');
+                }}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer flex items-center gap-1.5 ${
+                  settings.enabledPaymentMethods?.stripe &&
+                  settings.enabledPaymentMethods?.mbway &&
+                  !settings.enabledPaymentMethods?.mypos &&
+                  !settings.enabledPaymentMethods?.crypto
+                    ? 'bg-[#006750] text-white border-[#005240] shadow-xs'
+                    : 'bg-white hover:bg-slate-100 text-slate-700 border-slate-200'
+                }`}
+              >
+                <span>🇵🇹 Stripe + MB WAY (Padrão)</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  updateSettings({
+                    enabledPaymentMethods: {
+                      stripe: true,
+                      mbway: true,
+                      mypos: true,
+                      crypto: true,
+                    },
+                    stripe: {
+                      ...currentStripe,
+                      enabled: true,
+                    },
+                  });
+                  showToast('Configuração salva: Todas as formas de pagamento ativadas no checkout!');
+                }}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer flex items-center gap-1.5 ${
+                  settings.enabledPaymentMethods?.stripe &&
+                  settings.enabledPaymentMethods?.mbway &&
+                  settings.enabledPaymentMethods?.mypos &&
+                  settings.enabledPaymentMethods?.crypto
+                    ? 'bg-slate-900 text-white border-slate-950 shadow-xs'
+                    : 'bg-white hover:bg-slate-100 text-slate-700 border-slate-200'
+                }`}
+              >
+                <span>🌐 Ativar Todos os 4 Métodos</span>
+              </button>
+            </div>
+
+            {/* Grade de Seleção Individual com Botões Dedicados */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+              {/* 1. Stripe Checkout (Deixado Ativado) */}
+              <div className={`p-4 rounded-xl border-2 flex items-center justify-between gap-3 transition-all shadow-2xs ${
+                (settings.enabledPaymentMethods?.stripe ?? true)
+                  ? 'bg-indigo-50/70 border-indigo-300'
+                  : 'bg-white border-slate-200 opacity-60'
+              }`}>
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-9 h-9 rounded-xl bg-[#635BFF] text-white flex items-center justify-center font-bold text-sm font-mono shadow-xs shrink-0">
                     S
                   </div>
-                  <div>
-                    <span className="text-xs font-bold text-slate-900 block">Stripe Checkout</span>
-                    <span className="text-[10px] text-slate-500">Cartões Internacionais &amp; Apple Pay</span>
+                  <div className="flex flex-col min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs font-extrabold text-slate-900 truncate">Stripe Checkout</span>
+                      <span className="text-[9px] font-mono font-bold bg-indigo-100 text-[#635BFF] px-1.5 py-0.5 rounded">
+                        {(settings.enabledPaymentMethods?.stripe ?? true) ? '🟢 Ativado' : '⚪ Inativo'}
+                      </span>
+                    </div>
+                    <span className="text-[10px] text-slate-500 truncate">Cartões Internacionais, Apple Pay &amp; Google Pay</span>
                   </div>
                 </div>
-                <span className="text-[10px] font-mono font-bold bg-indigo-100 text-[#635BFF] px-2 py-1 rounded-md">
-                  🟢 Ativado
-                </span>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    const currentVal = settings.enabledPaymentMethods?.stripe ?? true;
+                    const nextVal = !currentVal;
+                    updateSettings({
+                      enabledPaymentMethods: {
+                        ...(settings.enabledPaymentMethods || {
+                          stripe: true,
+                          mbway: true,
+                          mypos: false,
+                          crypto: false,
+                        }),
+                        stripe: nextVal,
+                      },
+                      stripe: {
+                        ...currentStripe,
+                        enabled: nextVal,
+                      },
+                    });
+                    showToast(
+                      nextVal
+                        ? 'Stripe Checkout ATIVADO no ato do pagamento!'
+                        : 'Atenção: Stripe Checkout desativado no checkout.'
+                    );
+                  }}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 flex items-center gap-1 ${
+                    (settings.enabledPaymentMethods?.stripe ?? true)
+                      ? 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs'
+                      : 'bg-slate-200 hover:bg-slate-300 text-slate-800'
+                  }`}
+                >
+                  {(settings.enabledPaymentMethods?.stripe ?? true) ? '🟢 Stripe Ativado' : '⚪ Ativar Stripe'}
+                </button>
               </div>
 
-              {/* 2. MB WAY / PIX */}
-              <div className="p-3.5 rounded-xl bg-white border border-slate-200 flex items-center justify-between gap-3 shadow-2xs">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-lg bg-emerald-50 border border-emerald-100 text-[#006750] flex items-center justify-center font-bold text-xs font-mono">
+              {/* 2. MB WAY / PIX Instantâneo */}
+              <div className={`p-4 rounded-xl border-2 flex items-center justify-between gap-3 transition-all shadow-2xs ${
+                (settings.enabledPaymentMethods?.mbway ?? true)
+                  ? 'bg-emerald-50/70 border-emerald-300'
+                  : 'bg-white border-slate-200'
+              }`}>
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold text-xs font-mono shrink-0 ${
+                    (settings.enabledPaymentMethods?.mbway ?? true)
+                      ? 'bg-[#006750] text-white shadow-xs'
+                      : 'bg-slate-100 text-slate-600'
+                  }`}>
                     MB
                   </div>
-                  <div>
-                    <span className="text-xs font-bold text-slate-900 block">MB WAY / PIX Instantâneo</span>
-                    <span className="text-[10px] text-slate-500">Liquidação rápida PT / BR</span>
+                  <div className="flex flex-col min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs font-extrabold text-slate-900 truncate">MB WAY / PIX</span>
+                      <span className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded ${
+                        (settings.enabledPaymentMethods?.mbway ?? true)
+                          ? 'bg-emerald-100 text-[#006750]'
+                          : 'bg-slate-100 text-slate-500'
+                      }`}>
+                        {(settings.enabledPaymentMethods?.mbway ?? true) ? '🟢 Ativado' : '🔴 Desativado'}
+                      </span>
+                    </div>
+                    <span className="text-[10px] text-slate-500 truncate">Liquidação Instantânea em Portugal e Brasil</span>
                   </div>
                 </div>
-                <span className="text-[10px] font-mono font-bold bg-emerald-100 text-[#006750] px-2 py-1 rounded-md">
-                  🟢 Ativado
-                </span>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    const currentVal = settings.enabledPaymentMethods?.mbway ?? true;
+                    const nextVal = !currentVal;
+                    updateSettings({
+                      enabledPaymentMethods: {
+                        ...(settings.enabledPaymentMethods || {
+                          stripe: true,
+                          mbway: true,
+                          mypos: false,
+                          crypto: false,
+                        }),
+                        mbway: nextVal,
+                      },
+                    });
+                    showToast(
+                      nextVal
+                        ? 'MB WAY / PIX ATIVADO no checkout da loja!'
+                        : 'MB WAY / PIX DESATIVADO no checkout da loja.'
+                    );
+                  }}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 flex items-center gap-1 ${
+                    (settings.enabledPaymentMethods?.mbway ?? true)
+                      ? 'bg-rose-100 hover:bg-rose-200 text-rose-800 border border-rose-300'
+                      : 'bg-[#006750] hover:bg-[#005240] text-white shadow-xs'
+                  }`}
+                >
+                  {(settings.enabledPaymentMethods?.mbway ?? true) ? '🔴 Desativar' : '🟢 Ativar MB WAY'}
+                </button>
               </div>
 
-              {/* 3. myPOS Checkout - Botão Ativar / Desativar */}
-              <div className={`p-3.5 rounded-xl border flex items-center justify-between gap-3 transition-all shadow-2xs ${
+              {/* 3. myPOS Checkout */}
+              <div className={`p-4 rounded-xl border-2 flex items-center justify-between gap-3 transition-all shadow-2xs ${
                 (settings.enabledPaymentMethods?.mypos ?? false)
                   ? 'bg-emerald-50/70 border-emerald-300'
                   : 'bg-white border-slate-200'
               }`}>
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs font-mono shrink-0 ${
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold text-xs font-mono shrink-0 ${
                     (settings.enabledPaymentMethods?.mypos ?? false)
                       ? 'bg-[#006750] text-white shadow-xs'
                       : 'bg-slate-100 text-slate-600'
@@ -2768,8 +2972,17 @@ export const AdminPanel: React.FC = () => {
                     mP
                   </div>
                   <div className="flex flex-col min-w-0">
-                    <span className="text-xs font-bold text-slate-900 truncate">myPOS Checkout</span>
-                    <span className="text-[10px] text-slate-500 truncate">Multibanco &amp; Cartões UE</span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs font-extrabold text-slate-900 truncate">myPOS Checkout</span>
+                      <span className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded ${
+                        (settings.enabledPaymentMethods?.mypos ?? false)
+                          ? 'bg-emerald-100 text-[#006750]'
+                          : 'bg-slate-100 text-slate-500'
+                      }`}>
+                        {(settings.enabledPaymentMethods?.mypos ?? false) ? '🟢 Ativado' : '🔴 Desativado'}
+                      </span>
+                    </div>
+                    <span className="text-[10px] text-slate-500 truncate">Multibanco, Visa/Mastercard UE &amp; EMI</span>
                   </div>
                 </div>
 
@@ -2815,23 +3028,32 @@ export const AdminPanel: React.FC = () => {
                 </button>
               </div>
 
-              {/* 4. Criptomoedas - Botão Ativar / Desativar */}
-              <div className={`p-3.5 rounded-xl border flex items-center justify-between gap-3 transition-all shadow-2xs ${
+              {/* 4. Criptomoedas */}
+              <div className={`p-4 rounded-xl border-2 flex items-center justify-between gap-3 transition-all shadow-2xs ${
                 (settings.enabledPaymentMethods?.crypto ?? false)
                   ? 'bg-amber-50/70 border-amber-300'
                   : 'bg-white border-slate-200'
               }`}>
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
                     (settings.enabledPaymentMethods?.crypto ?? false)
                       ? 'bg-amber-500 text-white shadow-xs'
                       : 'bg-slate-100 text-slate-600'
                   }`}>
-                    <Bitcoin className="w-4 h-4" />
+                    <Bitcoin className="w-5 h-5" />
                   </div>
                   <div className="flex flex-col min-w-0">
-                    <span className="text-xs font-bold text-slate-900 truncate">Criptomoedas</span>
-                    <span className="text-[10px] text-slate-500 truncate">USDT (TRC-20) / BTC</span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs font-extrabold text-slate-900 truncate">Criptomoedas</span>
+                      <span className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded ${
+                        (settings.enabledPaymentMethods?.crypto ?? false)
+                          ? 'bg-amber-100 text-amber-900'
+                          : 'bg-slate-100 text-slate-500'
+                      }`}>
+                        {(settings.enabledPaymentMethods?.crypto ?? false) ? '🟢 Ativado' : '🔴 Desativado'}
+                      </span>
+                    </div>
+                    <span className="text-[10px] text-slate-500 truncate">USDT (TRC-20) e Bitcoin (Confidencial)</span>
                   </div>
                 </div>
 
@@ -2860,11 +3082,45 @@ export const AdminPanel: React.FC = () => {
                   className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 flex items-center gap-1 ${
                     (settings.enabledPaymentMethods?.crypto ?? false)
                       ? 'bg-rose-100 hover:bg-rose-200 text-rose-800 border border-rose-300'
-                      : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs'
+                      : 'bg-amber-600 hover:bg-amber-700 text-white shadow-xs'
                   }`}
                 >
                   {(settings.enabledPaymentMethods?.crypto ?? false) ? '🔴 Desativar' : '🟢 Ativar Cripto'}
                 </button>
+              </div>
+            </div>
+
+            {/* Simulação Visual em Tempo Real */}
+            <div className="p-3.5 bg-white rounded-xl border border-slate-200/80 flex flex-col gap-2">
+              <span className="text-[11px] font-bold text-slate-700 flex items-center gap-1.5">
+                <CheckCircle className="w-3.5 h-3.5 text-[#006750]" />
+                <span>Prévia em Tempo Real: O que o cliente visualiza no ato do pagamento (Checkout)</span>
+              </span>
+              <div className="flex flex-wrap items-center gap-2">
+                {(settings.enabledPaymentMethods?.stripe ?? true) && (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-50 border border-indigo-200 text-[#635BFF] text-xs font-bold font-mono">
+                    <span className="w-2 h-2 rounded-full bg-[#635BFF] animate-pulse" />
+                    Stripe Checkout (Cartões / Apple Pay)
+                  </span>
+                )}
+                {(settings.enabledPaymentMethods?.mbway ?? true) && (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 border border-emerald-200 text-[#006750] text-xs font-bold font-mono">
+                    <span className="w-2 h-2 rounded-full bg-[#006750] animate-pulse" />
+                    MB WAY / PIX Instantâneo
+                  </span>
+                )}
+                {Boolean(settings.enabledPaymentMethods?.mypos) && (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-teal-50 border border-teal-200 text-teal-800 text-xs font-bold font-mono">
+                    <span className="w-2 h-2 rounded-full bg-teal-600 animate-pulse" />
+                    myPOS Checkout (Multibanco / UE)
+                  </span>
+                )}
+                {Boolean(settings.enabledPaymentMethods?.crypto) && (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-50 border border-amber-200 text-amber-900 text-xs font-bold font-mono">
+                    <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+                    Criptomoedas (USDT / BTC)
+                  </span>
+                )}
               </div>
             </div>
           </div>
@@ -3324,6 +3580,27 @@ export const AdminPanel: React.FC = () => {
                 Modo: {currentStripe.mode.toUpperCase()}
               </span>
             </div>
+          </div>
+
+          {/* Banner de Controle de Formas de Pagamento no Ato do Checkout */}
+          <div className="p-4 rounded-xl bg-indigo-50/70 border border-indigo-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
+            <div>
+              <span className="text-xs font-extrabold text-indigo-950 flex items-center gap-1.5">
+                <CreditCard className="w-4 h-4 text-[#635BFF]" />
+                <span>Controle de Formas de Pagamento no Ato do Checkout</span>
+              </span>
+              <p className="text-[11px] text-indigo-900/80 mt-0.5">
+                Stripe está <strong>ATIVADO</strong> por padrão no ato da compra. Clique no botão ao lado para escolher quais outros métodos (MB WAY, myPOS, Cripto) aparecem para o cliente.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setIsPaymentSelectorModalOpen(true)}
+              className="px-3.5 py-2 rounded-xl bg-[#635BFF] hover:bg-[#5249e0] text-white text-xs font-bold shadow-xs flex items-center gap-1.5 cursor-pointer shrink-0 transition-all active:scale-95"
+            >
+              <Sliders className="w-3.5 h-3.5" />
+              <span>Escolher Formas de Pagamento</span>
+            </button>
           </div>
 
           {/* Configuration Form */}
@@ -4289,6 +4566,333 @@ VITE_FIREBASE_STORAGE_BUCKET=gen-lang-client-0356673859.firebasestorage.app`}
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Escolher Formas de Pagamento no Ato do Checkout */}
+      {isPaymentSelectorModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto animate-in fade-in duration-150">
+          <div className="bg-white rounded-3xl max-w-2xl w-full p-5 sm:p-7 shadow-2xl border border-slate-200/90 text-slate-900 my-auto animate-in zoom-in-95 duration-150 flex flex-col gap-5">
+            {/* Modal Header */}
+            <div className="flex items-start justify-between gap-3 border-b border-slate-100 pb-3">
+              <div>
+                <span className="text-[10px] font-mono uppercase font-bold text-[#635BFF] bg-indigo-50 px-2 py-0.5 rounded-full">
+                  Configuração de Gateways
+                </span>
+                <h2 className="text-xl font-extrabold text-slate-900 tracking-tight mt-1">
+                  Escolher Formas de Pagamento no Checkout
+                </h2>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Selecione exatamente quais opções estarão visíveis e operantes para o cliente no ato do pagamento.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsPaymentSelectorModalOpen(false)}
+                className="p-1.5 rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-700 transition-colors cursor-pointer"
+                title="Fechar"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Presets Rápidos */}
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider font-mono">
+                Atalhos Rápidos:
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  updateSettings({
+                    enabledPaymentMethods: {
+                      stripe: true,
+                      mbway: false,
+                      mypos: false,
+                      crypto: false,
+                    },
+                    stripe: {
+                      ...currentStripe,
+                      enabled: true,
+                    },
+                  });
+                  showToast('Configurado: Apenas Stripe ativo!');
+                }}
+                className="px-3 py-1.5 rounded-xl text-xs font-bold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 cursor-pointer"
+              >
+                ⭐ Apenas Stripe
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  updateSettings({
+                    enabledPaymentMethods: {
+                      stripe: true,
+                      mbway: true,
+                      mypos: false,
+                      crypto: false,
+                    },
+                    stripe: {
+                      ...currentStripe,
+                      enabled: true,
+                    },
+                  });
+                  showToast('Configurado: Stripe + MB WAY (Padrão)!');
+                }}
+                className="px-3 py-1.5 rounded-xl text-xs font-bold bg-emerald-50 hover:bg-emerald-100 text-[#006750] border border-emerald-200 cursor-pointer"
+              >
+                🇵🇹 Stripe + MB WAY (Padrão)
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  updateSettings({
+                    enabledPaymentMethods: {
+                      stripe: true,
+                      mbway: true,
+                      mypos: true,
+                      crypto: true,
+                    },
+                    stripe: {
+                      ...currentStripe,
+                      enabled: true,
+                    },
+                  });
+                  showToast('Configurado: Todos os 4 métodos ativos!');
+                }}
+                className="px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 cursor-pointer"
+              >
+                🌐 Todos os 4 Métodos
+              </button>
+            </div>
+
+            {/* Cards Interativos com Botões */}
+            <div className="flex flex-col gap-3">
+              {/* Stripe */}
+              <div className="p-3.5 rounded-2xl border-2 border-indigo-200 bg-indigo-50/40 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-[#635BFF] text-white flex items-center justify-center font-bold text-sm font-mono shadow-xs">
+                    S
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-bold text-slate-900">Stripe Checkout</span>
+                      <span className="text-[10px] font-mono font-bold bg-indigo-100 text-[#635BFF] px-2 py-0.5 rounded-full">
+                        {(settings.enabledPaymentMethods?.stripe ?? true) ? '🟢 Ativado' : '⚪ Inativo'}
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-500">
+                      Cartões de Crédito e Débito globais, Apple Pay, Google Pay e Link Stripe.
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    const nextVal = !(settings.enabledPaymentMethods?.stripe ?? true);
+                    updateSettings({
+                      enabledPaymentMethods: {
+                        ...(settings.enabledPaymentMethods || {
+                          stripe: true,
+                          mbway: true,
+                          mypos: false,
+                          crypto: false,
+                        }),
+                        stripe: nextVal,
+                      },
+                      stripe: {
+                        ...currentStripe,
+                        enabled: nextVal,
+                      },
+                    });
+                    showToast(nextVal ? 'Stripe ATIVADO no checkout!' : 'Stripe desativado.');
+                  }}
+                  className={`px-3.5 py-2 rounded-xl text-xs font-extrabold transition-all cursor-pointer ${
+                    (settings.enabledPaymentMethods?.stripe ?? true)
+                      ? 'bg-[#635BFF] text-white hover:bg-[#5249e0] shadow-xs'
+                      : 'bg-slate-200 text-slate-700 hover:bg-slate-300'
+                  }`}
+                >
+                  {(settings.enabledPaymentMethods?.stripe ?? true) ? '🟢 Stripe Ativo' : '⚪ Ativar Stripe'}
+                </button>
+              </div>
+
+              {/* MB WAY / PIX */}
+              <div className="p-3.5 rounded-2xl border-2 border-emerald-200 bg-emerald-50/40 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-[#006750] text-white flex items-center justify-center font-bold text-xs font-mono shadow-xs">
+                    MB
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-bold text-slate-900">MB WAY / PIX Instantâneo</span>
+                      <span className="text-[10px] font-mono font-bold bg-emerald-100 text-[#006750] px-2 py-0.5 rounded-full">
+                        {(settings.enabledPaymentMethods?.mbway ?? true) ? '🟢 Ativado' : '🔴 Desativado'}
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-500">
+                      Liquidação imediata para compradores em Portugal e Brasil.
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    const nextVal = !(settings.enabledPaymentMethods?.mbway ?? true);
+                    updateSettings({
+                      enabledPaymentMethods: {
+                        ...(settings.enabledPaymentMethods || {
+                          stripe: true,
+                          mbway: true,
+                          mypos: false,
+                          crypto: false,
+                        }),
+                        mbway: nextVal,
+                      },
+                    });
+                    showToast(nextVal ? 'MB WAY ATIVADO no checkout!' : 'MB WAY desativado.');
+                  }}
+                  className={`px-3.5 py-2 rounded-xl text-xs font-extrabold transition-all cursor-pointer ${
+                    (settings.enabledPaymentMethods?.mbway ?? true)
+                      ? 'bg-rose-100 hover:bg-rose-200 text-rose-800 border border-rose-300'
+                      : 'bg-[#006750] hover:bg-[#005240] text-white shadow-xs'
+                  }`}
+                >
+                  {(settings.enabledPaymentMethods?.mbway ?? true) ? '🔴 Desativar' : '🟢 Ativar MB WAY'}
+                </button>
+              </div>
+
+              {/* myPOS Checkout */}
+              <div className="p-3.5 rounded-2xl border-2 border-teal-200 bg-teal-50/30 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-teal-700 text-white flex items-center justify-center font-bold text-xs font-mono shadow-xs">
+                    mP
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-bold text-slate-900">myPOS Checkout (Multibanco / UE)</span>
+                      <span className="text-[10px] font-mono font-bold bg-teal-100 text-teal-800 px-2 py-0.5 rounded-full">
+                        {Boolean(settings.enabledPaymentMethods?.mypos) ? '🟢 Ativado' : '🔴 Desativado'}
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-500">
+                      Gateway oficial europeu com licença EMI, cartões e Multibanco.
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    const nextVal = !Boolean(settings.enabledPaymentMethods?.mypos);
+                    updateSettings({
+                      enabledPaymentMethods: {
+                        ...(settings.enabledPaymentMethods || {
+                          stripe: true,
+                          mbway: true,
+                          mypos: false,
+                          crypto: false,
+                        }),
+                        mypos: nextVal,
+                      },
+                      mypos: {
+                        ...(settings.mypos || {
+                          mode: 'production',
+                          sid: '000000000000001',
+                          walletNumber: '61938166666',
+                          keyIndex: 1,
+                          payLink: 'https://pay.mypos.com/metaslimpro',
+                        }),
+                        enabled: nextVal,
+                      },
+                    });
+                    showToast(nextVal ? 'myPOS ATIVADO no checkout!' : 'myPOS desativado.');
+                  }}
+                  className={`px-3.5 py-2 rounded-xl text-xs font-extrabold transition-all cursor-pointer ${
+                    Boolean(settings.enabledPaymentMethods?.mypos)
+                      ? 'bg-rose-100 hover:bg-rose-200 text-rose-800 border border-rose-300'
+                      : 'bg-teal-700 hover:bg-teal-800 text-white shadow-xs'
+                  }`}
+                >
+                  {Boolean(settings.enabledPaymentMethods?.mypos) ? '🔴 Desativar' : '🟢 Ativar myPOS'}
+                </button>
+              </div>
+
+              {/* Criptomoedas */}
+              <div className="p-3.5 rounded-2xl border-2 border-amber-200 bg-amber-50/30 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center font-bold text-xs shadow-xs">
+                    <Bitcoin className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-bold text-slate-900">Criptomoedas (USDT / BTC)</span>
+                      <span className="text-[10px] font-mono font-bold bg-amber-100 text-amber-900 px-2 py-0.5 rounded-full">
+                        {Boolean(settings.enabledPaymentMethods?.crypto) ? '🟢 Ativado' : '🔴 Desativado'}
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-500">
+                      Recebimentos diretos e discretos via blockchain USDT TRC-20 e Bitcoin.
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    const nextVal = !Boolean(settings.enabledPaymentMethods?.crypto);
+                    updateSettings({
+                      enabledPaymentMethods: {
+                        ...(settings.enabledPaymentMethods || {
+                          stripe: true,
+                          mbway: true,
+                          mypos: false,
+                          crypto: false,
+                        }),
+                        crypto: nextVal,
+                      },
+                    });
+                    showToast(nextVal ? 'Criptomoedas ATIVADAS no checkout!' : 'Criptomoedas desativadas.');
+                  }}
+                  className={`px-3.5 py-2 rounded-xl text-xs font-extrabold transition-all cursor-pointer ${
+                    Boolean(settings.enabledPaymentMethods?.crypto)
+                      ? 'bg-rose-100 hover:bg-rose-200 text-rose-800 border border-rose-300'
+                      : 'bg-amber-600 hover:bg-amber-700 text-white shadow-xs'
+                  }`}
+                >
+                  {Boolean(settings.enabledPaymentMethods?.crypto) ? '🔴 Desativar' : '🟢 Ativar Cripto'}
+                </button>
+              </div>
+            </div>
+
+            {/* Modal Actions */}
+            <div className="pt-2 border-t border-slate-100 flex items-center justify-between gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsPaymentSelectorModalOpen(false);
+                  setActiveTab('carrinho');
+                }}
+                className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold flex items-center gap-1.5 cursor-pointer"
+              >
+                <ExternalLink className="w-3.5 h-3.5 text-[#006750]" />
+                <span>Testar no Carrinho</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setIsPaymentSelectorModalOpen(false);
+                  showToast('Configurações de pagamento no checkout salvas com sucesso!');
+                }}
+                className="px-6 py-2.5 rounded-xl bg-[#006750] hover:bg-[#005240] text-white text-xs font-extrabold shadow-md cursor-pointer transition-all active:scale-95"
+              >
+                Concluir e Salvar
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -45,12 +45,15 @@ export const Header: React.FC<HeaderProps> = ({ onOpenCalculator }) => {
           className="flex items-center gap-2 text-left group transition-transform active:scale-95 cursor-pointer shrink-0"
           id="logo-button"
         >
-          {settings.logoUrl && !settings.logoUrl.includes('metaslim-logo') ? (
+          {settings.logoUrl ? (
             <div className="flex items-center gap-2">
               <img
                 src={settings.logoUrl}
                 alt={settings.storeName}
-                className="h-8 sm:h-10 max-h-8 sm:max-h-10 max-w-[120px] sm:max-w-[150px] object-contain rounded-lg"
+                onError={(e) => {
+                  (e.currentTarget as HTMLImageElement).src = '/metaslim-logo.svg';
+                }}
+                className="h-8 sm:h-10 max-h-8 sm:max-h-10 max-w-[130px] sm:max-w-[160px] object-contain rounded-lg"
               />
               <div className="flex flex-col hidden sm:flex">
                 <div className="flex items-center gap-1 leading-none">

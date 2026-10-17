@@ -15,11 +15,14 @@ export const Footer: React.FC = () => {
           {/* Brand Info */}
           <div className="flex flex-col gap-3 md:col-span-2">
             <div className="flex items-center gap-3">
-              {settings.logoUrl && !settings.logoUrl.includes('metaslim-logo') ? (
+              {settings.logoUrl ? (
                 <div className="flex items-center gap-3">
                   <img
                     src={settings.logoUrl}
                     alt={settings.storeName}
+                    onError={(e) => {
+                      (e.currentTarget as HTMLImageElement).src = '/metaslim-logo.svg';
+                    }}
                     className="h-10 max-h-10 max-w-[160px] object-contain rounded-lg bg-white/5 p-1"
                   />
                   <span className="text-xl font-extrabold text-white tracking-tight">
