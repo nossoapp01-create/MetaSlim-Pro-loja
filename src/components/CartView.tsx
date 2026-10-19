@@ -46,6 +46,7 @@ import {
   LogIn,
   UserPlus,
   LogOut,
+  Gift,
 } from 'lucide-react';
 
 export const CartView: React.FC = () => {
@@ -80,6 +81,8 @@ export const CartView: React.FC = () => {
     quickCustomerLogin,
     loginWithGoogle,
     logout,
+    activeReferralCode,
+    setIsAffiliateModalOpen,
   } = useStore();
 
   const [inputCoupon, setInputCoupon] = useState('');
@@ -997,36 +1000,48 @@ export const CartView: React.FC = () => {
             {/* Form */}
             <form onSubmit={handleAuthSubmit} className="flex flex-col gap-3">
               {authTab === 'register' && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-semibold text-slate-700 flex items-center gap-1">
-                      <User className="w-3.5 h-3.5 text-slate-400" />
-                      <span>Nome Completo *</span>
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={authName}
-                      onChange={(e) => setAuthName(e.target.value)}
-                      placeholder="Ex: Dra. Mariana Vasconcelos"
-                      className="h-10 px-3 rounded-xl bg-slate-50 border border-slate-200 text-xs font-medium text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#006750]"
-                    />
+                <>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-xs font-semibold text-slate-700 flex items-center gap-1">
+                        <User className="w-3.5 h-3.5 text-slate-400" />
+                        <span>Nome Completo *</span>
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={authName}
+                        onChange={(e) => setAuthName(e.target.value)}
+                        placeholder="Ex: Dra. Mariana Vasconcelos"
+                        className="h-10 px-3 rounded-xl bg-slate-50 border border-slate-200 text-xs font-medium text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#006750]"
+                      />
+                    </div>
+
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-xs font-semibold text-slate-700 flex items-center gap-1">
+                        <Phone className="w-3.5 h-3.5 text-slate-400" />
+                        <span>Telefone de Contato</span>
+                      </label>
+                      <input
+                        type="tel"
+                        value={authPhone}
+                        onChange={(e) => setAuthPhone(e.target.value)}
+                        placeholder="Ex: +351 912 345 678"
+                        className="h-10 px-3 rounded-xl bg-slate-50 border border-slate-200 text-xs font-medium text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#006750]"
+                      />
+                    </div>
                   </div>
 
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-semibold text-slate-700 flex items-center gap-1">
-                      <Phone className="w-3.5 h-3.5 text-slate-400" />
-                      <span>Telefone de Contato</span>
-                    </label>
-                    <input
-                      type="tel"
-                      value={authPhone}
-                      onChange={(e) => setAuthPhone(e.target.value)}
-                      placeholder="Ex: +351 912 345 678"
-                      className="h-10 px-3 rounded-xl bg-slate-50 border border-slate-200 text-xs font-medium text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#006750]"
-                    />
+                  <div className="p-3 rounded-xl bg-emerald-50/80 border border-emerald-200 text-xs text-emerald-950 flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <Gift className="w-4 h-4 text-[#006750] shrink-0" />
+                      <span>
+                        Ao se cadastrar, você ganha automaticamente um <strong>Link de Afiliado</strong> para faturar{' '}
+                        <strong>{settings.affiliateProgram?.commissionPercentage ?? 10}% de comissão</strong> por cada amigo indicado!
+                      </span>
+                    </div>
                   </div>
-                </div>
+                </>
               )}
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -1395,6 +1410,21 @@ export const CartView: React.FC = () => {
             )}
           </div>
         </div>
+
+        {/* Referral Affiliate Notice if customer arrived via affiliate link */}
+        {activeReferralCode && (
+          <div className="p-3 bg-emerald-50/80 border border-emerald-300 rounded-xl text-xs text-emerald-950 flex items-center justify-between gap-2 shadow-2xs">
+            <div className="flex items-center gap-2">
+              <Gift className="w-4 h-4 text-[#006750] shrink-0" />
+              <span>
+                Indicação Ativa: Código <strong>{activeReferralCode}</strong> vinculado. Comissão de parceiro computada automaticamente na compra.
+              </span>
+            </div>
+            <span className="text-[10px] bg-[#006750] text-white font-mono font-bold px-2 py-0.5 rounded-full shrink-0">
+              VINCULADO
+            </span>
+          </div>
+        )}
 
         {/* Active Payment Method Cards Grid */}
         <div

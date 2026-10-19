@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useStore } from '../context/StoreContext';
 import {
   Product,
@@ -77,6 +77,9 @@ import {
   Menu,
   Bitcoin,
   Mail,
+  Gift,
+  Clock,
+  CheckCircle2,
 } from 'lucide-react';
 
 export const AdminPanel: React.FC = () => {
@@ -115,11 +118,16 @@ export const AdminPanel: React.FC = () => {
     isTenantAdmin,
     switchTenant,
     openAuthModal,
+    affiliateSales,
+    registeredAffiliates,
+    updateAffiliateSettings,
+    markCommissionAsPaid,
   } = useStore();
 
   const [activeAdminTab, setActiveAdminTab] = useState<
     | 'saas-tenants'
     | 'vendas-stripe'
+    | 'afiliados'
     | 'produtos'
     | 'banners'
     | 'depoimentos'
@@ -179,6 +187,28 @@ export const AdminPanel: React.FC = () => {
   // Modal para escolher as formas de pagamento que aparecem no checkout
   const [isPaymentSelectorModalOpen, setIsPaymentSelectorModalOpen] = useState(false);
 
+  // Affiliate / Indicação Admin state
+  const [affiliateCommissionInput, setAffiliateCommissionInput] = useState<number>(
+    settings.affiliateProgram?.commissionPercentage ?? 10
+  );
+  const [affiliateMinPayoutInput, setAffiliateMinPayoutInput] = useState<number>(
+    settings.affiliateProgram?.minPayout ?? 50
+  );
+  const [affiliateEnabledToggle, setAffiliateEnabledToggle] = useState<boolean>(
+    settings.affiliateProgram?.enabled ?? true
+  );
+  const [customPartnerCodeInput, setCustomPartnerCodeInput] = useState('PARCEIRO-VIP');
+  const [copiedPartnerLink, setCopiedPartnerLink] = useState(false);
+  const [copiedAffiliateRowCode, setCopiedAffiliateRowCode] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (settings.affiliateProgram) {
+      setAffiliateCommissionInput(settings.affiliateProgram.commissionPercentage ?? 10);
+      setAffiliateMinPayoutInput(settings.affiliateProgram.minPayout ?? 50);
+      setAffiliateEnabledToggle(settings.affiliateProgram.enabled ?? true);
+    }
+  }, [settings.affiliateProgram]);
+
   // Modal para cadastrar produto com opção de deixar Online ou Offline
   const [isNewProductModalOpen, setIsNewProductModalOpen] = useState(false);
   const [newProductName, setNewProductName] = useState('');
@@ -199,6 +229,7 @@ export const AdminPanel: React.FC = () => {
     switch (tab) {
       case 'saas-tenants': return 'Lojas SaaS & Isolamento';
       case 'vendas-stripe': return 'Vendas Stripe & Envios';
+      case 'afiliados': return 'Indicação & Afiliados';
       case 'produtos': return 'Editar Produtos';
       case 'banners': return 'Banners Rotativos';
       case 'depoimentos': return 'Antes & Depois';
@@ -1128,6 +1159,34 @@ export const AdminPanel: React.FC = () => {
                   }`}
                 >
                   Packs
+                </span>
+              </button>
+
+              {/* Indicação & Afiliados */}
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveAdminTab('afiliados');
+                  setIsMobileSidebarOpen(false);
+                }}
+                className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  activeAdminTab === 'afiliados'
+                    ? 'bg-gradient-to-r from-[#006750] to-[#0d8267] text-white shadow-sm ring-1 ring-emerald-400'
+                    : 'text-slate-700 hover:bg-slate-50 hover:text-slate-900'
+                }`}
+              >
+                <div className="flex items-center gap-2.5 truncate">
+                  <Gift className={`w-4 h-4 shrink-0 ${activeAdminTab === 'afiliados' ? 'text-white' : 'text-emerald-700'}`} />
+                  <span className="truncate">Indicação &amp; Afiliados</span>
+                </div>
+                <span
+                  className={`text-[9px] font-mono px-1.5 py-0.2 rounded-full font-bold shrink-0 ${
+                    activeAdminTab === 'afiliados'
+                      ? 'bg-white/20 text-white'
+                      : 'bg-emerald-50 text-[#006750] border border-emerald-200/60'
+                  }`}
+                >
+                  {registeredAffiliates.length}
                 </span>
               </button>
             </div>
@@ -2526,6 +2585,479 @@ export const AdminPanel: React.FC = () => {
                 <span>Confirmar e Salvar</span>
               </button>
             </div>
+          </div>
+        </section>
+      )}
+
+      {/* TAB: Indicação & Programa de Afiliados */}
+      {activeAdminTab === 'afiliados' && (
+        <section className="bg-white rounded-2xl p-5 sm:p-7 shadow-sm border border-slate-200/70 flex flex-col gap-6 animate-in fade-in duration-200">
+          {/* Header */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-slate-200/80">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="w-8 h-8 rounded-xl bg-emerald-100 text-[#006750] flex items-center justify-center font-bold">
+                  <Gift className="w-4 h-4" />
+                </span>
+                <h2 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight">
+                  Painel de Indicação &amp; Programa de Afiliados
+                </h2>
+              </div>
+              <p className="text-xs text-slate-500 mt-1 max-w-2xl">
+                Quando o cliente se cadastra, ele recebe automaticamente um <strong>Link de Afiliado exclusivo</strong>.
+                Cada compra realizada através do link gera a comissão configurada abaixo diretamente para ele.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span
+                className={`px-3 py-1.5 rounded-full text-xs font-mono font-bold border flex items-center gap-1.5 ${
+                  settings.affiliateProgram?.enabled
+                    ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
+                    : 'bg-slate-100 text-slate-600 border-slate-300'
+                }`}
+              >
+                <div
+                  className={`w-2 h-2 rounded-full ${
+                    settings.affiliateProgram?.enabled ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'
+                  }`}
+                />
+                <span>{settings.affiliateProgram?.enabled ? 'PROGRAMA ATIVADO' : 'PROGRAMA DESATIVADO'}</span>
+              </span>
+            </div>
+          </div>
+
+          {/* KPI CARDS */}
+          <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 flex flex-col justify-between">
+              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+                <Users className="w-3.5 h-3.5 text-[#006750]" />
+                Afiliados Ativos
+              </span>
+              <div className="text-2xl font-black font-mono text-slate-900 mt-2">
+                {registeredAffiliates.length}
+              </div>
+              <span className="text-[10px] text-emerald-700 font-medium">Clientes c/ link</span>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 flex flex-col justify-between">
+              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+                <ShoppingBag className="w-3.5 h-3.5 text-blue-600" />
+                Vendas por Indicação
+              </span>
+              <div className="text-2xl font-black font-mono text-slate-900 mt-2">
+                {affiliateSales.length}
+              </div>
+              <span className="text-[10px] text-blue-700 font-medium">Pedidos convertidos</span>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 flex flex-col justify-between">
+              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+                <TrendingUp className="w-3.5 h-3.5 text-indigo-600" />
+                Total Faturado
+              </span>
+              <div className="text-2xl font-black font-mono text-slate-900 mt-2">
+                {formatPrice(affiliateSales.reduce((sum, s) => sum + s.orderTotal, 0))}
+              </div>
+              <span className="text-[10px] text-indigo-700 font-medium">Volume gerado</span>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-amber-50/70 border border-amber-200 flex flex-col justify-between">
+              <span className="text-[11px] font-bold text-amber-900 uppercase tracking-wider flex items-center gap-1.5">
+                <Clock className="w-3.5 h-3.5 text-amber-600" />
+                Comissões Pendentes
+              </span>
+              <div className="text-2xl font-black font-mono text-amber-900 mt-2">
+                {formatPrice(
+                  affiliateSales
+                    .filter((s) => s.status === 'pending')
+                    .reduce((sum, s) => sum + s.commissionAmount, 0)
+                )}
+              </div>
+              <span className="text-[10px] text-amber-700 font-medium">Aguardando repasse</span>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-emerald-50/70 border border-emerald-200 flex flex-col justify-between col-span-2 lg:col-span-1">
+              <span className="text-[11px] font-bold text-emerald-900 uppercase tracking-wider flex items-center gap-1.5">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                Comissões Pagas
+              </span>
+              <div className="text-2xl font-black font-mono text-emerald-900 mt-2">
+                {formatPrice(
+                  affiliateSales
+                    .filter((s) => s.status === 'paid')
+                    .reduce((sum, s) => sum + s.commissionAmount, 0)
+                )}
+              </div>
+              <span className="text-[10px] text-emerald-700 font-medium">Liquidadas</span>
+            </div>
+          </div>
+
+          {/* CARD PRINCIPAL: CONFIGURAÇÃO DA PORCENTAGEM DE COMISSÃO (REQUEST DO USUÁRIO) */}
+          <div className="bg-gradient-to-br from-emerald-50/80 via-white to-teal-50/50 border-2 border-emerald-200/90 rounded-2xl p-5 sm:p-6 shadow-xs flex flex-col gap-5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-emerald-100">
+              <div className="flex items-center gap-2.5">
+                <span className="w-8 h-8 rounded-xl bg-[#006750] text-white flex items-center justify-center font-black text-sm">
+                  %
+                </span>
+                <div>
+                  <h3 className="text-base font-extrabold text-slate-900">
+                    Configuração da Porcentagem de Comissão por Venda
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    Defina quanto cada cliente cadastrado receberá por cada pessoa que comprar através do seu link.
+                  </p>
+                </div>
+              </div>
+
+              {/* Ativar/Desativar Toggle */}
+              <label className="flex items-center gap-2.5 cursor-pointer bg-white px-3.5 py-2 rounded-xl border border-emerald-200 shadow-2xs">
+                <input
+                  type="checkbox"
+                  checked={affiliateEnabledToggle}
+                  onChange={(e) => setAffiliateEnabledToggle(e.target.checked)}
+                  className="w-4 h-4 text-[#006750] rounded-sm focus:ring-[#006750]"
+                />
+                <span className="text-xs font-bold text-slate-800">
+                  {affiliateEnabledToggle ? 'Programa de Indicação Habilitado' : 'Desabilitado'}
+                </span>
+              </label>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-5 items-center">
+              {/* Slider & Input */}
+              <div className="md:col-span-8 space-y-3">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                    <Percent className="w-4 h-4 text-[#006750]" />
+                    <span>Porcentagem de Comissão:</span>
+                  </label>
+                  <div className="flex items-center gap-1">
+                    <span className="text-2xl font-black font-mono text-[#006750]">
+                      {affiliateCommissionInput}%
+                    </span>
+                    <span className="text-xs text-slate-400">por venda</span>
+                  </div>
+                </div>
+
+                {/* Range Slider */}
+                <input
+                  type="range"
+                  min="1"
+                  max="50"
+                  step="1"
+                  value={affiliateCommissionInput}
+                  onChange={(e) => setAffiliateCommissionInput(Number(e.target.value))}
+                  className="w-full h-2 bg-emerald-200 rounded-lg appearance-none cursor-pointer accent-[#006750]"
+                />
+
+                {/* Presets Rápidos */}
+                <div className="flex items-center gap-2 pt-1 flex-wrap">
+                  <span className="text-[11px] font-semibold text-slate-500">Opções Rápidas:</span>
+                  {[5, 10, 15, 20, 25, 30].map((pct) => (
+                    <button
+                      key={pct}
+                      type="button"
+                      onClick={() => setAffiliateCommissionInput(pct)}
+                      className={`px-3 py-1 rounded-xl text-xs font-bold font-mono transition-all cursor-pointer ${
+                        affiliateCommissionInput === pct
+                          ? 'bg-[#006750] text-white shadow-xs'
+                          : 'bg-white border border-slate-300 text-slate-700 hover:border-[#006750]'
+                      }`}
+                    >
+                      {pct}%
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Valor Mínimo de Saque & Botão Salvar */}
+              <div className="md:col-span-4 bg-white p-4 rounded-xl border border-emerald-200/80 flex flex-col gap-3 shadow-2xs">
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                    Valor Mínimo para Saque (€ ou R$)
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      min="5"
+                      step="5"
+                      value={affiliateMinPayoutInput}
+                      onChange={(e) => setAffiliateMinPayoutInput(Number(e.target.value))}
+                      className="w-full px-3 py-2 text-xs font-mono font-bold border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#006750] outline-none"
+                    />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400 font-bold">
+                      {settings.currencySymbol}
+                    </span>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    updateAffiliateSettings({
+                      enabled: affiliateEnabledToggle,
+                      commissionPercentage: affiliateCommissionInput,
+                      minPayout: affiliateMinPayoutInput,
+                    });
+                  }}
+                  className="w-full py-2.5 px-4 bg-[#006750] hover:bg-[#005240] text-white rounded-xl text-xs font-bold transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer active:scale-98"
+                >
+                  <Save className="w-4 h-4 text-[#71face]" />
+                  <span>Salvar Configuração de Comissão</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* GERADOR E TESTADOR DE LINK DE AFILIADO / PARCEIRO */}
+          <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5">
+              <span className="w-7 h-7 rounded-lg bg-emerald-100 text-[#006750] flex items-center justify-center shrink-0">
+                <LinkIcon className="w-3.5 h-3.5" />
+              </span>
+              <div>
+                <span className="text-xs font-bold text-slate-900 block">
+                  Simulador / Gerador de Link de Indicação
+                </span>
+                <span className="text-[11px] text-slate-500">
+                  Gere um link para qualquer parceiro ou influenciador e teste a conversão:
+                </span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                value={customPartnerCodeInput}
+                onChange={(e) => setCustomPartnerCodeInput(e.target.value.toUpperCase())}
+                placeholder="CODIGO-PARCEIRO"
+                className="px-3 py-1.5 text-xs font-mono font-bold uppercase border border-slate-300 rounded-lg bg-white outline-none w-36"
+              />
+              <button
+                type="button"
+                onClick={async () => {
+                  const url = `${typeof window !== 'undefined' ? window.location.origin : 'https://metaslim-pro.shop'}/?ref=${customPartnerCodeInput}`;
+                  try {
+                    await navigator.clipboard.writeText(url);
+                    setCopiedPartnerLink(true);
+                    showToast(`Link de indicação copiado: ${url}`);
+                    setTimeout(() => setCopiedPartnerLink(false), 2500);
+                  } catch {
+                    showToast(url);
+                  }
+                }}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 transition-all cursor-pointer ${
+                  copiedPartnerLink
+                    ? 'bg-emerald-600 text-white'
+                    : 'bg-white border border-slate-300 text-slate-700 hover:bg-slate-100'
+                }`}
+              >
+                {copiedPartnerLink ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                <span>{copiedPartnerLink ? 'Copiado!' : 'Copiar Link'}</span>
+              </button>
+            </div>
+          </div>
+
+          {/* TABELA 1: CLIENTES AFILIADOS CADASTRADOS */}
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-bold text-slate-900 flex items-center gap-1.5">
+                  <Users className="w-4 h-4 text-[#006750]" />
+                  <span>Clientes Cadastrados com Link de Afiliado ({registeredAffiliates.length})</span>
+                </h3>
+                <p className="text-xs text-slate-500">
+                  Cada cliente ganha seu código único ao cadastrar-se no sistema.
+                </p>
+              </div>
+            </div>
+
+            <div className="overflow-x-auto border border-slate-200 rounded-2xl">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-slate-50 border-b border-slate-200 text-slate-700 font-bold">
+                  <tr>
+                    <th className="p-3">Cliente / Afiliado</th>
+                    <th className="p-3">Código Exclusivo</th>
+                    <th className="p-3 text-center">Cliques</th>
+                    <th className="p-3 text-center">Vendas</th>
+                    <th className="p-3 text-right">Total Vendido</th>
+                    <th className="p-3 text-right">Comissão Acumulada</th>
+                    <th className="p-3 text-right">Pendente</th>
+                    <th className="p-3">Chave PIX / IBAN</th>
+                    <th className="p-3 text-center">Ações</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {registeredAffiliates.map((aff) => {
+                    const origin = typeof window !== 'undefined' ? window.location.origin : 'https://metaslim-pro.shop';
+                    const link = `${origin}/?ref=${aff.referralCode || 'SLIM'}`;
+                    const isCopied = copiedAffiliateRowCode === aff.referralCode;
+
+                    return (
+                      <tr key={aff.uid} className="hover:bg-slate-50/70 transition-colors">
+                        <td className="p-3">
+                          <div className="font-bold text-slate-900">{aff.name}</div>
+                          <div className="text-[11px] text-slate-500 font-mono">{aff.email}</div>
+                          {aff.phone && (
+                            <div className="text-[10px] text-slate-400">{aff.phone}</div>
+                          )}
+                        </td>
+                        <td className="p-3">
+                          <span className="font-mono font-bold bg-emerald-100 text-[#006750] px-2 py-0.5 rounded-md text-[11px]">
+                            {aff.referralCode || 'AUTO'}
+                          </span>
+                        </td>
+                        <td className="p-3 text-center font-mono font-bold text-slate-700">
+                          {aff.totalReferralClicks || 0}
+                        </td>
+                        <td className="p-3 text-center font-mono font-bold text-blue-700">
+                          {aff.totalReferralOrders || 0}
+                        </td>
+                        <td className="p-3 text-right font-mono text-slate-700 font-bold">
+                          {formatPrice(aff.totalReferralSalesAmount || 0)}
+                        </td>
+                        <td className="p-3 text-right font-mono font-black text-slate-900">
+                          {formatPrice(aff.totalCommissionEarned || 0)}
+                        </td>
+                        <td className="p-3 text-right font-mono font-bold text-amber-700">
+                          {formatPrice(aff.pendingCommission || 0)}
+                        </td>
+                        <td className="p-3">
+                          {aff.payoutPixOrIban ? (
+                            <span className="font-mono text-[11px] text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-sm border border-emerald-200 block truncate max-w-[180px]">
+                              {aff.payoutPixOrIban}
+                            </span>
+                          ) : (
+                            <span className="text-[10px] text-slate-400 italic">Não informado</span>
+                          )}
+                        </td>
+                        <td className="p-3 text-center">
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              try {
+                                await navigator.clipboard.writeText(link);
+                                setCopiedAffiliateRowCode(aff.referralCode || 'SLIM');
+                                showToast(`Link do afiliado ${aff.name} copiado!`);
+                                setTimeout(() => setCopiedAffiliateRowCode(null), 2500);
+                              } catch {
+                                showToast(link);
+                              }
+                            }}
+                            className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer flex items-center gap-1 mx-auto ${
+                              isCopied
+                                ? 'bg-emerald-600 text-white'
+                                : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                            }`}
+                            title="Copiar link deste afiliado"
+                          >
+                            {isCopied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                            <span>{isCopied ? 'Copiado!' : 'Copiar Link'}</span>
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* TABELA 2: HISTÓRICO DE VENDAS & COMISSÕES GERADAS */}
+          <div className="flex flex-col gap-3 pt-2">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-bold text-slate-900 flex items-center gap-1.5">
+                  <TrendingUp className="w-4 h-4 text-emerald-600" />
+                  <span>Histórico de Vendas Indicadas ({affiliateSales.length})</span>
+                </h3>
+                <p className="text-xs text-slate-500">
+                  Todas as compras realizadas com códigos de afiliados e cálculo automático de comissão.
+                </p>
+              </div>
+            </div>
+
+            {affiliateSales.length === 0 ? (
+              <div className="p-8 text-center bg-slate-50 rounded-2xl border border-slate-200 text-slate-500 text-xs">
+                Nenhuma venda por indicação registrada até o momento.
+              </div>
+            ) : (
+              <div className="overflow-x-auto border border-slate-200 rounded-2xl">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-slate-50 border-b border-slate-200 text-slate-700 font-bold">
+                    <tr>
+                      <th className="p-3">Pedido</th>
+                      <th className="p-3">Data</th>
+                      <th className="p-3">Afiliado Beneficiário</th>
+                      <th className="p-3">Comprador</th>
+                      <th className="p-3 text-right">Total Pedido</th>
+                      <th className="p-3 text-right">Taxa (%)</th>
+                      <th className="p-3 text-right">Comissão Calculada</th>
+                      <th className="p-3 text-center">Status</th>
+                      <th className="p-3 text-center">Ação Repasse</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {affiliateSales.map((sale) => (
+                      <tr key={sale.id} className="hover:bg-slate-50/70 transition-colors">
+                        <td className="p-3 font-mono font-bold text-slate-900">{sale.orderId}</td>
+                        <td className="p-3 text-slate-500 font-mono">
+                          {new Date(sale.createdAt).toLocaleDateString('pt-PT')}
+                        </td>
+                        <td className="p-3">
+                          <div className="font-bold text-slate-900">{sale.affiliateName}</div>
+                          <span className="font-mono text-[10px] text-emerald-700 bg-emerald-50 px-1.5 py-0.2 rounded-sm border border-emerald-200">
+                            {sale.affiliateCode}
+                          </span>
+                        </td>
+                        <td className="p-3">
+                          <div className="font-semibold text-slate-800">{sale.buyerName}</div>
+                          <div className="text-[11px] text-slate-500">{sale.buyerEmail}</div>
+                        </td>
+                        <td className="p-3 text-right font-mono font-bold text-slate-800">
+                          {formatPrice(sale.orderTotal)}
+                        </td>
+                        <td className="p-3 text-right font-mono text-slate-600 font-semibold">
+                          {sale.commissionRate}%
+                        </td>
+                        <td className="p-3 text-right font-mono font-bold text-emerald-700">
+                          +{formatPrice(sale.commissionAmount)}
+                        </td>
+                        <td className="p-3 text-center">
+                          {sale.status === 'paid' ? (
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
+                              PAGO
+                            </span>
+                          ) : (
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300">
+                              PENDENTE
+                            </span>
+                          )}
+                        </td>
+                        <td className="p-3 text-center">
+                          {sale.status === 'pending' ? (
+                            <button
+                              type="button"
+                              onClick={() => markCommissionAsPaid(sale.id)}
+                              className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[11px] font-bold transition-all shadow-xs cursor-pointer flex items-center gap-1 mx-auto"
+                            >
+                              <Check className="w-3 h-3" />
+                              <span>Marcar Pago</span>
+                            </button>
+                          ) : (
+                            <span className="text-[11px] text-slate-400 font-mono flex items-center justify-center gap-1">
+                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                              Liquidado
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         </section>
       )}

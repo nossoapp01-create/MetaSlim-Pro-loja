@@ -16,8 +16,9 @@ import { BottomNav } from './components/BottomNav';
 import { DosageCalculatorModal } from './components/DosageCalculatorModal';
 import { FloatingConsultationButton } from './components/FloatingConsultationButton';
 import { SaaSAuthModal } from './components/SaaSAuthModal';
+import { AffiliateCustomerModal } from './components/AffiliateCustomerModal';
 import { ErrorBoundary } from './components/ErrorBoundary';
-import { ShieldCheck, Sparkles, AlertCircle, ArrowRight, Dna, Calculator, X, Truck, ShoppingBag, ShoppingCart } from 'lucide-react';
+import { ShieldCheck, Sparkles, AlertCircle, ArrowRight, Dna, Calculator, X, Truck, ShoppingBag, ShoppingCart, Gift } from 'lucide-react';
 
 const MainContent: React.FC = () => {
   const {
@@ -33,6 +34,10 @@ const MainContent: React.FC = () => {
     isTenantAdmin,
     formatPrice,
     addToCart,
+    trackReferralVisit,
+    activeReferralCode,
+    isAffiliateModalOpen,
+    setIsAffiliateModalOpen,
   } = useStore();
 
   const [isCalculatorOpen, setIsCalculatorOpen] = useState(false);
@@ -52,6 +57,23 @@ const MainContent: React.FC = () => {
       document.head.appendChild(link);
     }
   }, [settings.logoUrl]);
+
+  // Capture affiliate referral code from URL parameters (?ref=... or ?afiliado=...)
+  React.useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const ref =
+        params.get('ref') ||
+        params.get('afiliado') ||
+        params.get('ind') ||
+        params.get('indicacao');
+      if (ref) {
+        trackReferralVisit(ref);
+        setToast(`✨ Indicação Ativa: Código ${ref.toUpperCase()} vinculado com sucesso!`);
+      }
+    } catch {}
+  }, [trackReferralVisit, setToast]);
 
   // Filter products: hide offline products from store catalog and apply search
   const onlineProducts = (products || []).filter((prod) => prod && prod.status !== 'offline');
@@ -74,6 +96,26 @@ const MainContent: React.FC = () => {
     <div className="min-h-screen bg-[#f8fafc] text-[#131b2e] flex flex-col font-sans selection:bg-[#71face] selection:text-[#002117]">
       {/* Top Header */}
       <Header onOpenCalculator={() => setIsCalculatorOpen(true)} />
+
+      {/* Active Referral Banner */}
+      {activeReferralCode && (
+        <div className="bg-gradient-to-r from-[#003b2d] via-[#006750] to-[#0a483a] text-white py-2 px-3 text-center text-xs flex items-center justify-center gap-2 border-b border-emerald-400/30 shadow-xs z-30">
+          <Gift className="w-3.5 h-3.5 text-[#71face] shrink-0" />
+          <span>
+            Indicação Ativa: Você está comprando através do link do parceiro{' '}
+            <strong className="font-mono text-[#71face] bg-black/25 px-1.5 py-0.5 rounded-sm">
+              {activeReferralCode}
+            </strong>
+          </span>
+          <button
+            type="button"
+            onClick={() => setIsAffiliateModalOpen(true)}
+            className="text-[11px] underline text-emerald-200 hover:text-white font-bold ml-1 cursor-pointer"
+          >
+            Ver Programa de Afiliados
+          </button>
+        </div>
+      )}
 
       {/* Main View Router */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-4 pt-16 sm:pt-20 pb-20 sm:pb-12">
@@ -320,6 +362,12 @@ const MainContent: React.FC = () => {
 
       {/* SaaS Multi-Tenant Authentication & Store Manager Modal */}
       <SaaSAuthModal />
+
+      {/* Customer Affiliate Modal */}
+      <AffiliateCustomerModal
+        isOpen={isAffiliateModalOpen}
+        onClose={() => setIsAffiliateModalOpen(false)}
+      />
 
       {/* Floating Bottom Navigation Bar for Mobile */}
       <BottomNav />

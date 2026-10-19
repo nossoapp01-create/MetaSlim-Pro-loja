@@ -1,6 +1,6 @@
 import React from 'react';
 import { useStore } from '../context/StoreContext';
-import { Home, Grid, ShoppingBag, ShieldCheck } from 'lucide-react';
+import { Home, Grid, ShoppingBag, ShieldCheck, Gift } from 'lucide-react';
 
 interface NavItem {
   id: 'inicio' | 'produtos' | 'carrinho' | 'admin';
@@ -10,7 +10,7 @@ interface NavItem {
 }
 
 export const BottomNav: React.FC = () => {
-  const { activeTab, setActiveTab, cartItemsCount, isAdminUser } = useStore();
+  const { activeTab, setActiveTab, cartItemsCount, isAdminUser, setIsAffiliateModalOpen } = useStore();
 
   const navItems: NavItem[] = [
     { id: 'inicio', label: 'Início', icon: Home },
@@ -64,6 +64,19 @@ export const BottomNav: React.FC = () => {
             </button>
           );
         })}
+
+        {/* Indique & Ganhe Modal trigger */}
+        <button
+          onClick={() => setIsAffiliateModalOpen(true)}
+          className="relative flex flex-col items-center justify-center w-12 sm:w-14 h-full transition-colors active:scale-90 cursor-pointer text-slate-500 hover:text-[#006750]"
+          id="bottom-nav-affiliate"
+          title="Programa de Afiliados"
+        >
+          <Gift className="w-4.5 h-4.5 sm:w-5 sm:h-5 text-[#006750]" />
+          <span className="text-[9px] sm:text-[10px] mt-0.5 sm:mt-1 font-bold text-[#006750]">
+            Indique
+          </span>
+        </button>
       </div>
     </nav>
   );

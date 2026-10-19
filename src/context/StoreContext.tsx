@@ -9,6 +9,8 @@ import {
   CustomerShippingInfo,
   CustomerUser,
   TenantAccount,
+  AffiliateSaleRecord,
+  AffiliateProgramSettings,
 } from '../types';
 import {
   initialProducts,
@@ -17,6 +19,8 @@ import {
   initialStoreSettings,
   initialOrders,
   initialTenants,
+  initialDemoAffiliates,
+  initialAffiliateSales,
   getInitialOrdersForTenant,
   getInitialProductsForTenant,
   getInitialSettingsForTenant,
@@ -161,6 +165,23 @@ interface StoreContextType {
   cartDiscount: number;
   cartTotal: number;
   cartItemsCount: number;
+  // Indicação & Afiliados
+  affiliateSales: AffiliateSaleRecord[];
+  registeredAffiliates: CustomerUser[];
+  activeReferralCode: string | null;
+  updateAffiliateSettings: (partial: Partial<AffiliateProgramSettings>) => void;
+  recordAffiliateSale: (
+    orderId: string,
+    orderTotal: number,
+    referralCode: string,
+    buyerName: string,
+    buyerEmail: string
+  ) => Promise<boolean>;
+  markCommissionAsPaid: (saleId: string) => void;
+  updateCustomerPayoutInfo: (pixOrIban: string) => void;
+  trackReferralVisit: (code: string) => void;
+  isAffiliateModalOpen: boolean;
+  setIsAffiliateModalOpen: (open: boolean) => void;
 }
 
 const StoreContext = createContext<StoreContextType | undefined>(undefined);
@@ -174,6 +195,9 @@ const STORAGE_KEYS = {
   CURRENCY: 'metaslim_pro_currency_v3',
   ORDERS: 'metaslim_pro_orders_v3',
   CUSTOMER: 'metaslim_pro_customer_v1',
+  AFFILIATE_SALES: 'metaslim_affiliate_sales_v1',
+  AFFILIATES: 'metaslim_affiliates_v1',
+  REFERRAL_CODE: 'metaslim_referral_code',
 };
 
 const SUPER_ADMIN_EMAIL = 'nossoapp01@gmail.com';
@@ -414,14 +438,71 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       return null;
     }
   });
+  const generateReferralCode = (name: string): string => {
+    const clean = (name || 'CLIENTE').replace(/[^a-zA-Z0-9]/g, '').slice(0, 6).toUpperCase() || 'CLIENTE';
+    const rand = Math.random().toString(36).substring(2, 6).toUpperCase();
+    return `${clean}-${rand}`;
+  };
+
   const [customerUser, setCustomerUser] = useState<CustomerUser | null>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEYS.CUSTOMER);
-      return saved ? JSON.parse(saved) : null;
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && !parsed.referralCode) {
+          parsed.referralCode = (parsed.name?.replace(/[^a-zA-Z0-9]/g, '').slice(0, 6).toUpperCase() || 'CLIENTE') + '-' + Math.random().toString(36).substring(2, 6).toUpperCase();
+          try {
+            localStorage.setItem(STORAGE_KEYS.CUSTOMER, JSON.stringify(parsed));
+          } catch {}
+        }
+        return parsed;
+      }
+      return null;
     } catch {
       return null;
     }
   });
+
+  // Affiliate & Indicação state
+  const [affiliateSales, setAffiliateSales] = useState<AffiliateSaleRecord[]>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEYS.AFFILIATE_SALES);
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return initialAffiliateSales;
+  });
+
+  const [registeredAffiliates, setRegisteredAffiliates] = useState<CustomerUser[]>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEYS.AFFILIATES);
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return initialDemoAffiliates;
+  });
+
+  const [activeReferralCode, setActiveReferralCode] = useState<string | null>(() => {
+    try {
+      return localStorage.getItem(STORAGE_KEYS.REFERRAL_CODE) || null;
+    } catch {
+      return null;
+    }
+  });
+
+  const [isAffiliateModalOpen, setIsAffiliateModalOpen] = useState(false);
+
+  // Sync affiliate sales to localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEYS.AFFILIATE_SALES, JSON.stringify(affiliateSales));
+    } catch {}
+  }, [affiliateSales]);
+
+  // Sync registered affiliates to localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEYS.AFFILIATES, JSON.stringify(registeredAffiliates));
+    } catch {}
+  }, [registeredAffiliates]);
 
   const [superAdminKeyUnlocked, setSuperAdminKeyUnlocked] = useState<boolean>(() => {
     try {
@@ -1389,13 +1470,26 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         console.warn('Firebase email auth notice (using verified customer profile):', err?.message);
       }
 
+      const cleanName = name.trim();
+      const cleanEmail = email.trim().toLowerCase();
+      const referralCode = generateReferralCode(cleanName);
+      const referredBy = activeReferralCode || localStorage.getItem(STORAGE_KEYS.REFERRAL_CODE) || undefined;
+
       const newCustomer: CustomerUser = {
         uid,
-        name: name.trim(),
-        email: email.trim().toLowerCase(),
+        name: cleanName,
+        email: cleanEmail,
         phone: phone?.trim() || '',
         role: 'customer',
         createdAt: new Date().toISOString(),
+        referralCode,
+        referredBy,
+        totalReferralClicks: 0,
+        totalReferralOrders: 0,
+        totalReferralSalesAmount: 0,
+        totalCommissionEarned: 0,
+        pendingCommission: 0,
+        paidCommission: 0,
       };
 
       setCustomerUser(newCustomer);
@@ -1403,11 +1497,21 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         localStorage.setItem(STORAGE_KEYS.CUSTOMER, JSON.stringify(newCustomer));
       } catch {}
 
+      // Add to registered affiliates pool so they appear in Admin Panel
+      setRegisteredAffiliates((prev) => {
+        const filtered = prev.filter((a) => a.email.toLowerCase() !== cleanEmail);
+        const next = [newCustomer, ...filtered];
+        try {
+          localStorage.setItem(STORAGE_KEYS.AFFILIATES, JSON.stringify(next));
+        } catch {}
+        return next;
+      });
+
       try {
         await setDoc(doc(db, 'users', uid), newCustomer, { merge: true });
       } catch {}
 
-      showToast(`Cadastro realizado com sucesso! Bem-vindo(a), ${name}!`);
+      showToast(`Cadastro realizado com sucesso! Seu link de afiliado (${referralCode}) foi gerado!`);
       return true;
     } catch (err: any) {
       showToast(`Erro no cadastro: ${err.message || 'Tente novamente.'}`);
@@ -1444,11 +1548,24 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         }
       }
 
+      // Check if this customer already has an affiliate profile
+      const cleanEmail = email.trim().toLowerCase();
+      const existingAffiliate = registeredAffiliates.find((a) => a.email.toLowerCase() === cleanEmail);
+      const referralCode = existingAffiliate?.referralCode || generateReferralCode(name);
+
       const cust: CustomerUser = {
         uid,
         name,
-        email: email.trim().toLowerCase(),
+        email: cleanEmail,
         role: 'customer',
+        referralCode,
+        totalReferralClicks: existingAffiliate?.totalReferralClicks || 0,
+        totalReferralOrders: existingAffiliate?.totalReferralOrders || 0,
+        totalReferralSalesAmount: existingAffiliate?.totalReferralSalesAmount || 0,
+        totalCommissionEarned: existingAffiliate?.totalCommissionEarned || 0,
+        pendingCommission: existingAffiliate?.pendingCommission || 0,
+        paidCommission: existingAffiliate?.paidCommission || 0,
+        payoutPixOrIban: existingAffiliate?.payoutPixOrIban,
       };
       setCustomerUser(cust);
       try {
@@ -1475,13 +1592,225 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       phone,
       role: 'customer',
       createdAt: new Date().toISOString(),
+      referralCode: 'MARIANA-PRO',
+      totalReferralClicks: 142,
+      totalReferralOrders: 6,
+      totalReferralSalesAmount: 780.0,
+      totalCommissionEarned: 78.0,
+      pendingCommission: 24.5,
+      paidCommission: 53.5,
+      payoutPixOrIban: 'PT50 0033 0000 4521 9876 5432 1',
     };
     setCustomerUser(cust);
     try {
       localStorage.setItem(STORAGE_KEYS.CUSTOMER, JSON.stringify(cust));
     } catch {}
-    showToast(`Autenticado como cliente: ${name}!`);
+    showToast(`Autenticado como cliente & afiliada: ${name}!`);
   };
+
+  // Track visits from affiliate referral links
+  const trackReferralVisit = useCallback((code: string) => {
+    if (!code) return;
+    const clean = code.trim().toUpperCase();
+    try {
+      localStorage.setItem(STORAGE_KEYS.REFERRAL_CODE, clean);
+      setActiveReferralCode(clean);
+    } catch {}
+
+    setRegisteredAffiliates((prev) =>
+      prev.map((aff) =>
+        aff.referralCode?.toUpperCase() === clean
+          ? { ...aff, totalReferralClicks: (aff.totalReferralClicks || 0) + 1 }
+          : aff
+      )
+    );
+  }, []);
+
+  // Record an affiliate sale and update commissions
+  const recordAffiliateSale = useCallback(
+    async (
+      orderId: string,
+      orderTotal: number,
+      referralCode: string,
+      buyerName: string,
+      buyerEmail: string
+    ): Promise<boolean> => {
+      const cleanCode = referralCode.trim().toUpperCase();
+      const rate = settings.affiliateProgram?.commissionPercentage ?? 10;
+      const commissionAmount = parseFloat(((orderTotal * rate) / 100).toFixed(2));
+
+      const matchedAffiliate = registeredAffiliates.find(
+        (a) => a.referralCode?.toUpperCase() === cleanCode
+      );
+
+      const saleRecord: AffiliateSaleRecord = {
+        id: 'sale-' + Date.now().toString(36) + '-' + Math.random().toString(36).substring(2, 5),
+        orderId,
+        affiliateCode: cleanCode,
+        affiliateName: matchedAffiliate?.name || `Afiliado (${cleanCode})`,
+        affiliateEmail: matchedAffiliate?.email || 'afiliado@metaslim-pro.shop',
+        buyerName: buyerName || 'Cliente MetaSlim',
+        buyerEmail: buyerEmail || 'cliente@email.com',
+        orderTotal,
+        commissionRate: rate,
+        commissionAmount,
+        status: 'pending',
+        createdAt: new Date().toISOString(),
+      };
+
+      setAffiliateSales((prev) => [saleRecord, ...prev]);
+
+      // Update registered affiliates stats
+      setRegisteredAffiliates((prev) => {
+        let exists = false;
+        const next = prev.map((aff) => {
+          if (aff.referralCode?.toUpperCase() === cleanCode) {
+            exists = true;
+            return {
+              ...aff,
+              totalReferralOrders: (aff.totalReferralOrders || 0) + 1,
+              totalReferralSalesAmount: (aff.totalReferralSalesAmount || 0) + orderTotal,
+              totalCommissionEarned: (aff.totalCommissionEarned || 0) + commissionAmount,
+              pendingCommission: (aff.pendingCommission || 0) + commissionAmount,
+            };
+          }
+          return aff;
+        });
+
+        if (!exists) {
+          const newAff: CustomerUser = {
+            uid: 'aff-' + cleanCode.toLowerCase(),
+            name: `Parceiro ${cleanCode}`,
+            email: `${cleanCode.toLowerCase()}@afiliado.metaslim-pro.shop`,
+            role: 'customer',
+            createdAt: new Date().toISOString(),
+            referralCode: cleanCode,
+            totalReferralClicks: 1,
+            totalReferralOrders: 1,
+            totalReferralSalesAmount: orderTotal,
+            totalCommissionEarned: commissionAmount,
+            pendingCommission: commissionAmount,
+            paidCommission: 0,
+          };
+          return [newAff, ...next];
+        }
+        return next;
+      });
+
+      // If customerUser is currently this affiliate, update active session
+      setCustomerUser((prev) => {
+        if (prev && prev.referralCode?.toUpperCase() === cleanCode) {
+          const updated = {
+            ...prev,
+            totalReferralOrders: (prev.totalReferralOrders || 0) + 1,
+            totalReferralSalesAmount: (prev.totalReferralSalesAmount || 0) + orderTotal,
+            totalCommissionEarned: (prev.totalCommissionEarned || 0) + commissionAmount,
+            pendingCommission: (prev.pendingCommission || 0) + commissionAmount,
+          };
+          try {
+            localStorage.setItem(STORAGE_KEYS.CUSTOMER, JSON.stringify(updated));
+          } catch {}
+          return updated;
+        }
+        return prev;
+      });
+
+      return true;
+    },
+    [settings.affiliateProgram, registeredAffiliates]
+  );
+
+  // Mark commission as paid by Admin
+  const markCommissionAsPaid = useCallback((saleId: string) => {
+    setAffiliateSales((prev) =>
+      prev.map((sale) => {
+        if (sale.id === saleId) {
+          const updated = {
+            ...sale,
+            status: 'paid' as const,
+            paidAt: new Date().toISOString(),
+          };
+
+          // Move pending to paid on affiliate
+          setRegisteredAffiliates((affs) =>
+            affs.map((aff) => {
+              if (aff.referralCode?.toUpperCase() === sale.affiliateCode.toUpperCase()) {
+                const newPending = Math.max(0, (aff.pendingCommission || 0) - sale.commissionAmount);
+                const newPaid = (aff.paidCommission || 0) + sale.commissionAmount;
+                return {
+                  ...aff,
+                  pendingCommission: newPending,
+                  paidCommission: newPaid,
+                };
+              }
+              return aff;
+            })
+          );
+
+          // Also update customerUser if logged in as this affiliate
+          setCustomerUser((curr) => {
+            if (curr && curr.referralCode?.toUpperCase() === sale.affiliateCode.toUpperCase()) {
+              const updated = {
+                ...curr,
+                pendingCommission: Math.max(0, (curr.pendingCommission || 0) - sale.commissionAmount),
+                paidCommission: (curr.paidCommission || 0) + sale.commissionAmount,
+              };
+              try {
+                localStorage.setItem(STORAGE_KEYS.CUSTOMER, JSON.stringify(updated));
+              } catch {}
+              return updated;
+            }
+            return curr;
+          });
+
+          return updated;
+        }
+        return sale;
+      })
+    );
+    showToast('Comissão marcada como PAGA com sucesso!');
+  }, [showToast]);
+
+  const updateCustomerPayoutInfo = useCallback((pixOrIban: string) => {
+    if (!customerUser) return;
+    const updated = {
+      ...customerUser,
+      payoutPixOrIban: pixOrIban.trim(),
+    };
+    setCustomerUser(updated);
+    try {
+      localStorage.setItem(STORAGE_KEYS.CUSTOMER, JSON.stringify(updated));
+    } catch {}
+
+    // Also update in registeredAffiliates
+    setRegisteredAffiliates((prev) =>
+      prev.map((a) => (a.uid === customerUser.uid ? { ...a, payoutPixOrIban: pixOrIban.trim() } : a))
+    );
+    showToast('Dados de pagamento (PIX / IBAN) salvos com sucesso!');
+  }, [customerUser, showToast]);
+
+  const updateAffiliateSettings = useCallback((partial: Partial<AffiliateProgramSettings>) => {
+    setSettings((prev) => {
+      const next: StoreSettings = {
+        ...prev,
+        affiliateProgram: {
+          ...(prev.affiliateProgram || {
+            enabled: true,
+            commissionPercentage: 10,
+            minPayout: 50,
+            cookieDurationDays: 30,
+            termsNotice: 'Comissão creditada imediatamente após a confirmação do pagamento.',
+          }),
+          ...partial,
+        },
+      };
+      try {
+        localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+    showToast('Configurações de Indicação salvas com sucesso!');
+  }, [showToast]);
 
   const logout = async () => {
     try {
@@ -1979,6 +2308,15 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         totalPrice: item.totalPrice,
       }));
 
+      // Referral & Affiliate commission calculation
+      const refCode = activeReferralCode || (typeof window !== 'undefined' ? localStorage.getItem(STORAGE_KEYS.REFERRAL_CODE) : null);
+      let commAmount = 0;
+      let commRate = 0;
+      if (refCode && settings.affiliateProgram?.enabled) {
+        commRate = settings.affiliateProgram.commissionPercentage || 10;
+        commAmount = parseFloat(((cartTotal * commRate) / 100).toFixed(2));
+      }
+
       const orderPayload: OrderRecord = {
         id: orderId,
         tenantId: activeTenantId,
@@ -1995,9 +2333,17 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         stripeSessionId,
         trackingCode: `CTT-PT-${orderId.replace(/\D/g, '')}`,
         carrier: 'CTT Expresso Cold Chain (2°C - 8°C)',
+        referralCode: refCode || undefined,
+        affiliateCommission: commAmount > 0 ? commAmount : undefined,
+        affiliateCommissionRate: commRate > 0 ? commRate : undefined,
         createdAt: new Date().toISOString(),
         paidAt: new Date().toISOString(),
       };
+
+      // Record commission for affiliate
+      if (refCode && commAmount > 0) {
+        recordAffiliateSale(orderId, cartTotal, refCode, finalShipping.fullName, finalShipping.email).catch(() => {});
+      }
 
       setOrders((prev) => {
         const next = [orderPayload, ...prev];
@@ -2121,6 +2467,17 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         cartDiscount,
         cartTotal,
         cartItemsCount,
+        // Indicação & Afiliados
+        affiliateSales,
+        registeredAffiliates,
+        activeReferralCode,
+        updateAffiliateSettings,
+        recordAffiliateSale,
+        markCommissionAsPaid,
+        updateCustomerPayoutInfo,
+        trackReferralVisit,
+        isAffiliateModalOpen,
+        setIsAffiliateModalOpen,
       }}
     >
       {children}

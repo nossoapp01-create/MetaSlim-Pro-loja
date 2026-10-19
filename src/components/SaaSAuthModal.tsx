@@ -481,6 +481,10 @@ export const SaaSAuthModal: React.FC<SaaSAuthModalProps> = ({
                   <CheckCircle2 className="w-3.5 h-3.5" />
                   Link público exclusivo para seus clientes comprarem
                 </div>
+                <div className="flex items-center gap-1.5 text-emerald-700 font-medium">
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  Link de Afiliado comissionado automático para indicar novos compradores
+                </div>
               </div>
 
               <button

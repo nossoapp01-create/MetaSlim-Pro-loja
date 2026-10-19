@@ -140,6 +140,15 @@ export interface StoreSettings {
   mypos?: MyPOSConfig;
   stripe?: StripeConfig;
   enabledPaymentMethods?: EnabledPaymentMethods;
+  affiliateProgram?: AffiliateProgramSettings;
+}
+
+export interface AffiliateProgramSettings {
+  enabled: boolean;
+  commissionPercentage: number; // e.g. 10%
+  minPayout: number; // e.g. 50 EUR
+  cookieDurationDays: number; // e.g. 30 days
+  termsNotice?: string;
 }
 
 export interface CustomerShippingInfo {
@@ -162,6 +171,31 @@ export interface CustomerUser {
   photoURL?: string;
   role?: 'customer' | 'admin';
   createdAt?: string;
+  referralCode?: string; // e.g. 'MARIANA-8F2'
+  referredBy?: string; // code of the affiliate who referred this user
+  totalReferralClicks?: number;
+  totalReferralOrders?: number;
+  totalReferralSalesAmount?: number;
+  totalCommissionEarned?: number;
+  pendingCommission?: number;
+  paidCommission?: number;
+  payoutPixOrIban?: string;
+}
+
+export interface AffiliateSaleRecord {
+  id: string;
+  orderId: string;
+  affiliateCode: string;
+  affiliateName: string;
+  affiliateEmail: string;
+  buyerName: string;
+  buyerEmail: string;
+  orderTotal: number;
+  commissionRate: number; // % (e.g. 10)
+  commissionAmount: number; // e.g. 24.50
+  status: 'pending' | 'approved' | 'paid' | 'cancelled';
+  createdAt: string;
+  paidAt?: string;
 }
 
 export interface OrderItemDetail {
@@ -190,6 +224,9 @@ export interface OrderRecord {
   stripePaymentIntentId?: string;
   trackingCode?: string;
   carrier?: string;
+  referralCode?: string;
+  affiliateCommission?: number;
+  affiliateCommissionRate?: number;
   createdAt: string;
   paidAt?: string;
   shippedAt?: string;

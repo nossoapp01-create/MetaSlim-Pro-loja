@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useStore } from '../context/StoreContext';
 import { MetaSlimLogo } from './MetaSlimLogo';
-import { Search, ShoppingBag, ShieldCheck, Dna, X, LogIn, LogOut, CloudCheck, UserCheck, User, Truck, TrendingUp, Stethoscope, Building2, Store, MessageSquare } from 'lucide-react';
+import { Search, ShoppingBag, ShieldCheck, Dna, X, LogIn, LogOut, CloudCheck, UserCheck, User, Truck, TrendingUp, Stethoscope, Building2, Store, MessageSquare, Gift } from 'lucide-react';
 
 interface HeaderProps {
   onOpenCalculator?: () => void;
@@ -30,6 +30,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenCalculator }) => {
     currentTenant,
     activeTenantId,
     openAuthModal,
+    setIsAffiliateModalOpen,
   } = useStore();
 
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -176,6 +177,21 @@ export const Header: React.FC<HeaderProps> = ({ onOpenCalculator }) => {
             )}
           </button>
 
+          {/* Indique & Ganhe (Affiliate Program) Shortcut */}
+          <button
+            type="button"
+            onClick={() => setIsAffiliateModalOpen(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-extrabold bg-gradient-to-r from-emerald-500/15 via-[#71face]/20 to-emerald-500/15 text-[#004d3b] hover:bg-emerald-100/70 border border-emerald-300/80 transition-all shadow-2xs hover:scale-102 cursor-pointer"
+            title="Programa de Afiliados e Indicação"
+            id="header-affiliate-btn"
+          >
+            <Gift className="w-3.5 h-3.5 text-[#006750]" />
+            <span className="hidden sm:inline">Indique &amp; Ganhe</span>
+            <span className="font-mono text-[10px] bg-[#006750] text-white px-1.5 py-0.2 rounded-full font-black">
+              {settings.affiliateProgram?.commissionPercentage ?? 10}%
+            </span>
+          </button>
+
           {/* Admin shortcut badge */}
           <button
             onClick={() => setActiveTab('admin')}
@@ -231,6 +247,23 @@ export const Header: React.FC<HeaderProps> = ({ onOpenCalculator }) => {
                       </span>
                     </div>
                   </div>
+
+                  {/* Affiliate Program Item */}
+                  <button
+                    onClick={() => {
+                      setIsAffiliateModalOpen(true);
+                      setIsUserMenuOpen(false);
+                    }}
+                    className="w-full text-left px-3 py-2 text-xs text-emerald-950 bg-emerald-50/70 hover:bg-emerald-100 rounded-lg flex items-center justify-between font-bold border border-emerald-200/80 my-1 cursor-pointer transition-colors"
+                  >
+                    <div className="flex items-center gap-2">
+                      <Gift className="w-3.5 h-3.5 text-[#006750]" />
+                      <span>Meu Link de Afiliado</span>
+                    </div>
+                    <span className="bg-[#006750] text-white px-1.5 py-0.2 rounded-full text-[9px] font-mono font-bold">
+                      {settings.affiliateProgram?.commissionPercentage ?? 10}%
+                    </span>
+                  </button>
 
                   <button
                     onClick={() => {
