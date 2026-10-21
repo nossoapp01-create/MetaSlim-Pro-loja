@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Stethoscope, Sparkles, X, ArrowUpRight } from 'lucide-react';
+import { useStore } from '../context/StoreContext';
 
 interface FloatingConsultationButtonProps {
   consultationUrl?: string;
@@ -8,6 +9,7 @@ interface FloatingConsultationButtonProps {
 export const FloatingConsultationButton: React.FC<FloatingConsultationButtonProps> = ({
   consultationUrl = 'https://consulta.metaslim-pro.shop/',
 }) => {
+  const { language } = useStore();
   const [isClosed, setIsClosed] = useState<boolean>(() => {
     try {
       return sessionStorage.getItem('metaslim_hide_consultation_btn') === 'true';
@@ -31,9 +33,30 @@ export const FloatingConsultationButton: React.FC<FloatingConsultationButtonProp
     return null;
   }
 
+  const copy = {
+    pt: {
+      free: '100% Grátis',
+      online: 'Online Agora',
+      cta: 'Faça sua consulta grátis',
+      sub: 'Dra. Valéria Prado • Endocrinologia',
+    },
+    es: {
+      free: '100% Gratis',
+      online: 'En Línea Ahora',
+      cta: 'Haz tu consulta gratis',
+      sub: 'Dra. Valéria Prado • Endocrinología',
+    },
+    en: {
+      free: '100% Free',
+      online: 'Online Now',
+      cta: 'Start your free consultation',
+      sub: 'Dr. Valéria Prado • Endocrinology',
+    },
+  }[language];
+
   return (
     <aside
-      aria-label="Consulta Médica Online Gratuita"
+      aria-label={copy.cta}
       className="fixed bottom-20 sm:bottom-24 right-3 sm:right-6 z-[60] select-none animate-in fade-in slide-in-from-bottom-4 duration-300"
     >
       <div className="relative group">
@@ -49,7 +72,7 @@ export const FloatingConsultationButton: React.FC<FloatingConsultationButtonProp
             rel="noopener noreferrer"
             id="btn-flutuante-consulta-gratis"
             className="flex items-center gap-3 pr-2 text-left cursor-pointer group/link"
-            title="Clique para iniciar sua consulta médica gratuita com a Dra. Valéria Prado"
+            title={copy.cta}
           >
             {/* Medical Icon with pulsing indicator */}
             <div className="relative w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-emerald-950/80 border border-[#71face]/50 flex items-center justify-center shrink-0 shadow-inner group-hover/link:scale-105 transition-transform">
@@ -64,23 +87,23 @@ export const FloatingConsultationButton: React.FC<FloatingConsultationButtonProp
             <div className="flex flex-col">
               <div className="flex items-center gap-1.5">
                 <span className="text-[10px] font-mono font-black uppercase tracking-wider text-amber-300 bg-amber-950/70 border border-amber-400/50 px-2 py-0.5 rounded-full shadow-2xs">
-                  100% Grátis
+                  {copy.free}
                 </span>
                 <span className="text-[10px] text-emerald-200 font-semibold flex items-center gap-0.5">
                   <Sparkles className="w-2.5 h-2.5 text-amber-300" />
-                  Online Agora
+                  {copy.online}
                 </span>
               </div>
 
               <div className="flex items-center gap-1.5 mt-0.5">
                 <span className="text-xs sm:text-sm font-extrabold text-white tracking-tight leading-snug group-hover/link:text-[#93f5d4] transition-colors">
-                  Faça sua consulta grátis
+                  {copy.cta}
                 </span>
                 <ArrowUpRight className="w-4 h-4 text-[#93f5d4] group-hover/link:translate-x-0.5 group-hover/link:-translate-y-0.5 transition-transform shrink-0" />
               </div>
 
               <span className="text-[10px] sm:text-[11px] text-emerald-100/90 font-medium leading-tight">
-                Dra. Valéria Prado • Endocrinologia
+                {copy.sub}
               </span>
             </div>
           </a>

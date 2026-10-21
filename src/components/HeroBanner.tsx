@@ -3,7 +3,7 @@ import { useStore } from '../context/StoreContext';
 import { ChevronLeft, ChevronRight, ShieldCheck, ArrowRight } from 'lucide-react';
 
 export const HeroBanner: React.FC = () => {
-  const { banners, setActiveTab, setSelectedProductId } = useStore();
+  const { banners, setActiveTab, setSelectedProductId, td } = useStore();
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
@@ -82,7 +82,7 @@ export const HeroBanner: React.FC = () => {
           <div className="flex items-center justify-between gap-2 mb-1.5 sm:mb-2">
             <span className="inline-flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full bg-[#006750]/90 backdrop-blur-md text-[#93f5d4] text-[9px] sm:text-[11px] font-bold font-mono tracking-wider uppercase border border-emerald-400/20 shadow-xs">
               <span className="w-1.5 h-1.5 rounded-full bg-[#71face] animate-ping" />
-              {current.tag}
+              {td(current.tag)}
             </span>
             <span className="text-[10px] sm:text-[11px] font-mono font-semibold px-2 py-0.5 rounded-full bg-black/40 backdrop-blur-md text-white/90">
               {currentSlide + 1} / {total}
@@ -92,10 +92,10 @@ export const HeroBanner: React.FC = () => {
           {/* Heading & Subtitle */}
           <div className="my-auto py-1">
             <h2 className="text-base sm:text-2xl md:text-3xl font-extrabold tracking-tight leading-snug text-white drop-shadow-sm">
-              {current.title}
+              {td(current.title)}
             </h2>
             <p className="mt-1 sm:mt-1.5 text-[11px] sm:text-xs md:text-sm text-slate-200/90 leading-relaxed line-clamp-2 max-w-lg">
-              {current.subtitle}
+              {td(current.subtitle)}
             </p>
           </div>
 
@@ -106,13 +106,13 @@ export const HeroBanner: React.FC = () => {
               className="inline-flex items-center gap-1.5 px-3.5 sm:px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-xl bg-gradient-to-r from-[#006750] to-[#0d8267] hover:from-[#0d8267] hover:to-[#006750] text-[#93f5d4] hover:text-white font-bold text-xs sm:text-sm shadow-md shadow-emerald-950/40 active:scale-95 transition-all group/btn cursor-pointer"
               id={`banner-cta-${currentSlide}`}
             >
-              <span>{current.ctaText || 'Ver Protocolo'}</span>
+              <span>{td(current.ctaText || 'Ver Protocolo')}</span>
               <ArrowRight className="w-3.5 h-3.5 group-hover/btn:translate-x-1 transition-transform" />
             </button>
 
             <div className="hidden xs:flex items-center gap-1 text-[10px] sm:text-xs text-emerald-200/90 font-mono">
               <ShieldCheck className="w-3.5 h-3.5 text-[#71face]" />
-              <span className="truncate">{current.badgeText}</span>
+              <span className="truncate">{td(current.badgeText)}</span>
             </div>
           </div>
         </div>

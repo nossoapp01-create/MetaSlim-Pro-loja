@@ -25,19 +25,19 @@ const MainContent: React.FC = () => {
     activeTab,
     setActiveTab,
     products,
-    selectedCategory,
     searchQuery,
     settings,
     toast,
     setToast,
     setSelectedProductId,
-    isTenantAdmin,
     formatPrice,
     addToCart,
     trackReferralVisit,
     activeReferralCode,
     isAffiliateModalOpen,
     setIsAffiliateModalOpen,
+    t,
+    td,
   } = useStore();
 
   const [isCalculatorOpen, setIsCalculatorOpen] = useState(false);
@@ -70,10 +70,10 @@ const MainContent: React.FC = () => {
         params.get('indicacao');
       if (ref) {
         trackReferralVisit(ref);
-        setToast(`✨ Indicação Ativa: Código ${ref.toUpperCase()} vinculado com sucesso!`);
+        setToast(t('referral.toast_linked', { code: ref.toUpperCase() }));
       }
     } catch {}
-  }, [trackReferralVisit, setToast]);
+  }, [trackReferralVisit, setToast, t]);
 
   // Filter products: hide offline products from store catalog and apply search
   const onlineProducts = (products || []).filter((prod) => prod && prod.status !== 'offline');
@@ -102,7 +102,7 @@ const MainContent: React.FC = () => {
         <div className="bg-gradient-to-r from-[#003b2d] via-[#006750] to-[#0a483a] text-white py-2 px-3 text-center text-xs flex items-center justify-center gap-2 border-b border-emerald-400/30 shadow-xs z-30">
           <Gift className="w-3.5 h-3.5 text-[#71face] shrink-0" />
           <span>
-            Indicação Ativa: Você está comprando através do link do parceiro{' '}
+            {t('referral.active_banner')}{' '}
             <strong className="font-mono text-[#71face] bg-black/25 px-1.5 py-0.5 rounded-sm">
               {activeReferralCode}
             </strong>
@@ -112,7 +112,7 @@ const MainContent: React.FC = () => {
             onClick={() => setIsAffiliateModalOpen(true)}
             className="text-[11px] underline text-emerald-200 hover:text-white font-bold ml-1 cursor-pointer"
           >
-            Ver Programa de Afiliados
+            {t('referral.view_program')}
           </button>
         </div>
       )}
@@ -146,25 +146,24 @@ const MainContent: React.FC = () => {
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 sm:gap-2.5 bg-white p-2.5 sm:p-3 rounded-xl sm:rounded-2xl border border-slate-200/70 shadow-2xs text-center text-[11px] sm:text-xs">
               <div className="flex items-center justify-center gap-1 sm:gap-1.5 text-slate-700 font-semibold truncate">
                 <ShieldCheck className="w-3.5 h-3.5 text-[#006750] shrink-0" />
-                <span className="truncate">Laudo HPLC &gt;99%</span>
+                <span className="truncate">{t('home.trust_hplc')}</span>
               </div>
               <button
                 onClick={() => setActiveTab('prazos-entrega')}
                 className="flex items-center justify-center gap-1 sm:gap-1.5 text-slate-700 hover:text-[#006750] font-semibold transition-colors cursor-pointer group truncate"
-                title="Ver Prazos e Condições de Entrega"
+                title={t('nav.delivery_full')}
               >
                 <Truck className="w-3.5 h-3.5 text-emerald-600 group-hover:scale-110 transition-transform shrink-0" />
-                <span className="truncate">Envio Térmico</span>
+                <span className="truncate">{t('home.trust_shipping')}</span>
               </button>
               <div className="flex items-center justify-center gap-1 sm:gap-1.5 text-slate-700 font-semibold truncate">
                 <Sparkles className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                <span className="truncate">Liofilização Pura</span>
+                <span className="truncate">{t('home.trust_lyophilized')}</span>
               </div>
               <div className="flex items-center justify-center gap-1 sm:gap-1.5 text-slate-700 font-semibold truncate">
-                <span className="font-mono font-bold text-[#006750]">MB WAY / PIX</span>
+                <span className="font-mono font-bold text-[#006750]">STRIPE / PIX</span>
               </div>
             </div>
-
 
             {/* Featured Product Banner (Retatrutide 10mg) */}
             {featuredProduct && (
@@ -179,20 +178,20 @@ const MainContent: React.FC = () => {
                   </div>
                   <div className="flex flex-col min-w-0 flex-1">
                     <span className="font-mono text-[9px] uppercase font-bold text-[#93f5d4] tracking-wider bg-black/20 px-2 py-0.5 rounded-full w-fit">
-                      Destaque • Tri-Agonista
+                      {t('home.featured_tag')}
                     </span>
                     <h3 className="text-base sm:text-xl font-extrabold mt-0.5 truncate">
                       {featuredProduct.name}
                     </h3>
                     <p className="text-[11px] sm:text-xs text-slate-100 max-w-md mt-0.5 leading-relaxed line-clamp-2">
-                      {featuredProduct.whatIsItFor}
+                      {td(featuredProduct.whatIsItFor)}
                     </p>
                   </div>
                 </div>
 
                 <div className="flex sm:flex-col items-center sm:items-end justify-between w-full sm:w-auto relative z-10 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-white/10">
                   <div className="flex flex-col sm:items-end">
-                    <span className="text-[10px] text-emerald-200 font-mono">A partir de</span>
+                    <span className="text-[10px] text-emerald-200 font-mono">{t('home.from_price')}</span>
                     <span className="text-xl sm:text-2xl font-extrabold font-mono text-[#93f5d4]">
                       {formatPrice(featuredProduct.price || 59)}
                     </span>
@@ -205,7 +204,7 @@ const MainContent: React.FC = () => {
                       }}
                       className="px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-lg sm:rounded-xl bg-white/15 hover:bg-white/25 text-white font-bold text-xs shadow-xs transition-all active:scale-95 flex items-center justify-center gap-1 cursor-pointer"
                     >
-                      <span>Detalhes</span>
+                      <span>{t('home.details')}</span>
                     </button>
                     <button
                       onClick={() => {
@@ -217,7 +216,7 @@ const MainContent: React.FC = () => {
                       id="btn-hero-buy-now"
                     >
                       <ShoppingCart className="w-3.5 h-3.5" />
-                      <span>Comprar Agora</span>
+                      <span>{t('home.buy_now')}</span>
                     </button>
                   </div>
                 </div>
@@ -230,10 +229,10 @@ const MainContent: React.FC = () => {
             <div className="flex items-center justify-between px-0.5">
               <div>
                 <h2 className="text-base sm:text-xl font-extrabold text-[#131b2e] tracking-tight">
-                  Peptídeos Disponíveis
+                  {t('home.available_peptides')}
                 </h2>
                 <p className="text-[11px] sm:text-xs text-slate-500">
-                  {filteredProducts.length} compostos certificados por HPLC.
+                  {t('home.certified_count', { count: filteredProducts.length })}
                 </p>
               </div>
             </div>
@@ -256,10 +255,10 @@ const MainContent: React.FC = () => {
                 </div>
                 <div className="flex flex-col">
                   <h3 className="font-bold text-base text-slate-900">
-                    Dúvidas sobre a Reconstituição ou Dosagem?
+                    {t('home.calc_title')}
                   </h3>
                   <p className="text-xs text-slate-500 leading-relaxed max-w-lg mt-0.5">
-                    Utilize a nossa calculadora de água bacteriostática estéril para obter a equivalência exata de unidades na seringa de insulina.
+                    {t('home.calc_desc')}
                   </p>
                 </div>
               </div>
@@ -268,7 +267,7 @@ const MainContent: React.FC = () => {
                 onClick={() => setIsCalculatorOpen(true)}
                 className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-[#006750] hover:bg-[#0d8267] text-white font-bold text-xs shadow-sm transition-all active:scale-95 shrink-0"
               >
-                Abrir Calculadora
+                {t('home.calc_btn')}
               </button>
             </div>
           </div>
@@ -279,17 +278,17 @@ const MainContent: React.FC = () => {
           <div className="flex flex-col gap-5">
             <div className="flex flex-col gap-1">
               <h1 className="text-2xl sm:text-3xl font-extrabold text-[#131b2e] tracking-tight">
-                Catálogo de Peptídeos Liofilizados
+                {t('catalog.title')}
               </h1>
               <p className="text-xs sm:text-sm text-slate-500">
-                Selecione o peptídeo para verificar dosagens, cromatografia HPLC e link direto de pagamento.
+                {t('catalog.subtitle')}
               </p>
             </div>
 
             {searchQuery && (
               <div className="p-3 bg-emerald-50 rounded-xl text-xs text-emerald-800 flex items-center justify-between">
                 <span>
-                  Resultados da busca por: <strong>"{searchQuery}"</strong> ({filteredProducts.length} encontrados)
+                  {t('catalog.search_results')} <strong>"{searchQuery}"</strong> ({filteredProducts.length} {t('catalog.found')})
                 </span>
               </div>
             )}
@@ -297,8 +296,8 @@ const MainContent: React.FC = () => {
             {filteredProducts.length === 0 ? (
               <div className="p-12 text-center bg-white rounded-2xl border border-slate-200">
                 <AlertCircle className="w-10 h-10 text-slate-400 mx-auto mb-2" />
-                <h3 className="font-bold text-slate-800">Nenhum peptídeo encontrado</h3>
-                <p className="text-xs text-slate-500 mt-1">Tente buscar por outro termo.</p>
+                <h3 className="font-bold text-slate-800">{t('catalog.empty_title')}</h3>
+                <p className="text-xs text-slate-500 mt-1">{t('catalog.empty_desc')}</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
@@ -318,10 +317,10 @@ const MainContent: React.FC = () => {
           <div className="flex flex-col gap-5 max-w-4xl mx-auto">
             <div className="flex flex-col gap-1">
               <h1 className="text-2xl sm:text-3xl font-extrabold text-[#131b2e] tracking-tight">
-                Antes &amp; Depois dos Clientes
+                {t('nav.results')}
               </h1>
               <p className="text-xs sm:text-sm text-slate-500">
-                Relatos reais, evoluções de composição corporal e relatos de perda ponderal com MetaSlim Pro.
+                {t('results.subtitle')}
               </p>
             </div>
             <BeforeAfterSection />

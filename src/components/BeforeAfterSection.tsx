@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 
 export const BeforeAfterSection: React.FC = () => {
-  const { testimonials } = useStore();
+  const { testimonials, t, td } = useStore();
   const scrollRef = useRef<HTMLDivElement>(null);
   const [activeModalItem, setActiveModalItem] = useState<Testimonial | null>(null);
 
@@ -32,14 +32,14 @@ export const BeforeAfterSection: React.FC = () => {
           <div className="flex items-center gap-1.5 text-[#006750]">
             <Award className="w-4 h-4 text-[#006750]" />
             <span className="font-mono text-xs uppercase font-bold tracking-wider">
-              Histórias Reais de Sucesso
+              {t('results.badge')}
             </span>
           </div>
           <h2 className="text-xl sm:text-2xl font-extrabold text-[#131b2e] mt-0.5">
-            O que dizem os nossos clientes
+            {t('results.title')}
           </h2>
           <p className="text-xs text-slate-500 mt-0.5">
-            Resultados clínicos obtidos com acompanhamento dos protocolos MetaSlim Pro.
+            {t('results.subtitle')}
           </p>
         </div>
 
@@ -77,7 +77,7 @@ export const BeforeAfterSection: React.FC = () => {
               <span className="font-bold text-base text-[#131b2e]">{item.name}</span>
               <span className="px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-800 font-mono text-[11px] font-bold border border-emerald-200/60 flex items-center gap-1">
                 <TrendingDown className="w-3 h-3 text-[#006750]" />
-                <span>{item.weightLost}</span>
+                <span>{td(item.weightLost)}</span>
               </span>
             </div>
 
@@ -90,12 +90,12 @@ export const BeforeAfterSection: React.FC = () => {
               <div className="relative w-full h-full overflow-hidden bg-slate-200">
                 <img
                   src={item.beforeImage}
-                  alt={`Antes - ${item.name}`}
+                  alt={`${t('results.before')} - ${item.name}`}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                   loading="lazy"
                 />
                 <span className="absolute top-2 left-2 px-2 py-0.5 rounded-md bg-[#131b2e]/80 text-white font-mono text-[9px] uppercase font-bold backdrop-blur-xs">
-                  Antes
+                  {t('results.before')}
                 </span>
               </div>
 
@@ -103,12 +103,12 @@ export const BeforeAfterSection: React.FC = () => {
               <div className="relative w-full h-full overflow-hidden bg-emerald-950/10">
                 <img
                   src={item.afterImage}
-                  alt={`Depois - ${item.name}`}
+                  alt={`${t('results.after')} - ${item.name}`}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                   loading="lazy"
                 />
                 <span className="absolute top-2 left-2 px-2 py-0.5 rounded-md bg-[#006750] text-[#93f5d4] font-mono text-[9px] uppercase font-bold shadow-xs">
-                  Depois
+                  {t('results.after')}
                 </span>
               </div>
 
@@ -122,25 +122,25 @@ export const BeforeAfterSection: React.FC = () => {
 
             {/* Protocol tag */}
             <div className="mt-2 text-[10px] text-slate-500 font-mono">
-              Protocolo: <span className="font-semibold text-slate-700">{item.protocol}</span> • {item.duration}
+              {t('results.protocol')} <span className="font-semibold text-slate-700">{item.protocol}</span> • {td(item.duration)}
             </div>
 
             {/* Quote */}
             <p className="text-xs text-slate-600 leading-relaxed italic mt-2 line-clamp-3">
-              "{item.quote}"
+              "{td(item.quote)}"
             </p>
 
             {/* Verification Footer */}
             <div className="pt-3 mt-3 border-t border-slate-100 flex items-center justify-between text-xs text-[#006750]">
               <div className="flex items-center gap-1.5">
                 <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                <span className="font-semibold text-[11px]">Membro verificado MetaSlim Pro</span>
+                <span className="font-semibold text-[11px]">{t('results.verified_member')}</span>
               </div>
               <button
                 onClick={() => setActiveModalItem(item)}
                 className="text-slate-400 hover:text-slate-600 text-[11px]"
               >
-                Detalhes
+                {t('home.details')}
               </button>
             </div>
           </div>

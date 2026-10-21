@@ -37,6 +37,7 @@ export const AffiliateCustomerModal: React.FC<AffiliateCustomerModalProps> = ({
     openAuthModal,
     formatPrice,
     quickCustomerLogin,
+    t,
   } = useStore();
 
   const [copiedLink, setCopiedLink] = useState(false);
@@ -68,7 +69,7 @@ export const AffiliateCustomerModal: React.FC<AffiliateCustomerModalProps> = ({
     try {
       await navigator.clipboard.writeText(referralUrl);
       setCopiedLink(true);
-      showToast('Link de afiliado copiado para a área de transferência!');
+      showToast(t('affiliate.copied'));
       setTimeout(() => setCopiedLink(false), 2500);
     } catch {
       showToast('Erro ao copiar. Copie manualmente.');
@@ -79,7 +80,7 @@ export const AffiliateCustomerModal: React.FC<AffiliateCustomerModalProps> = ({
     try {
       await navigator.clipboard.writeText(referralCode);
       setCopiedCode(true);
-      showToast(`Código ${referralCode} copiado!`);
+      showToast(`${referralCode} - ${t('affiliate.copied')}`);
       setTimeout(() => setCopiedCode(false), 2500);
     } catch {
       showToast('Erro ao copiar código.');
@@ -120,19 +121,18 @@ export const AffiliateCustomerModal: React.FC<AffiliateCustomerModalProps> = ({
               <Gift className="w-4 h-4" />
             </span>
             <span className="text-[10px] uppercase font-mono font-bold tracking-widest text-emerald-200 bg-white/10 px-2.5 py-0.5 rounded-full">
-              Programa de Indicação &amp; Afiliados
+              {t('affiliate.badge')}
             </span>
           </div>
 
           <h3 className="text-xl sm:text-2xl font-black tracking-tight text-white">
-            Indique Amigos e Ganhe{' '}
+            {t('affiliate.title_prefix')}{' '}
             <span className="text-[#71face] underline decoration-emerald-400 decoration-wavy">
-              {commissionPercent}% de Comissão
+              {t('affiliate.title_commission', { percent: commissionPercent })}
             </span>
           </h3>
           <p className="text-xs sm:text-sm text-emerald-100/90 mt-1 max-w-xl">
-            Cada pessoa que comprar na MetaSlim Pro através do seu link exclusivo gera{' '}
-            <strong>{commissionPercent}% do valor da compra</strong> direto para a sua conta.
+            {t('affiliate.subtitle', { percent: commissionPercent })}
           </p>
 
           {/* Sub Navigation */}
@@ -146,7 +146,7 @@ export const AffiliateCustomerModal: React.FC<AffiliateCustomerModalProps> = ({
               }`}
             >
               <Share2 className="w-3.5 h-3.5" />
-              <span>Meu Link &amp; Divulgação</span>
+              <span>{t('affiliate.tab_link')}</span>
             </button>
             <button
               onClick={() => setActiveTab('vendas')}
@@ -157,7 +157,7 @@ export const AffiliateCustomerModal: React.FC<AffiliateCustomerModalProps> = ({
               }`}
             >
               <TrendingUp className="w-3.5 h-3.5" />
-              <span>Minhas Comissões ({mySales.length})</span>
+              <span>{t('affiliate.tab_sales')} ({mySales.length})</span>
             </button>
             <button
               onClick={() => setActiveTab('saque')}
@@ -168,7 +168,7 @@ export const AffiliateCustomerModal: React.FC<AffiliateCustomerModalProps> = ({
               }`}
             >
               <CreditCard className="w-3.5 h-3.5" />
-              <span>Dados para Saque</span>
+              <span>{t('affiliate.tab_payout')}</span>
             </button>
           </div>
         </div>
@@ -180,11 +180,10 @@ export const AffiliateCustomerModal: React.FC<AffiliateCustomerModalProps> = ({
             <div className="p-5 rounded-2xl bg-amber-50 border border-amber-200 text-amber-950 space-y-3">
               <div className="flex items-center gap-2">
                 <AlertCircle className="w-5 h-5 text-amber-700 shrink-0" />
-                <h4 className="font-bold text-sm">Cadastre-se para Ativar seu Link de Afiliado</h4>
+                <h4 className="font-bold text-sm">{t('affiliate.guest_title')}</h4>
               </div>
               <p className="text-xs text-amber-800 leading-relaxed">
-                Ao criar sua conta gratuita de cliente na MetaSlim Pro, seu código e link de afiliado são gerados
-                instantaneamente. Todas as compras indicadas acumulam comissões automaticamente!
+                {t('affiliate.guest_desc')}
               </p>
               <div className="flex flex-wrap gap-2 pt-1">
                 <button
@@ -195,7 +194,7 @@ export const AffiliateCustomerModal: React.FC<AffiliateCustomerModalProps> = ({
                   }}
                   className="px-4 py-2 rounded-xl bg-[#006750] text-white text-xs font-bold hover:bg-[#005240] transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs"
                 >
-                  <span>Cadastrar e Ganhar Link</span>
+                  <span>{t('affiliate.register_btn')}</span>
                   <ArrowRight className="w-3.5 h-3.5" />
                 </button>
                 <button

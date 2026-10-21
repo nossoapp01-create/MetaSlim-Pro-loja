@@ -33,7 +33,8 @@ export const ProductDetail: React.FC = () => {
     addToCart,
     setActiveTab,
     settings,
-    showToast,
+    t,
+    td,
   } = useStore();
 
   const [selectedVials, setSelectedVials] = useState<number>(1);
@@ -97,14 +98,14 @@ export const ProductDetail: React.FC = () => {
             onClick={() => setActiveTab('inicio')}
             className="hover:text-[#006750] transition-colors"
           >
-            Início
+            {t('nav.home')}
           </button>
           <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
           <button
             onClick={() => setActiveTab('produtos')}
             className="hover:text-[#006750] transition-colors"
           >
-            Peptídeos
+            {t('nav.products')}
           </button>
           <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
           <span className="text-[#006750] font-semibold truncate">{product.name}</span>
@@ -112,7 +113,7 @@ export const ProductDetail: React.FC = () => {
 
         <div className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-800 border border-emerald-200/80 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider shrink-0">
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse" />
-          Lote Validado
+          {t('product.batch_validated')}
         </div>
       </div>
 
@@ -122,12 +123,12 @@ export const ProductDetail: React.FC = () => {
         <div className="flex items-center justify-between gap-2 mb-4">
           <div className="flex items-center gap-1.5 bg-[#131b2e] text-white px-3 py-1 rounded-full font-mono text-[10px] uppercase font-bold tracking-wider shadow-sm">
             <span className="w-1.5 h-1.5 rounded-full bg-[#71face]" />
-            <span>{product.purity}</span>
+            <span>{td(product.purity)}</span>
           </div>
 
           <div className="flex items-center gap-1 bg-[#006750] text-[#93f5d4] px-3 py-1 rounded-full text-xs font-semibold shadow-sm">
             <ShieldCheck className="w-4 h-4 text-[#71face]" />
-            <span>COA Verificado</span>
+            <span>{t('product.coa_verified')}</span>
           </div>
         </div>
 
@@ -155,7 +156,7 @@ export const ProductDetail: React.FC = () => {
           <button
             onClick={() => setIsZoomed(!isZoomed)}
             className="absolute bottom-3 right-3 w-9 h-9 rounded-full bg-white/90 backdrop-blur-md shadow-md flex items-center justify-center text-slate-700 hover:text-[#006750] transition-all active:scale-90"
-            title="Ampliar Detalhes do Frasco"
+            title="Zoom"
           >
             <ZoomIn className="w-4 h-4" />
           </button>
@@ -163,14 +164,14 @@ export const ProductDetail: React.FC = () => {
           {/* Temperature Tag Overlay */}
           <div className="absolute bottom-3 left-3 flex items-center gap-1.5 bg-white/90 backdrop-blur-md px-2.5 py-1 rounded-lg shadow-sm text-xs font-medium text-slate-700">
             <Thermometer className="w-3.5 h-3.5 text-cyan-600" />
-            <span>Conservação: 2°C - 8°C</span>
+            <span>{t('product.storage_temp')}</span>
           </div>
         </div>
 
         {/* REF & Batch info Bar */}
         <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
           <div className="flex items-center gap-2 text-xs text-slate-500 font-mono">
-            <span className="font-semibold text-slate-800">LOTE:</span>
+            <span className="font-semibold text-slate-800">{t('product.batch_label')}</span>
             <span>{product.batchNumber || 'RT10-EU782'}</span>
           </div>
           <div className="text-right font-mono">
@@ -184,27 +185,27 @@ export const ProductDetail: React.FC = () => {
       <section className="bg-white rounded-2xl p-5 sm:p-7 shadow-sm border border-slate-200/70">
         {product.status === 'offline' && (
           <div className="mb-4 p-3.5 rounded-xl bg-amber-50 border border-amber-300 text-amber-900 text-xs flex items-center gap-2">
-            <span className="font-bold shrink-0">⚠️ Composto Offline:</span>
-            <span>Este produto está pausado no catálogo público e visível apenas para revisão interna.</span>
+            <span className="font-bold shrink-0">⚠️ Offline:</span>
+            <span>Este produto está pausado no catálogo público.</span>
           </div>
         )}
         <div className="flex items-start justify-between gap-4">
           <div className="flex flex-col">
             <div className="inline-flex items-center gap-1.5 text-[#006750] font-bold text-xs mb-1">
               <Sparkles className="w-3.5 h-3.5 text-[#006750]" />
-              <span>Bio-Fórmula de Alta Pureza</span>
+              <span>{t('product.bio_formula')}</span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-extrabold text-[#131b2e] tracking-tight">
               {product.name}
             </h1>
             <p className="text-sm text-slate-600 mt-1 leading-relaxed">
-              {product.subtitle} — {product.whatIsItFor}
+              {td(product.subtitle)} — {td(product.whatIsItFor)}
             </p>
           </div>
 
           <span className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-800 font-semibold text-xs px-3 py-1 rounded-full shrink-0">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            Em Estoque ({product.stock} un)
+            {t('product.in_stock', { count: product.stock })}
           </span>
         </div>
 
@@ -224,7 +225,7 @@ export const ProductDetail: React.FC = () => {
             </span>
           ) : (
             <span className="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 font-mono text-xs font-bold">
-              Preço Promocional
+              {t('product.promo_price')}
             </span>
           )}
         </div>
@@ -235,10 +236,10 @@ export const ProductDetail: React.FC = () => {
             <div className="flex items-center justify-between mb-2.5">
               <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-800">
                 <Dna className="w-4 h-4 text-[#006750]" />
-                <span>Escolha a Dosagem do Frasco (10mg a 100mg)</span>
+                <span>{t('product.choose_dosage')}</span>
               </div>
               <span className="text-[11px] font-mono text-[#006750] font-bold bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
-                {selectedDosageMg} mg selecionado
+                {t('product.selected_mg', { mg: selectedDosageMg })}
               </span>
             </div>
 
@@ -269,7 +270,7 @@ export const ProductDetail: React.FC = () => {
               })}
             </div>
             <p className="text-[11px] text-slate-500 mt-2">
-              * Frasco liofilizado com selo de garantia farmacêutica e laudo HPLC (&gt;99%).
+              {t('product.lyophilized_note')}
             </p>
           </div>
         )}
@@ -279,10 +280,10 @@ export const ProductDetail: React.FC = () => {
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-700">
               <Layers className="w-4 h-4 text-[#006750]" />
-              <span>Selecione a Quantidade de Frascos</span>
+              <span>{t('product.select_vials')}</span>
             </div>
             <span className="text-[11px] font-semibold text-[#006750]">
-              Envio Refrigerado Grátis &gt; €100
+              {t('product.free_cold_shipping')}
             </span>
           </div>
 
@@ -297,13 +298,13 @@ export const ProductDetail: React.FC = () => {
                   : 'border-slate-200 hover:border-slate-300 bg-slate-50/50'
               }`}
             >
-              <div className="text-xs font-bold text-slate-800">1 Frasco</div>
-              <div className="text-[10px] text-slate-500 mt-0.5">Dose Inicial</div>
+              <div className="text-xs font-bold text-slate-800">{t('product.vial_1')}</div>
+              <div className="text-[10px] text-slate-500 mt-0.5">{t('product.vial_1_sub')}</div>
               <div className="mt-2 w-full pt-1.5 bg-white rounded-lg border border-slate-100">
                 <div className="font-mono text-xs font-bold text-[#006750]">
                   {formatPrice(currentBasePrice)}
                 </div>
-                <div className="text-[9px] text-slate-400 font-mono">1x frasco</div>
+                <div className="text-[9px] text-slate-400 font-mono">1x</div>
               </div>
             </button>
 
@@ -317,10 +318,10 @@ export const ProductDetail: React.FC = () => {
               }`}
             >
               <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-emerald-700 text-white px-2 py-0.2 rounded-full font-mono text-[9px] font-bold tracking-wider uppercase whitespace-nowrap shadow-xs">
-                POUPE 20%
+                {t('product.save_20')}
               </span>
-              <div className="text-xs font-bold text-slate-800">2 Frascos</div>
-              <div className="text-[10px] text-slate-500 mt-0.5">Ciclo 60 Dias</div>
+              <div className="text-xs font-bold text-slate-800">{t('product.vial_2')}</div>
+              <div className="text-[10px] text-slate-500 mt-0.5">{t('product.vial_2_sub')}</div>
               <div className="mt-2 w-full pt-1.5 bg-white rounded-lg border border-slate-100">
                 <div className="font-mono text-xs font-bold text-slate-800">
                   {formatPrice(calculateTierPrice(2).total)}
@@ -341,10 +342,10 @@ export const ProductDetail: React.FC = () => {
               }`}
             >
               <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-gradient-to-r from-[#006750] to-[#0d8267] text-white px-2 py-0.2 rounded-full font-mono text-[9px] font-bold tracking-wider uppercase whitespace-nowrap shadow-sm">
-                MELHOR VALOR
+                {t('product.best_value')}
               </span>
-              <div className="text-xs font-bold text-slate-800">3 Frascos</div>
-              <div className="text-[10px] text-emerald-700 font-semibold mt-0.5">Poupe 30%</div>
+              <div className="text-xs font-bold text-slate-800">{t('product.vial_3')}</div>
+              <div className="text-[10px] text-emerald-700 font-semibold mt-0.5">{t('product.vial_3_sub')}</div>
               <div className="mt-2 w-full pt-1.5 bg-white rounded-lg border border-slate-100">
                 <div className="font-mono text-xs font-bold text-slate-800">
                   {formatPrice(calculateTierPrice(3).total)}
@@ -367,7 +368,7 @@ export const ProductDetail: React.FC = () => {
           >
             <Bolt className="w-5 h-5 text-[#71face]" />
             <span>
-              Comprar Agora ({selectedVials}x Frasco{selectedVials > 1 ? 's' : ''}{hasDosages ? ` • ${selectedDosageMg}mg` : ''}) • {formatPrice(currentTier.total)}
+              {t('home.buy_now')} ({selectedVials}x{hasDosages ? ` • ${selectedDosageMg}mg` : ''}) • {formatPrice(currentTier.total)}
             </span>
           </button>
 
@@ -381,7 +382,7 @@ export const ProductDetail: React.FC = () => {
             id="product-add-to-cart-cta"
           >
             <ShoppingBag className="w-4 h-4 text-[#006750]" />
-            <span>Adicionar ao Carrinho ({selectedVials}x {hasDosages ? `• ${selectedDosageMg}mg` : ''})</span>
+            <span>{t('product.add_to_cart')} ({selectedVials}x {hasDosages ? `• ${selectedDosageMg}mg` : ''})</span>
           </button>
         </div>
 
@@ -389,29 +390,28 @@ export const ProductDetail: React.FC = () => {
         <div className="mt-4 flex flex-wrap items-center justify-center gap-4 text-slate-500 text-xs pt-3 border-t border-slate-100">
           <span className="flex items-center gap-1">
             <Lock className="w-3.5 h-3.5 text-emerald-700" />
-            Checkout Seguro 256-bit
+            {t('product.secure_checkout')}
           </span>
           <span className="flex items-center gap-1">
             <Package className="w-3.5 h-3.5 text-emerald-700" />
-            Expedição Imediata
+            {t('product.immediate_dispatch')}
           </span>
           <button
             type="button"
             onClick={() => setActiveTab('prazos-entrega')}
             className="flex items-center gap-1 hover:text-[#006750] transition-colors cursor-pointer text-[#006750] font-medium"
-            title="Consultar Prazos e Condições de Entrega"
           >
             <Truck className="w-3.5 h-3.5 text-[#006750]" />
-            <span className="underline underline-offset-2">Prazos: 2 a 5 dias úteis</span>
+            <span className="underline underline-offset-2">{t('product.delivery_time')}</span>
           </button>
           <span className="flex items-center gap-1">
             <RotateCcw className="w-3.5 h-3.5 text-emerald-700" />
-            Garantia 28 Dias
+            {t('product.warranty_28')}
           </span>
         </div>
       </section>
 
-      {/* Section Navigation Tabs: Ficha Didática Visual (Default) / Alvos Biológicos / Ficha Técnica */}
+      {/* Section Navigation Tabs */}
       <div className="flex items-center gap-2 p-1.5 bg-slate-100 rounded-2xl border border-slate-200/80 overflow-x-auto scrollbar-none" id="product-detail-tabs">
         <button
           onClick={() => setActiveDetailTab('didatico')}
@@ -422,7 +422,7 @@ export const ProductDetail: React.FC = () => {
           }`}
         >
           <BookOpen className="w-4 h-4" />
-          <span>Ficha Didática Visual</span>
+          <span>{t('product.tab_didactic')}</span>
           <span
             className={`text-[9px] px-1.5 py-0.5 rounded-full font-mono uppercase font-black ${
               activeDetailTab === 'didatico'
@@ -430,7 +430,7 @@ export const ProductDetail: React.FC = () => {
                 : 'bg-emerald-100 text-emerald-800'
             }`}
           >
-            Auto-Didático
+            {t('product.tab_self_guided')}
           </span>
         </button>
 
@@ -443,7 +443,7 @@ export const ProductDetail: React.FC = () => {
           }`}
         >
           <Sparkles className="w-4 h-4" />
-          <span>Alvos Biológicos</span>
+          <span>{t('product.tab_targets')}</span>
         </button>
 
         <button

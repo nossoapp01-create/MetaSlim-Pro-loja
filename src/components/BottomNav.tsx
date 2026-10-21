@@ -10,13 +10,13 @@ interface NavItem {
 }
 
 export const BottomNav: React.FC = () => {
-  const { activeTab, setActiveTab, cartItemsCount, isAdminUser, setIsAffiliateModalOpen } = useStore();
+  const { activeTab, setActiveTab, cartItemsCount, isAdminUser, setIsAffiliateModalOpen, t } = useStore();
 
   const navItems: NavItem[] = [
-    { id: 'inicio', label: 'Início', icon: Home },
-    { id: 'produtos', label: 'Peptídeos', icon: Grid },
-    { id: 'carrinho', label: 'Carrinho', icon: ShoppingBag, badge: cartItemsCount },
-    ...(isAdminUser ? [{ id: 'admin' as const, label: 'Admin', icon: ShieldCheck }] : []),
+    { id: 'inicio', label: t('nav.home'), icon: Home },
+    { id: 'produtos', label: t('nav.products'), icon: Grid },
+    { id: 'carrinho', label: t('nav.cart'), icon: ShoppingBag, badge: cartItemsCount },
+    ...(isAdminUser ? [{ id: 'admin' as const, label: t('nav.admin'), icon: ShieldCheck }] : []),
   ];
 
   return (
@@ -70,11 +70,11 @@ export const BottomNav: React.FC = () => {
           onClick={() => setIsAffiliateModalOpen(true)}
           className="relative flex flex-col items-center justify-center w-12 sm:w-14 h-full transition-colors active:scale-90 cursor-pointer text-slate-500 hover:text-[#006750]"
           id="bottom-nav-affiliate"
-          title="Programa de Afiliados"
+          title={t('affiliate.badge')}
         >
           <Gift className="w-4.5 h-4.5 sm:w-5 sm:h-5 text-[#006750]" />
           <span className="text-[9px] sm:text-[10px] mt-0.5 sm:mt-1 font-bold text-[#006750]">
-            Indique
+            {t('nav.affiliate')}
           </span>
         </button>
       </div>
