@@ -123,70 +123,33 @@ export const Header: React.FC<HeaderProps> = () => {
             <Search className="w-4 h-4" />
           </button>
 
-          {/* Language Selector (PT / ES / EN) */}
-          <div className="relative" id="language-selector-container">
-            {/* Desktop Inline Pill Selector */}
-            <div className="hidden md:flex items-center bg-[#f2f4f8] p-0.5 rounded-full border border-slate-200/70">
-              {LANGUAGE_OPTIONS.map((opt) => {
-                const isSelected = language === opt.code;
-                return (
-                  <button
-                    key={opt.code}
-                    type="button"
-                    onClick={() => handleSelectLanguage(opt.code)}
-                    className={`px-2 py-1 rounded-full text-[11px] font-bold flex items-center gap-1 transition-all cursor-pointer ${
-                      isSelected
-                        ? 'bg-[#006750] text-white shadow-2xs'
-                        : 'text-slate-600 hover:text-[#006750]'
-                    }`}
-                    title={opt.label}
-                    id={`lang-btn-${opt.code}`}
-                  >
-                    <span>{opt.flag}</span>
-                    <span>{opt.shortLabel}</span>
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Mobile Compact Dropdown Trigger */}
-            <button
-              type="button"
-              onClick={() => setIsLangMenuOpen(!isLangMenuOpen)}
-              className="md:hidden h-8 px-2 rounded-full bg-[#f2f4f8] hover:bg-emerald-50 text-[11px] font-bold text-slate-700 flex items-center gap-1 border border-slate-200/70 transition-colors cursor-pointer"
-              title={t('header.language_title')}
-              id="lang-mobile-trigger"
-            >
-              <Globe className="w-3.5 h-3.5 text-[#006750]" />
-              <span>{currentLangOption.flag}</span>
-              <span>{currentLangOption.shortLabel}</span>
-            </button>
-
-            {isLangMenuOpen && (
-              <div className="md:hidden absolute right-0 mt-2 w-40 bg-white rounded-xl shadow-xl border border-slate-200 p-1.5 z-50 animate-in fade-in slide-in-from-top-2">
-                {LANGUAGE_OPTIONS.map((opt) => {
-                  const isSelected = language === opt.code;
-                  return (
-                    <button
-                      key={opt.code}
-                      type="button"
-                      onClick={() => handleSelectLanguage(opt.code)}
-                      className={`w-full text-left px-3 py-2 rounded-lg text-xs font-bold flex items-center justify-between transition-colors cursor-pointer ${
-                        isSelected
-                          ? 'bg-[#006750] text-white'
-                          : 'text-slate-700 hover:bg-emerald-50'
-                      }`}
-                    >
-                      <span className="flex items-center gap-2">
-                        <span>{opt.flag}</span>
-                        <span>{opt.label}</span>
-                      </span>
-                      <span className="font-mono text-[10px] opacity-80">{opt.shortLabel}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            )}
+          {/* Language Selector (PT / ES / EN) - Always visible in Header */}
+          <div
+            className="flex items-center bg-[#f2f4f8] p-0.5 rounded-full border border-emerald-600/25 shadow-2xs shrink-0"
+            id="language-selector-container"
+            role="group"
+            aria-label={t('header.language_title')}
+          >
+            {LANGUAGE_OPTIONS.map((opt) => {
+              const isSelected = language === opt.code;
+              return (
+                <button
+                  key={opt.code}
+                  type="button"
+                  onClick={() => handleSelectLanguage(opt.code)}
+                  className={`px-1.5 sm:px-2.5 py-1 rounded-full text-[10px] sm:text-[11px] font-extrabold flex items-center gap-1 transition-all cursor-pointer ${
+                    isSelected
+                      ? 'bg-[#006750] text-white shadow-xs scale-[1.02]'
+                      : 'text-slate-600 hover:text-[#006750] hover:bg-emerald-50/70'
+                  }`}
+                  title={opt.label}
+                  id={`lang-btn-${opt.code}`}
+                >
+                  <span className="text-xs leading-none">{opt.flag}</span>
+                  <span>{opt.shortLabel}</span>
+                </button>
+              );
+            })}
           </div>
 
           {/* Delivery Policy Link */}

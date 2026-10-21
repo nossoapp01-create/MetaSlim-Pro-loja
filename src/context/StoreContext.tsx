@@ -12,6 +12,7 @@ import {
   AffiliateSaleRecord,
   AffiliateProgramSettings,
 } from '../types';
+import { AppLanguage, translateText, translateDynamicText } from '../utils/i18n';
 import {
   initialProducts,
   initialBanners,
@@ -182,6 +183,11 @@ interface StoreContextType {
   trackReferralVisit: (code: string) => void;
   isAffiliateModalOpen: boolean;
   setIsAffiliateModalOpen: (open: boolean) => void;
+  // Multi-language i18n (PT / ES / EN)
+  language: AppLanguage;
+  setLanguage: (lang: AppLanguage) => void;
+  t: (key: string, params?: Record<string, string | number>) => string;
+  td: (text?: string) => string;
 }
 
 const StoreContext = createContext<StoreContextType | undefined>(undefined);
@@ -198,6 +204,7 @@ const STORAGE_KEYS = {
   AFFILIATE_SALES: 'metaslim_affiliate_sales_v1',
   AFFILIATES: 'metaslim_affiliates_v1',
   REFERRAL_CODE: 'metaslim_referral_code',
+  LANGUAGE: 'metaslim_app_language_v1',
 };
 
 const SUPER_ADMIN_EMAIL = 'nossoapp01@gmail.com';
@@ -489,6 +496,40 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   });
 
   const [isAffiliateModalOpen, setIsAffiliateModalOpen] = useState(false);
+
+  const [language, setLanguageState] = useState<AppLanguage>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEYS.LANGUAGE) as AppLanguage | null;
+      if (saved === 'pt' || saved === 'es' || saved === 'en') {
+        return saved;
+      }
+    } catch {}
+    return 'pt';
+  });
+
+  const setLanguage = useCallback((lang: AppLanguage) => {
+    setLanguageState(lang);
+    try {
+      localStorage.setItem(STORAGE_KEYS.LANGUAGE, lang);
+      if (typeof document !== 'undefined') {
+        document.documentElement.lang = lang === 'pt' ? 'pt-PT' : lang === 'es' ? 'es' : 'en';
+      }
+    } catch {}
+  }, []);
+
+  const t = useCallback(
+    (key: string, params?: Record<string, string | number>) => {
+      return translateText(language, key, params);
+    },
+    [language]
+  );
+
+  const td = useCallback(
+    (text?: string) => {
+      return translateDynamicText(language, text);
+    },
+    [language]
+  );
 
   // Sync affiliate sales to localStorage
   useEffect(() => {
@@ -2478,6 +2519,10 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         trackReferralVisit,
         isAffiliateModalOpen,
         setIsAffiliateModalOpen,
+        language,
+        setLanguage,
+        t,
+        td,
       }}
     >
       {children}
@@ -2485,10 +2530,24 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   );
 };
 
-export const useStore = () => {
+export const useStore = (): StoreContextType => {
   const context = useContext(StoreContext);
   if (!context) {
     throw new Error('useStore must be used within a StoreProvider');
   }
-  return context;
+  const safeLang: AppLanguage = context.language || 'pt';
+  return {
+    ...context,
+    language: safeLang,
+    setLanguage: context.setLanguage || (() => {}),
+    t:
+      typeof context.t === 'function'
+        ? context.t
+        : (key: string, params?: Record<string, string | number>) =>
+            translateText(safeLang, key, params),
+    td:
+      typeof context.td === 'function'
+        ? context.td
+        : (text?: string) => translateDynamicText(safeLang, text),
+  };
 };
