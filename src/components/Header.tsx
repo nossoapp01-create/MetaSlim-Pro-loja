@@ -60,26 +60,14 @@ export const Header: React.FC<HeaderProps> = () => {
           id="logo-button"
         >
           {settings.logoUrl ? (
-            <div className="flex items-center gap-2">
-              <img
-                src={settings.logoUrl}
-                alt={settings.storeName}
-                onError={(e) => {
-                  (e.currentTarget as HTMLImageElement).src = '/metaslim-logo.svg';
-                }}
-                className="h-8 sm:h-10 max-h-8 sm:max-h-10 max-w-[120px] sm:max-w-[160px] object-contain rounded-lg"
-              />
-              <div className="flex flex-col hidden sm:flex">
-                <div className="flex items-center gap-1 leading-none">
-                  <span className="font-extrabold text-[15px] sm:text-[16px] tracking-tight text-[#006750]">
-                    {settings.storeName}
-                  </span>
-                </div>
-                <span className="text-[8px] sm:text-[9px] uppercase tracking-widest text-emerald-800/60 font-semibold font-mono mt-0.5">
-                  {settings.storeSubtitle || 'Clinical Peptide Labs'}
-                </span>
-              </div>
-            </div>
+            <img
+              src={settings.logoUrl}
+              alt="MetaSlim Pro"
+              onError={(e) => {
+                (e.currentTarget as HTMLImageElement).src = '/metaslim-logo.svg';
+              }}
+              className="h-9 sm:h-11 max-h-9 sm:max-h-11 max-w-[140px] sm:max-w-[175px] object-contain rounded-lg"
+            />
           ) : (
             <MetaSlimLogo size="md" />
           )}

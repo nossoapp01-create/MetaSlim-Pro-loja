@@ -17,19 +17,14 @@ export const Footer: React.FC = () => {
           <div className="flex flex-col gap-3 md:col-span-2">
             <div className="flex items-center gap-3">
               {settings.logoUrl ? (
-                <div className="flex items-center gap-3">
-                  <img
-                    src={settings.logoUrl}
-                    alt={settings.storeName}
-                    onError={(e) => {
-                      (e.currentTarget as HTMLImageElement).src = '/metaslim-logo.svg';
-                    }}
-                    className="h-10 max-h-10 max-w-[160px] object-contain rounded-lg bg-white/5 p-1"
-                  />
-                  <span className="text-xl font-extrabold text-white tracking-tight">
-                    {settings.storeName}
-                  </span>
-                </div>
+                <img
+                  src={settings.logoUrl}
+                  alt="MetaSlim Pro"
+                  onError={(e) => {
+                    (e.currentTarget as HTMLImageElement).src = '/metaslim-logo.svg';
+                  }}
+                  className="h-11 max-h-11 max-w-[180px] object-contain rounded-lg bg-white/5 p-1"
+                />
               ) : (
                 <MetaSlimLogo size="lg" variant="white" />
               )}
