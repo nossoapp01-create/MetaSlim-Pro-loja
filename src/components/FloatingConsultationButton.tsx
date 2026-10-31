@@ -57,7 +57,7 @@ export const FloatingConsultationButton: React.FC<FloatingConsultationButtonProp
   return (
     <aside
       aria-label={copy.cta}
-      className="fixed bottom-20 sm:bottom-24 right-3 sm:right-6 z-[60] select-none animate-in fade-in slide-in-from-bottom-4 duration-300"
+      className="pointer-events-auto select-none animate-in fade-in slide-in-from-bottom-4 duration-300"
     >
       <div className="relative group">
         {/* Glow ambient background aura */}

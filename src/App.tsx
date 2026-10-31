@@ -15,6 +15,7 @@ import { Footer } from './components/Footer';
 import { BottomNav } from './components/BottomNav';
 import { DosageCalculatorModal } from './components/DosageCalculatorModal';
 import { FloatingConsultationButton } from './components/FloatingConsultationButton';
+import { FloatingWhatsAppButton } from './components/FloatingWhatsAppButton';
 import { SaaSAuthModal } from './components/SaaSAuthModal';
 import { AffiliateCustomerModal } from './components/AffiliateCustomerModal';
 import { ErrorBoundary } from './components/ErrorBoundary';
@@ -352,11 +353,14 @@ const MainContent: React.FC = () => {
       {/* Global Footer */}
       <Footer />
 
-      {/* Floating Free Medical Consultation Button */}
+      {/* Floating Action Buttons: Salesperson WhatsApp Channel & Free Medical Consultation */}
       {activeTab !== 'admin' && (
-        <FloatingConsultationButton
-          consultationUrl={settings.consultationUrl || 'https://consulta.metaslim-pro.shop/'}
-        />
+        <div className="fixed bottom-20 sm:bottom-24 right-3 sm:right-6 z-[60] flex flex-col items-end gap-2.5 pointer-events-none">
+          <FloatingWhatsAppButton channelUrl="https://whatsapp.com/channel/0029Vb8pU6X6buMQBQJOX13N" />
+          <FloatingConsultationButton
+            consultationUrl={settings.consultationUrl || 'https://consulta.metaslim-pro.shop/'}
+          />
+        </div>
       )}
 
       {/* SaaS Multi-Tenant Authentication & Store Manager Modal */}
