@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { StoreProvider, useStore } from './context/StoreContext';
+import { translateText, translateDynamicText } from './utils/i18n';
 import { Header } from './components/Header';
 import { HeroBanner } from './components/HeroBanner';
 // Removed CategoryFilter
@@ -37,9 +38,22 @@ const MainContent: React.FC = () => {
     activeReferralCode,
     isAffiliateModalOpen,
     setIsAffiliateModalOpen,
-    t,
-    td,
+    language = 'pt',
+    t: storeT,
+    td: storeTd,
   } = useStore();
+
+  const t = React.useCallback(
+    (key: string, params?: Record<string, string | number>) =>
+      typeof storeT === 'function' ? storeT(key, params) : translateText(language || 'pt', key, params),
+    [storeT, language]
+  );
+
+  const td = React.useCallback(
+    (text?: string) =>
+      typeof storeTd === 'function' ? storeTd(text) : translateDynamicText(language || 'pt', text),
+    [storeTd, language]
+  );
 
   const [isCalculatorOpen, setIsCalculatorOpen] = useState(false);
 
