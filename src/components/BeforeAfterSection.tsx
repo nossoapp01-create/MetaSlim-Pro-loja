@@ -156,7 +156,7 @@ export const BeforeAfterSection: React.FC = () => {
               <div>
                 <h3 className="font-bold text-lg text-slate-900">{activeModalItem.name}</h3>
                 <span className="text-xs text-emerald-700 font-semibold font-mono">
-                  {activeModalItem.weightLost} • {activeModalItem.protocol}
+                  {td(activeModalItem.weightLost)} • {activeModalItem.protocol}
                 </span>
               </div>
               <button
@@ -173,21 +173,21 @@ export const BeforeAfterSection: React.FC = () => {
                 <div className="relative w-full h-full">
                   <img
                     src={activeModalItem.beforeImage}
-                    alt="Antes"
+                    alt={t('results.before')}
                     className="w-full h-full object-cover"
                   />
                   <span className="absolute bottom-2 left-2 px-2 py-0.5 rounded bg-black/80 text-white font-mono text-[10px] uppercase font-bold">
-                    Antes
+                    {t('results.before')}
                   </span>
                 </div>
                 <div className="relative w-full h-full">
                   <img
                     src={activeModalItem.afterImage}
-                    alt="Depois"
+                    alt={t('results.after')}
                     className="w-full h-full object-cover"
                   />
                   <span className="absolute bottom-2 left-2 px-2 py-0.5 rounded bg-[#006750] text-[#93f5d4] font-mono text-[10px] uppercase font-bold">
-                    Depois
+                    {t('results.after')}
                   </span>
                 </div>
               </div>
@@ -195,10 +195,10 @@ export const BeforeAfterSection: React.FC = () => {
               {/* Story */}
               <div className="bg-emerald-50/50 p-3.5 rounded-xl border border-emerald-100">
                 <p className="text-sm text-slate-700 leading-relaxed italic">
-                  "{activeModalItem.quote}"
+                  "{td(activeModalItem.quote)}"
                 </p>
                 <div className="mt-2 text-xs text-slate-500 font-mono">
-                  Duração do ciclo: <strong className="text-slate-800">{activeModalItem.duration}</strong> com acompanhamento nutricional e biomédico.
+                  {td('Duração do ciclo:')} <strong className="text-slate-800">{td(activeModalItem.duration)}</strong> {td('com acompanhamento nutricional e biomédico.')}
                 </div>
               </div>
             </div>
@@ -208,7 +208,7 @@ export const BeforeAfterSection: React.FC = () => {
                 onClick={() => setActiveModalItem(null)}
                 className="px-4 py-2 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-800 text-xs font-semibold"
               >
-                Fechar
+                {td('Fechar')}
               </button>
             </div>
           </div>

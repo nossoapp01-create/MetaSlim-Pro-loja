@@ -455,7 +455,7 @@ export const ProductDetail: React.FC = () => {
           }`}
         >
           <FlaskConical className="w-4 h-4" />
-          <span>Ficha Técnica &amp; COA</span>
+          <span>{t('product.tab_tech')}</span>
         </button>
       </div>
 
@@ -472,7 +472,7 @@ export const ProductDetail: React.FC = () => {
           onDirectBuy={handleDirectBuy}
           onOpenCalculator={() => {
             setActiveDetailTab('tecnica');
-            showToast('Exibindo Instruções de Reconstituição e Diluição...');
+            showToast(td('Exibindo Instruções de Reconstituição e Diluição...'));
           }}
         />
       )}
@@ -483,10 +483,11 @@ export const ProductDetail: React.FC = () => {
           <div className="flex items-center justify-between border-b border-slate-100 pb-3">
             <div>
               <span className="text-xs font-bold text-[#006750] uppercase font-mono tracking-wider">
-                Mecanismo Científico
+                {td('Mecanismo Científico')}
               </span>
               <h2 className="text-xl sm:text-2xl font-bold text-[#131b2e] mt-0.5">
-                Para Que Serve o {product.name}?
+                {td('Para Que Serve o ')}
+                {product.name}?
               </h2>
             </div>
             <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center text-[#006750]">
@@ -495,7 +496,7 @@ export const ProductDetail: React.FC = () => {
           </div>
 
           <p className="text-slate-700 text-sm sm:text-base leading-relaxed">
-            {product.scientificDescription || product.whatIsItFor}
+            {td(product.scientificDescription || product.whatIsItFor)}
           </p>
 
           {/* Biological Target Cards */}

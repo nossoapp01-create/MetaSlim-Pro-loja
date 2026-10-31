@@ -18,6 +18,7 @@ import { DosageCalculatorModal } from './components/DosageCalculatorModal';
 import { FloatingConsultationButton } from './components/FloatingConsultationButton';
 import { FloatingWhatsAppButton } from './components/FloatingWhatsAppButton';
 import { LivePurchasePopup } from './components/LivePurchasePopup';
+import { PageAutoTranslator } from './components/PageAutoTranslator';
 import { SaaSAuthModal } from './components/SaaSAuthModal';
 import { AffiliateCustomerModal } from './components/AffiliateCustomerModal';
 import { ErrorBoundary } from './components/ErrorBoundary';
@@ -110,6 +111,9 @@ const MainContent: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#f8fafc] text-[#131b2e] flex flex-col font-sans selection:bg-[#71face] selection:text-[#002117]">
+      {/* Real-time Full-Page DOM Translator for PT / ES / EN */}
+      <PageAutoTranslator />
+
       {/* Top Header */}
       <Header onOpenCalculator={() => setIsCalculatorOpen(true)} />
 
