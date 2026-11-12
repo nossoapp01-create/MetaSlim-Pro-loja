@@ -80,8 +80,7 @@ export const HeroBanner: React.FC = () => {
         <div className="relative z-10 p-3.5 sm:p-6 md:p-7 flex flex-col justify-between h-full max-w-xl text-white">
           {/* Top Tag & Slide Counter */}
           <div className="flex items-center justify-between gap-2 mb-1.5 sm:mb-2">
-            <span className="inline-flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full bg-[#006750]/90 backdrop-blur-md text-[#93f5d4] text-[9px] sm:text-[11px] font-bold font-mono tracking-wider uppercase border border-emerald-400/20 shadow-xs">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#71face] animate-ping" />
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 sm:py-1 rounded-md bg-[#006750]/90 backdrop-blur-md text-[#93f5d4] text-[9px] sm:text-[11px] font-bold font-mono tracking-wider uppercase border border-emerald-400/25 shadow-xs">
               {td(current.tag)}
             </span>
             <span className="text-[10px] sm:text-[11px] font-mono font-semibold px-2 py-0.5 rounded-full bg-black/40 backdrop-blur-md text-white/90">

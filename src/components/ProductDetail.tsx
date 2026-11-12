@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useStore } from '../context/StoreContext';
 import { ClinicalInfographicSheet } from './ClinicalInfographicSheet';
+import { getClinicalSheet } from '../data/clinicalSheets';
 import {
   ShieldCheck,
   Check,
@@ -121,8 +122,8 @@ export const ProductDetail: React.FC = () => {
           <span className="text-[#006750] font-semibold truncate">{product.name}</span>
         </div>
 
-        <div className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-800 border border-emerald-200/80 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider shrink-0">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse" />
+        <div className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-800 border border-emerald-200/80 px-2.5 py-0.5 rounded-md text-[10px] font-mono font-bold uppercase tracking-wider shrink-0">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-600" />
           {t('product.batch_validated')}
         </div>
       </div>
@@ -131,25 +132,24 @@ export const ProductDetail: React.FC = () => {
       <section className="bg-white rounded-2xl p-5 sm:p-7 shadow-sm border border-slate-200/70">
         {/* Top Badges */}
         <div className="flex items-center justify-between gap-2 mb-4">
-          <div className="flex items-center gap-1.5 bg-[#131b2e] text-white px-3 py-1 rounded-full font-mono text-[10px] uppercase font-bold tracking-wider shadow-sm">
+          <div className="flex items-center gap-1.5 bg-[#131b2e] text-white px-3 py-1 rounded-md font-mono text-[10px] uppercase font-bold tracking-wider">
             <span className="w-1.5 h-1.5 rounded-full bg-[#71face]" />
             <span>{td(product.purity)}</span>
           </div>
 
-          <div className="flex items-center gap-1 bg-[#006750] text-[#93f5d4] px-3 py-1 rounded-full text-xs font-semibold shadow-sm">
+          <div className="flex items-center gap-1 bg-[#006750] text-[#93f5d4] px-3 py-1 rounded-md text-xs font-semibold">
             <ShieldCheck className="w-4 h-4 text-[#71face]" />
             <span>{t('product.coa_verified')}</span>
           </div>
         </div>
 
         {/* Presentation Frame */}
-        <div className="relative w-full aspect-[4/3] max-h-[380px] rounded-xl bg-gradient-to-b from-[#f4f7fb] via-[#eef2f8] to-[#f8fafc] flex items-center justify-center overflow-hidden p-4 border border-slate-100 group">
+        <div className="relative w-full aspect-[4/3] max-h-[380px] rounded-xl bg-[#f4f7f6] flex items-center justify-center overflow-hidden p-4 border border-slate-200/80 group">
           {/* MetaSlim Pro Official Brand Watermark */}
-          <div className="absolute top-3 left-3 z-10 flex items-center gap-1.5 bg-[#131b2e]/90 backdrop-blur-xs text-white px-2.5 py-1 rounded-md text-[10px] font-bold font-mono tracking-wider shadow-sm">
-            <span className="w-2 h-2 rounded-full bg-[#71face] animate-pulse" />
+          <div className="absolute top-3 left-3 z-10 flex items-center gap-1.5 bg-[#131b2e]/90 backdrop-blur-xs text-white px-2.5 py-1 rounded-md text-[10px] font-bold font-mono tracking-wider">
             <span className="text-[#93f5d4]">METASLIM</span>
             <span className="text-white">PRO</span>
-            <span className="text-slate-400 text-[9px] border-l border-slate-700 pl-1.5 ml-0.5">OFICIAL</span>
+            <span className="text-slate-400 text-[9px] border-l border-slate-700 pl-1.5 ml-0.5">HPLC 99%+</span>
           </div>
 
           <img
@@ -213,19 +213,18 @@ export const ProductDetail: React.FC = () => {
             </p>
           </div>
 
-          <span className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-800 font-semibold text-xs px-3 py-1 rounded-full shrink-0">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+          <span className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-800 border border-emerald-200/70 font-semibold text-xs px-2.5 py-1 rounded-md font-mono tabular-nums shrink-0">
             {t('product.in_stock', { count: product.stock })}
           </span>
         </div>
 
         {/* Pricing Row */}
         <div className="mt-4 flex items-baseline gap-2.5">
-          <span className="text-3xl sm:text-4xl font-extrabold text-[#006750] font-mono">
+          <span className="text-3xl sm:text-4xl font-extrabold text-[#006750] font-mono tabular-nums">
             {formatPrice(currentTier.total)}
           </span>
           {currentOriginalPrice > currentTier.total && (
-            <span className="text-base text-slate-400 line-through font-mono">
+            <span className="text-base text-slate-400 line-through font-mono tabular-nums">
               {formatPrice(currentOriginalPrice * selectedVials)}
             </span>
           )}
@@ -491,117 +490,84 @@ export const ProductDetail: React.FC = () => {
         />
       )}
 
-      {/* 2. Deep-Dive Science Section: "Para Que Serve" (Detailed Biological Targets) */}
-      {activeDetailTab === 'mecanismo' && (
-        <section className="bg-white rounded-2xl p-5 sm:p-7 shadow-sm border border-slate-200/70 flex flex-col gap-5">
-          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-            <div>
-              <span className="text-xs font-bold text-[#006750] uppercase font-mono tracking-wider">
-                {td('Mecanismo Científico')}
-              </span>
-              <h2 className="text-xl sm:text-2xl font-bold text-[#131b2e] mt-0.5">
-                {td('Para Que Serve o ')}
-                {product.name}?
-              </h2>
-            </div>
-            <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center text-[#006750]">
-              <Sparkles className="w-5 h-5" />
-            </div>
-          </div>
+      {/* 2. Deep-Dive Science Section: Dynamic Biological Targets from Clinical Database */}
+      {activeDetailTab === 'mecanismo' && (() => {
+        const clinicalData = getClinicalSheet(product.id, product.name);
+        const benefitItems = [
+          ...(clinicalData.primaryPurposes || []),
+          ...(clinicalData.secondaryPurposes || []).slice(0, 2),
+        ];
 
-          <p className="text-slate-700 text-sm sm:text-base leading-relaxed">
-            {td(product.scientificDescription || product.whatIsItFor)}
-          </p>
-
-          {/* Biological Target Cards */}
-          <div className="grid grid-cols-1 gap-3">
-            {/* Target 1 */}
-            <div className="p-3.5 rounded-xl bg-[#f7f9fa] border border-slate-200/60 flex items-start gap-3">
-              <div className="w-7 h-7 rounded-lg bg-[#006750] text-[#93f5d4] flex items-center justify-center font-mono text-xs font-bold shrink-0">
-                01
+        return (
+          <section className="bg-white rounded-2xl p-5 sm:p-7 shadow-sm border border-slate-200/70 flex flex-col gap-5">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div>
+                <span className="text-xs font-bold text-[#006750] uppercase font-mono tracking-wider">
+                  {td('Mecanismo Científico')}
+                </span>
+                <h2 className="text-xl sm:text-2xl font-bold text-[#131b2e] mt-0.5">
+                  {td(clinicalData.mechanismTitle || `Para Que Serve o ${product.name}?`)}
+                </h2>
               </div>
-              <div className="flex-1">
-                <div className="flex items-center justify-between">
-                  <span className="font-bold text-xs sm:text-sm text-slate-900">Receptor GLP-1</span>
-                  <span className="text-[10px] text-emerald-800 bg-emerald-100/70 px-2 py-0.5 rounded-full font-semibold">
-                    Saciedade Central
-                  </span>
-                </div>
-                <p className="text-xs text-slate-600 mt-1 leading-relaxed">
-                  Desacelera suavemente o esvaziamento gástrico e atua diretamente nos neurônios do hipotálamo, suprimindo o apetite basal e episódios de compulsão alimentar.
-                </p>
+              <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center text-[#006750]">
+                <Sparkles className="w-5 h-5" />
               </div>
             </div>
 
-            {/* Target 2 */}
-            <div className="p-3.5 rounded-xl bg-[#f7f9fa] border border-slate-200/60 flex items-start gap-3">
-              <div className="w-7 h-7 rounded-lg bg-[#006750] text-[#93f5d4] flex items-center justify-center font-mono text-xs font-bold shrink-0">
-                02
-              </div>
-              <div className="flex-1">
-                <div className="flex items-center justify-between">
-                  <span className="font-bold text-xs sm:text-sm text-slate-900">Receptor GIP</span>
-                  <span className="text-[10px] text-emerald-800 bg-emerald-100/70 px-2 py-0.5 rounded-full font-semibold">
-                    Homeostase Lipídica
-                  </span>
+            <p className="text-slate-700 text-sm sm:text-base leading-relaxed">
+              {td(clinicalData.mechanismSummary || product.scientificDescription || product.whatIsItFor)}
+            </p>
+
+            {/* Dynamic Biological Target / Cascade Cards */}
+            <div className="grid grid-cols-1 gap-3">
+              {clinicalData.mechanismCascade.map((step) => (
+                <div
+                  key={step.stepNumber}
+                  className="p-3.5 rounded-xl bg-[#f7f9fa] border border-slate-200/60 flex items-start gap-3"
+                >
+                  <div className="w-7 h-7 rounded-lg bg-[#006750] text-[#93f5d4] flex items-center justify-center font-mono text-xs font-bold shrink-0 tabular-nums">
+                    0{step.stepNumber}
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-bold text-xs sm:text-sm text-slate-900">
+                        {td(step.title)}
+                      </span>
+                      <span className="text-[10px] font-mono text-emerald-800 bg-emerald-100/70 px-2 py-0.5 rounded font-semibold shrink-0">
+                        {step.direction === 'up' ? '▲ Ativação' : '▼ Modulação'}
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-600 mt-1 leading-relaxed">
+                      {td(step.desc)}
+                    </p>
+                  </div>
                 </div>
-                <p className="text-xs text-slate-600 mt-1 leading-relaxed">
-                  Modula a sensibilidade periférica à insulina e otimiza a partição de nutrientes, direcionando substratos energéticos para o tecido muscular e inibindo depósitos adiposos.
-                </p>
-              </div>
+              ))}
             </div>
 
-            {/* Target 3 */}
-            <div className="p-3.5 rounded-xl bg-[#f7f9fa] border border-slate-200/60 flex items-start gap-3">
-              <div className="w-7 h-7 rounded-lg bg-[#006750] text-[#93f5d4] flex items-center justify-center font-mono text-xs font-bold shrink-0">
-                03
-              </div>
-              <div className="flex-1">
-                <div className="flex items-center justify-between">
-                  <span className="font-bold text-xs sm:text-sm text-slate-900">Receptor de Glucagon</span>
-                  <span className="text-[10px] text-emerald-800 bg-emerald-100/70 px-2 py-0.5 rounded-full font-semibold">
-                    Gasto Energético Basal
-                  </span>
+            {/* Dynamic Benefits Checklist */}
+            {benefitItems.length > 0 && (
+              <div className="pt-2">
+                <h3 className="font-bold text-sm text-[#131b2e] mb-2.5">
+                  {td('Principais Aplicações & Benefícios Observados:')}
+                </h3>
+                <div className="flex flex-col gap-2">
+                  {benefitItems.map((benefit, idx) => (
+                    <div key={idx} className="flex items-start gap-2">
+                      <div className="w-5 h-5 rounded-full bg-emerald-100 flex items-center justify-center text-[#006750] shrink-0 mt-0.5">
+                        <Check className="w-3.5 h-3.5" />
+                      </div>
+                      <p className="text-xs text-slate-700 leading-normal">
+                        {td(benefit)}
+                      </p>
+                    </div>
+                  ))}
                 </div>
-                <p className="text-xs text-slate-600 mt-1 leading-relaxed">
-                  O diferencial exclusivo frente à Semaglutida e Tirzepatida: induz a termogênese hepática e ativação de gordura marrom, elevando o gasto calórico em repouso.
-                </p>
               </div>
-            </div>
-          </div>
-
-          {/* Benefits Checklist */}
-          <div className="pt-2">
-            <h3 className="font-bold text-sm text-[#131b2e] mb-2.5">Principais Benefícios Observados:</h3>
-            <div className="flex flex-col gap-2">
-              <div className="flex items-start gap-2">
-                <div className="w-5 h-5 rounded-full bg-emerald-100 flex items-center justify-center text-[#006750] shrink-0 mt-0.5">
-                  <Check className="w-3.5 h-3.5" />
-                </div>
-                <p className="text-xs text-slate-700 leading-normal">
-                  <strong className="text-slate-900">Redução Acentuada de Gordura Visceral:</strong> Até 24.2% de redução ponderal média registrada em ensaios clínicos fase II de 48 semanas.
-                </p>
-              </div>
-              <div className="flex items-start gap-2">
-                <div className="w-5 h-5 rounded-full bg-emerald-100 flex items-center justify-center text-[#006750] shrink-0 mt-0.5">
-                  <Check className="w-3.5 h-3.5" />
-                </div>
-                <p className="text-xs text-slate-700 leading-normal">
-                  <strong className="text-slate-900">Preservação de Tecido Magro:</strong> Menor depleção sarcopênica quando comparado aos agonistas de primeira geração.
-                </p>
-              </div>
-              <div className="flex items-start gap-2">
-                <div className="w-5 h-5 rounded-full bg-emerald-100 flex items-center justify-center text-[#006750] shrink-0 mt-0.5">
-                  <Check className="w-3.5 h-3.5" />
-                </div>
-                <p className="text-xs text-slate-700 leading-normal">
-                  <strong className="text-slate-900">Otimização de Biomarcadores:</strong> Redução significativa de triglicerídeos, HbA1c e marcadores inflamatórios como PCR ultrassensível.
-                </p>
-              </div>
-            </div>
-          </div>
-        </section>
-      )}
+            )}
+          </section>
+        );
+      })()}
 
       {/* 3. Technical Lab Specifications Grid */}
       {activeDetailTab === 'tecnica' && (
@@ -712,12 +678,12 @@ export const ProductDetail: React.FC = () => {
         </div>
       </section>
 
-      {/* Sticky Bottom Mini Checkout Bar for Mobile / Fast Conversions */}
-      <div className="fixed bottom-16 left-0 right-0 z-40 bg-white/95 backdrop-blur-md px-4 py-2.5 shadow-[0_-4px_16px_rgba(0,0,0,0.06)] border-t border-slate-200/80 flex items-center justify-between max-w-4xl mx-auto sm:rounded-t-2xl">
+      {/* Sticky Bottom Mini Checkout Bar for Mobile Conversions */}
+      <div className="md:hidden fixed bottom-14 left-0 right-0 z-40 bg-white/95 backdrop-blur-md px-4 py-2.5 shadow-[0_-4px_16px_rgba(0,0,0,0.06)] border-t border-slate-200/80 flex items-center justify-between">
         <div className="flex flex-col">
           <span className="text-[10px] text-slate-400 uppercase font-semibold">Total Selecionado</span>
           <div className="flex items-baseline gap-1">
-            <span className="font-mono text-lg font-extrabold text-[#006750]">
+            <span className="font-mono tabular-nums text-lg font-extrabold text-[#006750]">
               {formatPrice(currentTier.total)}
             </span>
             <span className="text-[10px] text-slate-500">
@@ -727,10 +693,11 @@ export const ProductDetail: React.FC = () => {
         </div>
 
         <button
+          type="button"
           onClick={handleDirectBuy}
-          className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#006750] to-[#0d8267] text-white font-bold text-xs sm:text-sm flex items-center gap-1.5 shadow-md active:scale-95 transition-transform"
+          className="px-4 py-2 rounded-xl bg-[#006750] hover:bg-[#0d8267] text-white font-bold text-xs flex items-center gap-1.5 shadow-sm active:scale-95 transition-transform cursor-pointer"
         >
-          <span>Finalizar Pedido</span>
+          <span>{t('home.buy_now')}</span>
           <ArrowRight className="w-4 h-4" />
         </button>
       </div>

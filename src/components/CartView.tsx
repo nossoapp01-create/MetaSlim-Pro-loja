@@ -138,15 +138,15 @@ export const CartView: React.FC = () => {
 
   // Customer Shipping details for logistics & immediate label generation
   const [shippingInfo, setShippingInfo] = useState<CustomerShippingInfo>({
-    fullName: 'Dra. Mariana Vasconcelos',
-    phone: '+351 912 849 201',
-    email: 'mariana.vasconcelos@clinica.pt',
-    address: 'Avenida da Liberdade, nº 142, 3º Direito',
-    complement: 'Edifício Liberdade Prime - Clínica Médica',
-    postalCode: '1250-146',
-    city: 'Lisboa',
+    fullName: '',
+    phone: '',
+    email: '',
+    address: '',
+    complement: '',
+    postalCode: '',
+    city: '',
     country: 'Portugal',
-    notes: 'Manter estritamente refrigerado 2°C a 8°C. Deixar na recepção.',
+    notes: '',
   });
 
   // Sync shipping info with logged in customer or Google user
@@ -686,10 +686,10 @@ export const CartView: React.FC = () => {
         <div className="flex flex-col">
           <h1 className="text-2xl font-extrabold text-[#131b2e] tracking-tight">Seu Carrinho</h1>
           <div className="flex items-center gap-1.5 mt-0.5 text-xs text-slate-500">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="w-2 h-2 rounded-full bg-emerald-600" />
             <span>
               Reserva de Lote Garantida por{' '}
-              <strong className="font-mono text-[#006750]">{timeFormatted}</strong>
+              <strong className="font-mono tabular-nums text-[#006750]">{timeFormatted}</strong>
             </span>
           </div>
         </div>
@@ -928,31 +928,14 @@ export const CartView: React.FC = () => {
                 <div>
                   <div className="flex items-center gap-2">
                     <h3 className="text-sm sm:text-base font-extrabold text-slate-900">
-                      Passo 2: Identificação Obrigatória do Cliente
+                      Identificação do Cliente
                     </h3>
-                    <span className="text-[10px] font-mono font-bold bg-amber-100 text-amber-900 px-2 py-0.5 rounded-full border border-amber-200">
-                      OBRIGATÓRIO
-                    </span>
                   </div>
                   <p className="text-[11px] text-slate-500 mt-0.5">
-                    Para comprar é obrigatório o cadastro e login. Seus dados garantem a rastreabilidade farmacêutica e emissão da etiqueta de envio.
+                    Entre na sua conta ou informe seus dados abaixo para rastreabilidade farmacêutica e emissão automática da etiqueta de envio.
                   </p>
                 </div>
               </div>
-
-              {/* Quick 1-click test button */}
-              <button
-                type="button"
-                onClick={() => {
-                  quickCustomerLogin();
-                  showToast('✅ Login rápido de cliente efetuado com sucesso!');
-                }}
-                className="text-[11px] font-bold text-[#006750] hover:text-[#00503e] bg-emerald-50 hover:bg-emerald-100 px-3 py-1.5 rounded-xl border border-emerald-200 transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
-                title="Acesso de teste em 1 clique"
-              >
-                <Zap className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
-                <span>1-Clique Demo: Dra. Mariana</span>
-              </button>
             </div>
 
             {/* Auth Tab Switcher */}
@@ -1179,59 +1162,14 @@ export const CartView: React.FC = () => {
             <div>
               <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
                 <span>Dados de Envio &amp; Destinatário</span>
-                <span className="text-[10px] font-mono font-bold bg-emerald-100 text-[#006750] px-2 py-0.5 rounded-full">
-                  Etiqueta Automática CTT/DHL
+                <span className="text-[10px] font-mono font-bold bg-emerald-50 text-[#006750] border border-emerald-200 px-2 py-0.5 rounded">
+                  Etiqueta CTT / DHL
                 </span>
               </h3>
               <p className="text-[11px] text-slate-500">
                 Preencha para emissão imediata da etiqueta de transporte com controle de temperatura 2°C - 8°C.
               </p>
             </div>
-          </div>
-
-          <div className="flex items-center gap-1.5">
-            <button
-              type="button"
-              onClick={() => {
-                setShippingInfo({
-                  fullName: 'Dra. Mariana Vasconcelos',
-                  phone: '+351 912 849 201',
-                  email: 'mariana.vasconcelos@clinica.pt',
-                  address: 'Avenida da Liberdade, nº 142, 3º Direito',
-                  complement: 'Edifício Liberdade Prime - Recepção Médica',
-                  postalCode: '1250-146',
-                  city: 'Lisboa',
-                  country: 'Portugal',
-                  notes: 'Manter estritamente refrigerado 2°C a 8°C. Deixar na recepção.',
-                });
-                showToast('Dados de envio de exemplo (Lisboa) preenchidos!');
-              }}
-              className="text-[11px] font-bold text-[#006750] hover:text-[#00503e] bg-emerald-50 hover:bg-emerald-100/70 px-2.5 py-1.5 rounded-xl border border-emerald-200/60 transition-all cursor-pointer flex items-center gap-1"
-            >
-              <Sparkles className="w-3 h-3 text-[#006750]" />
-              <span>Exemplo Lisboa</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setShippingInfo({
-                  fullName: 'Dr. Rodrigo Albuquerque',
-                  phone: '+351 934 521 890',
-                  email: 'rodrigo.albuquerque@biolab.pt',
-                  address: 'Rua de Santa Catarina, nº 820, Sala 4B',
-                  complement: 'Complexo Empresarial Porto Central',
-                  postalCode: '4000-444',
-                  city: 'Porto',
-                  country: 'Portugal',
-                  notes: 'Atenção: cadeia fria. Recebimento exclusivo em horário comercial.',
-                });
-                showToast('Dados de envio de exemplo (Porto) preenchidos!');
-              }}
-              className="text-[11px] font-bold text-indigo-700 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100/70 px-2.5 py-1.5 rounded-xl border border-indigo-200/60 transition-all cursor-pointer flex items-center gap-1"
-            >
-              <Sparkles className="w-3 h-3 text-indigo-600" />
-              <span>Exemplo Porto</span>
-            </button>
           </div>
         </div>
 
@@ -1243,11 +1181,12 @@ export const CartView: React.FC = () => {
               <span>Nome Completo do Destinatário *</span>
             </label>
             <input
+              id="shipping-fullname-input"
               type="text"
               required
               value={shippingInfo.fullName}
               onChange={(e) => setShippingInfo({ ...shippingInfo, fullName: e.target.value })}
-              placeholder="Ex: Dra. Mariana Vasconcelos"
+              placeholder="Seu nome completo"
               className="h-10 px-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 font-medium focus:outline-none focus:ring-1 focus:ring-[#006750]"
             />
           </div>
@@ -1279,7 +1218,7 @@ export const CartView: React.FC = () => {
               required
               value={shippingInfo.email}
               onChange={(e) => setShippingInfo({ ...shippingInfo, email: e.target.value })}
-              placeholder="Ex: mariana.vasconcelos@clinica.pt"
+              placeholder="seu.email@exemplo.com"
               className="h-10 px-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 font-medium focus:outline-none focus:ring-1 focus:ring-[#006750]"
             />
           </div>
@@ -1291,11 +1230,12 @@ export const CartView: React.FC = () => {
               <span>Morada / Endereço Completo (Rua, Número, Bloco) *</span>
             </label>
             <input
+              id="shipping-address-input"
               type="text"
               required
               value={shippingInfo.address}
               onChange={(e) => setShippingInfo({ ...shippingInfo, address: e.target.value })}
-              placeholder="Ex: Avenida da Liberdade, nº 142, 3º Direito"
+              placeholder="Rua, número e andar"
               className="h-10 px-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 font-medium focus:outline-none focus:ring-1 focus:ring-[#006750]"
             />
           </div>
@@ -1307,7 +1247,7 @@ export const CartView: React.FC = () => {
               type="text"
               value={shippingInfo.complement || ''}
               onChange={(e) => setShippingInfo({ ...shippingInfo, complement: e.target.value })}
-              placeholder="Ex: Recepção Médica, Apto 302"
+              placeholder="Apartamento, bloco ou referência"
               className="h-10 px-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 font-medium focus:outline-none focus:ring-1 focus:ring-[#006750]"
             />
           </div>
@@ -1316,6 +1256,7 @@ export const CartView: React.FC = () => {
           <div className="flex flex-col gap-1.5">
             <label className="font-semibold text-slate-700">Código Postal / CEP *</label>
             <input
+              id="shipping-postalcode-input"
               type="text"
               required
               value={shippingInfo.postalCode}

@@ -50,6 +50,13 @@ export const LivePurchasePopup: React.FC = () => {
   const setActiveTab = store?.setActiveTab;
 
   const [isVisible, setIsVisible] = useState(false);
+  const [isDismissed, setIsDismissed] = useState<boolean>(() => {
+    try {
+      return sessionStorage.getItem('metaslim_hide_live_popup') === 'true';
+    } catch {
+      return false;
+    }
+  });
   const [buyerIndex, setBuyerIndex] = useState(0);
   const [productIndex, setProductIndex] = useState(0);
   const [minutesAgo, setMinutesAgo] = useState(2);
@@ -58,7 +65,7 @@ export const LivePurchasePopup: React.FC = () => {
   const onlineProducts = products.filter((p) => p && p.status !== 'offline');
 
   const triggerNotification = useCallback(() => {
-    if (onlineProducts.length === 0) return;
+    if (onlineProducts.length === 0 || isDismissed) return;
 
     setBuyerIndex((prev) => {
       const next = (prev + 1 + Math.floor(Math.random() * 3)) % EUROPEAN_BUYERS.length;
@@ -68,15 +75,15 @@ export const LivePurchasePopup: React.FC = () => {
     setMinutesAgo(Math.floor(Math.random() * 6) + 1);
     setVialQty(Math.random() > 0.65 ? 2 : 1);
     setIsVisible(true);
-  }, [onlineProducts.length]);
+  }, [onlineProducts.length, isDismissed]);
 
   useEffect(() => {
-    if (onlineProducts.length === 0) return;
+    if (onlineProducts.length === 0 || isDismissed) return;
 
-    // Show first notification after 8 seconds so the user sees it working
+    // Show first notification after 15 seconds dwell
     const initialTimeout = setTimeout(() => {
       triggerNotification();
-    }, 8000);
+    }, 15000);
 
     // Repeat every 75 seconds (75,000 ms) as requested
     const interval = setInterval(() => {
@@ -87,7 +94,7 @@ export const LivePurchasePopup: React.FC = () => {
       clearTimeout(initialTimeout);
       clearInterval(interval);
     };
-  }, [onlineProducts.length, triggerNotification]);
+  }, [onlineProducts.length, isDismissed, triggerNotification]);
 
   // Auto-hide popup 8 seconds after appearing
   useEffect(() => {
@@ -98,11 +105,11 @@ export const LivePurchasePopup: React.FC = () => {
     return () => clearTimeout(hideTimeout);
   }, [isVisible]);
 
-  if (!isVisible || onlineProducts.length === 0) return null;
+  if (!isVisible || isDismissed || onlineProducts.length === 0) return null;
 
   const buyer = EUROPEAN_BUYERS[buyerIndex % EUROPEAN_BUYERS.length];
   const product = onlineProducts[productIndex % onlineProducts.length];
-  const dosage = product.dosageOptions?.[0]?.mg || '10mg';
+  const dosage = product.dosageOptions?.[0]?.mg ? `${product.dosageOptions[0].mg}mg` : '10mg';
 
   const purchasedLabel =
     language === 'es'
@@ -143,7 +150,7 @@ export const LivePurchasePopup: React.FC = () => {
 
   return (
     <div
-      className="fixed bottom-16 sm:bottom-6 left-3 sm:left-6 z-[55] max-w-[330px] sm:max-w-[360px] w-[calc(100vw-24px)] bg-white/95 backdrop-blur-md border border-slate-200/90 rounded-2xl shadow-2xl p-3 sm:p-3.5 transition-all duration-500 animate-in slide-in-from-bottom-5 fade-in cursor-pointer group hover:border-blue-500/50"
+      className="fixed bottom-16 sm:bottom-6 left-3 sm:left-6 z-[55] max-w-[320px] sm:max-w-[350px] w-[calc(100vw-24px)] bg-white/95 backdrop-blur-md border border-slate-200 rounded-xl shadow-xl p-3 transition-all duration-300 animate-in slide-in-from-bottom-4 fade-in cursor-pointer group hover:border-emerald-500/40"
       onClick={handleOpenProduct}
       role="status"
       aria-live="polite"
@@ -153,51 +160,55 @@ export const LivePurchasePopup: React.FC = () => {
         onClick={(e) => {
           e.stopPropagation();
           setIsVisible(false);
+          setIsDismissed(true);
+          try {
+            sessionStorage.setItem('metaslim_hide_live_popup', 'true');
+          } catch {}
         }}
-        className="absolute top-2.5 right-2.5 w-6 h-6 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-400 hover:text-slate-700 flex items-center justify-center transition-colors"
+        className="absolute top-2 right-2 w-6 h-6 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-400 hover:text-slate-700 flex items-center justify-center transition-colors cursor-pointer"
         aria-label="Fechar notificação"
       >
         <X className="w-3.5 h-3.5" />
       </button>
 
       <div className="flex items-center gap-3 pr-5">
-        <div className="relative w-14 h-14 rounded-xl bg-slate-50 border border-slate-100 flex-shrink-0 overflow-hidden flex items-center justify-center p-1">
+        <div className="relative w-12 h-12 rounded-lg bg-[#f4f7f6] border border-slate-100 flex-shrink-0 overflow-hidden flex items-center justify-center p-1">
           <img
             src={product.image}
             alt={product.name}
             className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300"
           />
-          <span className="absolute -bottom-0.5 -right-0.5 text-sm leading-none bg-white rounded-full p-0.5 shadow-sm">
+          <span className="absolute -bottom-0.5 -right-0.5 text-xs leading-none bg-white rounded-full p-0.5 shadow-sm">
             {buyer.flag}
           </span>
         </div>
 
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-800 truncate">
+          <div className="flex items-center gap-1.5 text-[11px] font-semibold text-[#131b2e] truncate">
             <span className="truncate">{buyer.name}</span>
-            <span className="text-slate-300">•</span>
+            <span className="text-slate-300">·</span>
             <span className="inline-flex items-center gap-0.5 text-slate-600 font-medium truncate">
-              <MapPin className="w-3 h-3 text-blue-600 flex-shrink-0" />
+              <MapPin className="w-3 h-3 text-[#006750] flex-shrink-0" />
               {buyer.city}, {buyer.country[language] || buyer.country.pt}
             </span>
           </div>
 
           <p className="text-xs text-slate-500 mt-0.5 truncate">
             {purchasedLabel}{' '}
-            <span className="font-bold text-blue-600 group-hover:underline">
-              {t(product.name as any)}
+            <span className="font-bold text-[#006750] group-hover:underline">
+              {product.name}
             </span>
           </p>
 
           <div className="flex items-center justify-between gap-2 mt-1.5">
-            <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200/60 px-1.5 py-0.5 rounded-md">
-              <CheckCircle2 className="w-3 h-3 text-emerald-600 flex-shrink-0" />
+            <span className="inline-flex items-center gap-1 text-[10px] font-bold text-[#006750]">
+              <CheckCircle2 className="w-3 h-3 text-[#006750] flex-shrink-0" />
               {verifiedLabel}
             </span>
 
-            <span className="inline-flex items-center gap-1 text-[10px] font-medium text-slate-400">
+            <span className="inline-flex items-center gap-1 text-[10px] font-mono tabular-nums text-slate-400">
               <ShoppingBag className="w-2.5 h-2.5 text-slate-400" />
-              {vialLabel} • <Clock className="w-2.5 h-2.5" /> {timeLabel}
+              {vialLabel} · <Clock className="w-2.5 h-2.5" /> {timeLabel}
             </span>
           </div>
         </div>

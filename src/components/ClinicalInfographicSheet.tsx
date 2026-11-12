@@ -50,70 +50,33 @@ export const ClinicalInfographicSheet: React.FC<ClinicalInfographicSheetProps> =
   const { formatPrice, showToast } = useStore();
   const data: ClinicalSheetData = getClinicalSheet(product.id, product.name);
 
-  // Countdown timer matching the user's uploaded image (46:00)
-  const [secondsRemaining, setSecondsRemaining] = useState<number>(46 * 60);
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setSecondsRemaining((prev) => (prev > 0 ? prev - 1 : 46 * 60));
-    }, 1000);
-    return () => clearInterval(timer);
-  }, []);
-
-  const minutes = Math.floor(secondsRemaining / 60);
-  const seconds = secondsRemaining % 60;
-
   const handleDownloadSheet = () => {
     showToast(`Baixando Ficha Clínica Didática de ${product.name} (PDF)...`);
   };
 
   return (
     <div className="flex flex-col gap-5 w-full text-[#131b2e]" id="clinical-visual-sheet">
-      {/* 1. TOP PROMOTIONAL COUNTDOWN BANNER (Matches user reference image) */}
-      <div className="overflow-hidden rounded-2xl shadow-md border border-rose-200">
-        {/* Red Countdown Header */}
-        <div className="bg-gradient-to-r from-red-600 via-rose-600 to-red-600 p-4 sm:p-5 text-white flex flex-col items-center justify-center text-center gap-3">
-          <div className="flex items-center gap-2 text-xs sm:text-sm font-black uppercase tracking-wider text-amber-200 animate-pulse">
-            <span>🔥</span>
-            <span>APROVEITE O PREÇO PROMOCIONAL POR TEMPO LIMITADO</span>
-            <span>🔥</span>
-          </div>
-
-          {/* Large Countdown Cards */}
-          <div className="flex items-center gap-3 sm:gap-4 font-mono">
-            {/* Minutes */}
-            <div className="flex flex-col items-center">
-              <div className="w-16 sm:w-20 h-14 sm:h-16 rounded-xl bg-black/35 backdrop-blur-xs border border-white/20 flex items-center justify-center text-3xl sm:text-4xl font-black text-white shadow-inner">
-                {String(minutes).padStart(2, '0')}
-              </div>
-              <span className="text-[10px] font-sans font-bold uppercase tracking-widest mt-1 text-white/80">
-                MINUTOS
-              </span>
+      {/* 1. CLINICAL BATCH & COLD-CHAIN ASSURANCE BAR */}
+      <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-[#131b2e] text-white shadow-xs">
+        <div className="px-4 sm:px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-[#006750] text-[#71face] flex items-center justify-center shrink-0">
+              <Thermometer className="w-4.5 h-4.5" />
             </div>
-
-            <span className="text-3xl sm:text-4xl font-black text-amber-300 -mt-4">:</span>
-
-            {/* Seconds */}
-            <div className="flex flex-col items-center">
-              <div className="w-16 sm:w-20 h-14 sm:h-16 rounded-xl bg-black/35 backdrop-blur-xs border border-white/20 flex items-center justify-center text-3xl sm:text-4xl font-black text-amber-300 shadow-inner">
-                {String(seconds).padStart(2, '0')}
-              </div>
-              <span className="text-[10px] font-sans font-bold uppercase tracking-widest mt-1 text-white/80">
-                SEGUNDOS
-              </span>
+            <div>
+              <p className="text-[11px] font-mono uppercase tracking-wider text-[#93f5d4] font-semibold">
+                Protocolo de Qualidade &amp; Cadeia Fria (2°C – 8°C)
+              </p>
+              <p className="text-xs sm:text-sm font-bold text-white mt-0.5">
+                {product.badge && !/compre\s*[12]\s*(e\s*leve\s*2|ganhe\s*1)/i.test(product.badge)
+                  ? `${product.badge} · Pureza Analítica HPLC >99%`
+                  : 'Lote Analisado HPLC >99% · Liofilização Estéril sob Vácuo'}
+              </p>
             </div>
           </div>
-        </div>
-
-        {/* Green "O Mais Vendido" / Highlight Strip */}
-        <div className="bg-gradient-to-r from-emerald-500 via-emerald-600 to-[#006750] py-2.5 px-4 text-center text-white text-xs sm:text-sm font-black tracking-widest uppercase flex items-center justify-center gap-2 shadow-xs">
-          <span>★</span>
-          <span>
-            {product.badge && !/compre\s*[12]\s*(e\s*leve\s*2|ganhe\s*1)/i.test(product.badge)
-              ? product.badge.toUpperCase()
-              : 'O MAIS VENDIDO • LAUDO HPLC >99%'}
+          <span className="font-mono tabular-nums text-[11px] bg-white/10 text-[#93f5d4] px-3 py-1.5 rounded-lg border border-white/10 w-fit shrink-0">
+            REF: {product.refCode} · {product.batchNumber || 'MSP-2026'}
           </span>
-          <span>★</span>
         </div>
       </div>
 
