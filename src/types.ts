@@ -29,6 +29,8 @@ export interface Product {
   dosageOptions?: DosageOption[];
   hasDosageSelector?: boolean;
   status?: 'online' | 'offline';
+  vialDiscount2Pct?: number;
+  vialDiscount3Pct?: number;
 }
 
 export interface CartItem {
@@ -137,6 +139,10 @@ export interface StoreSettings {
   resale?: ResaleSettings;
   consultationUrl?: string;
   freeShippingThreshold: number;
+  vialDiscounts?: {
+    twoVialsPct: number;
+    threeVialsPct: number;
+  };
   mypos?: MyPOSConfig;
   stripe?: StripeConfig;
   enabledPaymentMethods?: EnabledPaymentMethods;

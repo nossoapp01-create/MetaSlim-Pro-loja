@@ -97,6 +97,7 @@ export const AdminPanel: React.FC = () => {
     addTestimonial,
     deleteTestimonial,
     updateSettings,
+    updateAllProductsVialDiscounts,
     resetDefaults,
     showToast,
     formatPrice,
@@ -1503,6 +1504,168 @@ export const AdminPanel: React.FC = () => {
                 className="h-10 px-3 rounded-xl bg-emerald-50 border border-emerald-200 text-xs font-mono font-bold text-[#006750] focus:outline-none focus:ring-1 focus:ring-[#006750]"
               />
             </div>
+
+            {/* Porcentagem de Desconto por Quantidade de Frascos (2 e 3 Frascos) */}
+            {(() => {
+              const globalTwoPct = settings.vialDiscounts?.twoVialsPct ?? 20;
+              const globalThreePct = settings.vialDiscounts?.threeVialsPct ?? 30;
+              const activeTwoPct = selectedProduct.vialDiscount2Pct ?? globalTwoPct;
+              const activeThreePct = selectedProduct.vialDiscount3Pct ?? globalThreePct;
+              const hasCustomOverride =
+                selectedProduct.vialDiscount2Pct !== undefined ||
+                selectedProduct.vialDiscount3Pct !== undefined;
+              const previewBasePrice =
+                selectedProduct.hasDosageSelector &&
+                selectedProduct.dosageOptions &&
+                selectedProduct.dosageOptions.length > 0
+                  ? selectedProduct.dosageOptions[0].price
+                  : selectedProduct.price;
+              const total2Preview = Math.round(previewBasePrice * 2 * (1 - activeTwoPct / 100) * 100) / 100;
+              const total3Preview = Math.round(previewBasePrice * 3 * (1 - activeThreePct / 100) * 100) / 100;
+
+              return (
+                <div className="sm:col-span-2 p-4 rounded-xl bg-emerald-50/60 border border-emerald-200/90 flex flex-col gap-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <div className="w-7 h-7 rounded-lg bg-[#006750] text-white flex items-center justify-center shadow-2xs">
+                        <Percent className="w-3.5 h-3.5 text-[#71face]" />
+                      </div>
+                      <div>
+                        <h3 className="text-xs font-extrabold text-slate-900">
+                          Porcentagem de Desconto por Quantidade de Frascos
+                        </h3>
+                        <p className="text-[11px] text-slate-600">
+                          Edite os selos e descontos exibidos nos botões de <strong>2 Frascos</strong> e <strong>3 Frascos</strong> na página do produto.
+                        </p>
+                      </div>
+                    </div>
+                    <span
+                      className={`text-[10px] font-mono font-bold px-2.5 py-0.5 rounded-full border ${
+                        hasCustomOverride
+                          ? 'bg-amber-100 text-amber-900 border-amber-300'
+                          : 'bg-white text-emerald-800 border-emerald-200'
+                      }`}
+                    >
+                      {hasCustomOverride
+                        ? 'Personalizado neste produto'
+                        : `Usando Padrão Global (${globalTwoPct}% / ${globalThreePct}%)`}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {/* 2 Frascos % */}
+                    <div className="p-3 rounded-xl bg-white border border-emerald-200/80 flex flex-col gap-1.5">
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs font-bold text-slate-800">
+                          Desconto para 2 Frascos (%)
+                        </label>
+                        <span className="text-[10px] font-mono font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
+                          Poupe {activeTwoPct}%
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="number"
+                          min={0}
+                          max={95}
+                          step="1"
+                          value={activeTwoPct}
+                          onChange={(e) => {
+                            const parsed = parseFloat(e.target.value);
+                            const nextPct = Number.isFinite(parsed)
+                              ? Math.max(0, Math.min(95, parsed))
+                              : 0;
+                            updateProduct({
+                              ...selectedProduct,
+                              vialDiscount2Pct: nextPct,
+                            });
+                          }}
+                          className="h-9 w-24 px-3 rounded-lg bg-slate-50 border border-slate-300 text-xs font-mono font-bold text-[#006750] focus:outline-none focus:ring-1 focus:ring-[#006750]"
+                        />
+                        <span className="text-xs font-bold text-slate-500">%</span>
+                        <div className="ml-auto text-right font-mono">
+                          <div className="text-xs font-bold text-slate-900">
+                            {formatPrice(total2Preview)}
+                          </div>
+                          <div className="text-[10px] text-emerald-700">
+                            {formatPrice(total2Preview / 2)}/un
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* 3 Frascos % */}
+                    <div className="p-3 rounded-xl bg-white border border-emerald-200/80 flex flex-col gap-1.5">
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs font-bold text-slate-800">
+                          Desconto para 3 Frascos (%)
+                        </label>
+                        <span className="text-[10px] font-mono font-bold text-white bg-[#006750] px-2 py-0.5 rounded-full">
+                          Mais Escolhido -{activeThreePct}%
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="number"
+                          min={0}
+                          max={95}
+                          step="1"
+                          value={activeThreePct}
+                          onChange={(e) => {
+                            const parsed = parseFloat(e.target.value);
+                            const nextPct = Number.isFinite(parsed)
+                              ? Math.max(0, Math.min(95, parsed))
+                              : 0;
+                            updateProduct({
+                              ...selectedProduct,
+                              vialDiscount3Pct: nextPct,
+                            });
+                          }}
+                          className="h-9 w-24 px-3 rounded-lg bg-slate-50 border border-slate-300 text-xs font-mono font-bold text-[#006750] focus:outline-none focus:ring-1 focus:ring-[#006750]"
+                        />
+                        <span className="text-xs font-bold text-slate-500">%</span>
+                        <div className="ml-auto text-right font-mono">
+                          <div className="text-xs font-bold text-slate-900">
+                            {formatPrice(total3Preview)}
+                          </div>
+                          <div className="text-[10px] text-emerald-700">
+                            {formatPrice(total3Preview / 3)}/un
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
+                    <button
+                      type="button"
+                      onClick={() => updateAllProductsVialDiscounts(activeTwoPct, activeThreePct)}
+                      className="px-3 py-1.5 rounded-lg bg-[#006750] hover:bg-[#005240] text-white text-[11px] font-bold flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer"
+                    >
+                      <Layers className="w-3.5 h-3.5 text-[#71face]" />
+                      <span>
+                        Aplicar {activeTwoPct}% e {activeThreePct}% em TODOS os Produtos
+                      </span>
+                    </button>
+
+                    {hasCustomOverride && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const resetProd = { ...selectedProduct };
+                          delete resetProd.vialDiscount2Pct;
+                          delete resetProd.vialDiscount3Pct;
+                          updateProduct(resetProd);
+                        }}
+                        className="px-3 py-1.5 rounded-lg bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 text-[11px] font-bold transition-colors cursor-pointer"
+                      >
+                        Restaurar Padrão Global ({globalTwoPct}% / {globalThreePct}%)
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* Status de Publicação no Formulário */}
             <div className="sm:col-span-2 p-3.5 bg-slate-50 rounded-xl border border-slate-200 flex flex-col gap-2">
@@ -3124,6 +3287,100 @@ export const AdminPanel: React.FC = () => {
                 onChange={(e) => updateSettings({ currencyRateEurToBrl: parseFloat(e.target.value) || 6.0 })}
                 className="h-10 px-3 rounded-xl bg-slate-50 border border-slate-200 text-xs font-mono text-slate-900"
               />
+            </div>
+
+            {/* Descontos Padrão por Quantidade de Frascos (Loja Inteira) */}
+            <div className="sm:col-span-2 p-4 rounded-xl bg-emerald-50/60 border border-emerald-200/80 flex flex-col gap-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-lg bg-[#006750] text-white flex items-center justify-center shadow-xs">
+                    <Percent className="w-4 h-4 text-[#71face]" />
+                  </div>
+                  <div>
+                    <h3 className="text-xs font-extrabold text-slate-900">
+                      Descontos Padrão por Quantidade de Frascos (2 e 3 Frascos)
+                    </h3>
+                    <p className="text-[11px] text-slate-600">
+                      Porcentagem aplicada automaticamente na compra de múltiplos frascos (pode ser personalizada por produto na aba Editar Produtos).
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-bold text-slate-700">
+                    Desconto Padrão 2 Frascos (%)
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      min={0}
+                      max={95}
+                      step="1"
+                      value={settings.vialDiscounts?.twoVialsPct ?? 20}
+                      onChange={(e) => {
+                        const parsed = parseFloat(e.target.value);
+                        const val = Number.isFinite(parsed) ? Math.max(0, Math.min(95, parsed)) : 0;
+                        updateSettings({
+                          vialDiscounts: {
+                            twoVialsPct: val,
+                            threeVialsPct: settings.vialDiscounts?.threeVialsPct ?? 30,
+                          },
+                        });
+                      }}
+                      className="h-10 flex-1 px-3 rounded-xl bg-white border border-emerald-300 text-xs font-mono font-bold text-[#006750]"
+                    />
+                    <span className="text-xs font-bold text-slate-500">%</span>
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-bold text-slate-700">
+                    Desconto Padrão 3 Frascos (%)
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      min={0}
+                      max={95}
+                      step="1"
+                      value={settings.vialDiscounts?.threeVialsPct ?? 30}
+                      onChange={(e) => {
+                        const parsed = parseFloat(e.target.value);
+                        const val = Number.isFinite(parsed) ? Math.max(0, Math.min(95, parsed)) : 0;
+                        updateSettings({
+                          vialDiscounts: {
+                            twoVialsPct: settings.vialDiscounts?.twoVialsPct ?? 20,
+                            threeVialsPct: val,
+                          },
+                        });
+                      }}
+                      className="h-10 flex-1 px-3 rounded-xl bg-white border border-emerald-300 text-xs font-mono font-bold text-[#006750]"
+                    />
+                    <span className="text-xs font-bold text-slate-500">%</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="text-[11px] text-slate-500">
+                  Alterações são salvas automaticamente e refletidas nos preços e selos dos produtos.
+                </span>
+                <button
+                  type="button"
+                  onClick={() =>
+                    updateAllProductsVialDiscounts(
+                      settings.vialDiscounts?.twoVialsPct ?? 20,
+                      settings.vialDiscounts?.threeVialsPct ?? 30
+                    )
+                  }
+                  className="px-3.5 py-2 rounded-xl bg-[#006750] hover:bg-[#005240] text-white text-xs font-bold flex items-center gap-1.5 shadow-xs transition-colors cursor-pointer"
+                >
+                  <Layers className="w-3.5 h-3.5 text-[#71face]" />
+                  <span>Aplicar em Todos os Produtos Agora</span>
+                </button>
+              </div>
             </div>
 
             {/* Reseller Phone Field */}

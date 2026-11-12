@@ -33,6 +33,7 @@ export const ProductDetail: React.FC = () => {
     addToCart,
     setActiveTab,
     settings,
+    showToast,
     t,
     td,
   } = useStore();
@@ -64,16 +65,25 @@ export const ProductDetail: React.FC = () => {
     ? selectedDosageOption.originalPrice || product.originalPrice
     : product.originalPrice;
 
-  // Calculate pricing based on tier
+  const twoVialsPct = Math.max(
+    0,
+    Math.min(95, product.vialDiscount2Pct ?? settings.vialDiscounts?.twoVialsPct ?? 20)
+  );
+  const threeVialsPct = Math.max(
+    0,
+    Math.min(95, product.vialDiscount3Pct ?? settings.vialDiscounts?.threeVialsPct ?? 30)
+  );
+
+  // Calculate pricing based on editable tier percentages
   const calculateTierPrice = (vials: number) => {
     if (vials === 1) return { total: currentBasePrice, unit: currentBasePrice, discount: 0 };
     if (vials === 2) {
-      const total = Math.round(currentBasePrice * 2 * 0.8 * 100) / 100;
-      return { total, unit: total / 2, discount: 20 };
+      const total = Math.round(currentBasePrice * 2 * (1 - twoVialsPct / 100) * 100) / 100;
+      return { total, unit: total / 2, discount: twoVialsPct };
     }
     // 3 vials
-    const total = Math.round(currentBasePrice * 3 * 0.7 * 100) / 100;
-    return { total, unit: total / 3, discount: 30 };
+    const total = Math.round(currentBasePrice * 3 * (1 - threeVialsPct / 100) * 100) / 100;
+    return { total, unit: total / 3, discount: threeVialsPct };
   };
 
   const currentTier = calculateTierPrice(selectedVials);
@@ -317,9 +327,11 @@ export const ProductDetail: React.FC = () => {
                   : 'border-slate-200 hover:border-slate-300 bg-slate-50/50'
               }`}
             >
-              <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-emerald-700 text-white px-2 py-0.2 rounded-full font-mono text-[9px] font-bold tracking-wider uppercase whitespace-nowrap shadow-xs">
-                {t('product.save_20')}
-              </span>
+              {twoVialsPct > 0 && (
+                <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-emerald-700 text-white px-2 py-0.2 rounded-full font-mono text-[9px] font-bold tracking-wider uppercase whitespace-nowrap shadow-xs">
+                  {t('product.save_pct', { percent: twoVialsPct })}
+                </span>
+              )}
               <div className="text-xs font-bold text-slate-800">{t('product.vial_2')}</div>
               <div className="text-[10px] text-slate-500 mt-0.5">{t('product.vial_2_sub')}</div>
               <div className="mt-2 w-full pt-1.5 bg-white rounded-lg border border-slate-100">
@@ -341,9 +353,11 @@ export const ProductDetail: React.FC = () => {
                   : 'border-slate-200 hover:border-slate-300 bg-slate-50/50'
               }`}
             >
-              <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-gradient-to-r from-[#006750] to-[#0d8267] text-white px-2 py-0.2 rounded-full font-mono text-[9px] font-bold tracking-wider uppercase whitespace-nowrap shadow-sm">
-                {t('product.best_value')}
-              </span>
+              {threeVialsPct > 0 && (
+                <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-gradient-to-r from-[#006750] to-[#0d8267] text-white px-2 py-0.2 rounded-full font-mono text-[9px] font-bold tracking-wider uppercase whitespace-nowrap shadow-sm">
+                  {t('product.best_value_pct', { percent: threeVialsPct })}
+                </span>
+              )}
               <div className="text-xs font-bold text-slate-800">{t('product.vial_3')}</div>
               <div className="text-[10px] text-emerald-700 font-semibold mt-0.5">{t('product.vial_3_sub')}</div>
               <div className="mt-2 w-full pt-1.5 bg-white rounded-lg border border-slate-100">

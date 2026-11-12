@@ -131,6 +131,7 @@ interface StoreContextType {
   addTestimonial: (newTest: Omit<Testimonial, 'id'>) => Promise<void>;
   deleteTestimonial: (id: string) => Promise<void>;
   updateSettings: (newSettings: Partial<StoreSettings>) => Promise<void>;
+  updateAllProductsVialDiscounts: (twoVialsPct: number, threeVialsPct: number) => Promise<void>;
   resetDefaults: () => void;
   showToast: (msg: string, duration?: number) => void;
   setToast: (toast: string | null) => void;
@@ -225,6 +226,56 @@ function sanitizeBanners(bannerList: BannerSlide[]): BannerSlide[] {
       !/compre\s*[12]|leve\s*2|ganhe\s*1/i.test(b.title || '') &&
       !/compre\s*[12]|leve\s*2|ganhe\s*1/i.test(b.badgeText || '')
   );
+}
+
+function clampDiscountPct(val: unknown, fallback: number): number {
+  if (val === undefined || val === null || val === '') return fallback;
+  const num = typeof val === 'number' ? val : Number(val);
+  if (!Number.isFinite(num)) return fallback;
+  return Math.max(0, Math.min(95, Math.round(num * 100) / 100));
+}
+
+function resolveVialDiscounts(
+  product: Product | undefined,
+  settings: StoreSettings
+): { twoVialsPct: number; threeVialsPct: number } {
+  const global2 = clampDiscountPct(settings?.vialDiscounts?.twoVialsPct, 20);
+  const global3 = clampDiscountPct(settings?.vialDiscounts?.threeVialsPct, 30);
+  return {
+    twoVialsPct:
+      product?.vialDiscount2Pct !== undefined
+        ? clampDiscountPct(product.vialDiscount2Pct, global2)
+        : global2,
+    threeVialsPct:
+      product?.vialDiscount3Pct !== undefined
+        ? clampDiscountPct(product.vialDiscount3Pct, global3)
+        : global3,
+  };
+}
+
+function calculateVialTierPrice(
+  basePrice: number,
+  vialsCount: number,
+  twoVialsPct: number,
+  threeVialsPct: number
+): number {
+  if (vialsCount === 2) {
+    return Math.round(basePrice * 2 * (1 - twoVialsPct / 100) * 100) / 100;
+  }
+  if (vialsCount === 3) {
+    return Math.round(basePrice * 3 * (1 - threeVialsPct / 100) * 100) / 100;
+  }
+  return Math.round(basePrice * 100) / 100;
+}
+
+function cleanFirestorePayload<T extends Record<string, any>>(obj: T): T {
+  const clean: Record<string, any> = {};
+  Object.keys(obj).forEach((key) => {
+    if (obj[key] !== undefined) {
+      clean[key] = obj[key];
+    }
+  });
+  return clean as T;
 }
 
 export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -345,6 +396,10 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           ...parsed,
           logoUrl: parsed.logoUrl || '/metaslim-logo.svg',
           resale: parsed.resale || initialStoreSettings.resale,
+          vialDiscounts: {
+            twoVialsPct: clampDiscountPct(parsed.vialDiscounts?.twoVialsPct, 20),
+            threeVialsPct: clampDiscountPct(parsed.vialDiscounts?.threeVialsPct, 30),
+          },
           enabledPaymentMethods: {
             stripe: parsed.enabledPaymentMethods?.stripe ?? true,
             mbway: Boolean(parsed.enabledPaymentMethods?.mbway),
@@ -362,6 +417,10 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             ...parsed,
             logoUrl: parsed.logoUrl || '/metaslim-logo.svg',
             resale: parsed.resale || initialStoreSettings.resale,
+            vialDiscounts: {
+              twoVialsPct: clampDiscountPct(parsed.vialDiscounts?.twoVialsPct, 20),
+              threeVialsPct: clampDiscountPct(parsed.vialDiscounts?.threeVialsPct, 30),
+            },
             enabledPaymentMethods: {
               stripe: parsed.enabledPaymentMethods?.stripe ?? true,
               mbway: Boolean(parsed.enabledPaymentMethods?.mbway),
@@ -1244,6 +1303,10 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             ...initialStoreSettings,
             ...cloudSettings,
             resale: cloudSettings.resale || initialStoreSettings.resale,
+            vialDiscounts: {
+              twoVialsPct: clampDiscountPct(cloudSettings.vialDiscounts?.twoVialsPct, 20),
+              threeVialsPct: clampDiscountPct(cloudSettings.vialDiscounts?.threeVialsPct, 30),
+            },
           });
         }
       }
@@ -1900,12 +1963,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const rawBasePrice = dosageOption ? dosageOption.price : product.price;
     const basePrice = Number(rawBasePrice) > 0 ? Number(rawBasePrice) : 59;
 
-    let unitPrice = basePrice;
-    if (vialsCount === 2) {
-      unitPrice = Math.round(basePrice * 2 * 0.8 * 100) / 100;
-    } else if (vialsCount === 3) {
-      unitPrice = Math.round(basePrice * 3 * 0.7 * 100) / 100;
-    }
+    const { twoVialsPct, threeVialsPct } = resolveVialDiscounts(product, settings);
+    const unitPrice = calculateVialTierPrice(basePrice, vialsCount, twoVialsPct, threeVialsPct);
 
     const dosageKey = effectiveDosageMg !== undefined ? `-${effectiveDosageMg}mg` : '';
     const itemId = `${product.id}${dosageKey}-${vialsCount}vial`;
@@ -2025,30 +2084,43 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   // Product mutations
   const updateProduct = async (updated: Product) => {
+    const cleanUpdated = cleanFirestorePayload(updated);
     setProducts((prev) => {
-      const next = prev.map((p) => (p.id === updated.id ? updated : p));
+      const next = prev.map((p) => (p.id === cleanUpdated.id ? cleanUpdated : p));
       try {
         localStorage.setItem(`metaslim_tenant_products_${activeTenantId}`, JSON.stringify(next));
+        if (activeTenantId === initialTenants[0].tenantId) {
+          localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(next));
+        }
       } catch {}
       return next;
     });
-    setCart((prev) =>
-      prev.map((item) =>
-        item.productId === updated.id
-          ? {
-              ...item,
-              product: updated,
-              unitPrice: item.vialsCount === 1 ? updated.price : item.unitPrice,
-              totalPrice: item.quantity * (item.vialsCount === 1 ? updated.price : item.unitPrice),
-            }
-          : item
-      )
-    );
-    showToast(`Produto "${updated.name}" atualizado!`);
+    const { twoVialsPct, threeVialsPct } = resolveVialDiscounts(cleanUpdated, settings);
+    setCart((prev) => {
+      const nextCart = prev.map((item) => {
+        if (item.productId !== cleanUpdated.id) return item;
+        const dosageOpt = item.dosageMg
+          ? cleanUpdated.dosageOptions?.find((d) => d.mg === item.dosageMg)
+          : undefined;
+        const basePrice = Number(dosageOpt ? dosageOpt.price : cleanUpdated.price) || cleanUpdated.price;
+        const newUnitPrice = calculateVialTierPrice(basePrice, item.vialsCount, twoVialsPct, threeVialsPct);
+        return {
+          ...item,
+          product: cleanUpdated,
+          unitPrice: newUnitPrice,
+          totalPrice: item.quantity * newUnitPrice,
+        };
+      });
+      try {
+        localStorage.setItem(STORAGE_KEYS.CART, JSON.stringify(nextCart));
+      } catch {}
+      return nextCart;
+    });
+    showToast(`Produto "${cleanUpdated.name}" atualizado!`);
 
     try {
-      await setDoc(doc(db, 'tenants', activeTenantId, 'products', updated.id), updated, { merge: true });
-      await setDoc(doc(db, 'products', updated.id), updated, { merge: true }).catch(() => {});
+      await setDoc(doc(db, 'tenants', activeTenantId, 'products', cleanUpdated.id), cleanUpdated);
+      await setDoc(doc(db, 'products', cleanUpdated.id), cleanUpdated).catch(() => {});
     } catch (e) {
       console.warn('Note: saved locally, cloud sync pending:', e);
     }
@@ -2209,11 +2281,43 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   // Settings mutations
   const updateSettings = async (newSettings: Partial<StoreSettings>) => {
-    const merged = { ...settings, ...newSettings };
+    const merged: StoreSettings = {
+      ...settings,
+      ...newSettings,
+      vialDiscounts: newSettings.vialDiscounts
+        ? {
+            twoVialsPct: clampDiscountPct(newSettings.vialDiscounts.twoVialsPct, 20),
+            threeVialsPct: clampDiscountPct(newSettings.vialDiscounts.threeVialsPct, 30),
+          }
+        : settings.vialDiscounts || { twoVialsPct: 20, threeVialsPct: 30 },
+    };
     setSettings(merged);
     try {
       localStorage.setItem(`metaslim_tenant_settings_${activeTenantId}`, JSON.stringify(merged));
     } catch {}
+
+    if (newSettings.vialDiscounts) {
+      setCart((prev) => {
+        const nextCart = prev.map((item) => {
+          const { twoVialsPct, threeVialsPct } = resolveVialDiscounts(item.product, merged);
+          const dosageOpt = item.dosageMg
+            ? item.product.dosageOptions?.find((d) => d.mg === item.dosageMg)
+            : undefined;
+          const basePrice = Number(dosageOpt ? dosageOpt.price : item.product.price) || item.product.price;
+          const newUnitPrice = calculateVialTierPrice(basePrice, item.vialsCount, twoVialsPct, threeVialsPct);
+          return {
+            ...item,
+            unitPrice: newUnitPrice,
+            totalPrice: item.quantity * newUnitPrice,
+          };
+        });
+        try {
+          localStorage.setItem(STORAGE_KEYS.CART, JSON.stringify(nextCart));
+        } catch {}
+        return nextCart;
+      });
+    }
+
     showToast('Configurações da loja salvas com sucesso!');
 
     try {
@@ -2223,6 +2327,81 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       }
     } catch (e) {
       console.warn('Note: saved locally.');
+    }
+  };
+
+  const updateAllProductsVialDiscounts = async (twoVialsPct: number, threeVialsPct: number) => {
+    const cleanTwo = clampDiscountPct(twoVialsPct, 20);
+    const cleanThree = clampDiscountPct(threeVialsPct, 30);
+
+    const nextSettings: StoreSettings = {
+      ...settings,
+      vialDiscounts: {
+        twoVialsPct: cleanTwo,
+        threeVialsPct: cleanThree,
+      },
+    };
+    setSettings(nextSettings);
+    try {
+      localStorage.setItem(`metaslim_tenant_settings_${activeTenantId}`, JSON.stringify(nextSettings));
+    } catch {}
+
+    const updatedProducts = products.map((p) => {
+      const copy = { ...p };
+      delete copy.vialDiscount2Pct;
+      delete copy.vialDiscount3Pct;
+      return copy;
+    });
+    setProducts(updatedProducts);
+    try {
+      localStorage.setItem(`metaslim_tenant_products_${activeTenantId}`, JSON.stringify(updatedProducts));
+      if (activeTenantId === initialTenants[0].tenantId) {
+        localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(updatedProducts));
+      }
+    } catch {}
+
+    setCart((prev) => {
+      const nextCart = prev.map((item) => {
+        const cleanProd = { ...item.product };
+        delete cleanProd.vialDiscount2Pct;
+        delete cleanProd.vialDiscount3Pct;
+        const dosageOpt = item.dosageMg
+          ? cleanProd.dosageOptions?.find((d) => d.mg === item.dosageMg)
+          : undefined;
+        const basePrice = Number(dosageOpt ? dosageOpt.price : cleanProd.price) || cleanProd.price;
+        const newUnitPrice = calculateVialTierPrice(basePrice, item.vialsCount, cleanTwo, cleanThree);
+        return {
+          ...item,
+          product: cleanProd,
+          unitPrice: newUnitPrice,
+          totalPrice: item.quantity * newUnitPrice,
+        };
+      });
+      try {
+        localStorage.setItem(STORAGE_KEYS.CART, JSON.stringify(nextCart));
+      } catch {}
+      return nextCart;
+    });
+
+    showToast(`Descontos de 2 Frascos (${cleanTwo}%) e 3 Frascos (${cleanThree}%) aplicados em toda a loja!`);
+
+    try {
+      await setDoc(doc(db, 'tenants', activeTenantId, 'settings', 'general'), nextSettings);
+      if (activeTenantId === initialTenants[0].tenantId) {
+        await setDoc(doc(db, 'settings', 'general'), nextSettings).catch(() => {});
+      }
+      if (firebaseUser) {
+        const batch = writeBatch(db);
+        for (const prod of updatedProducts) {
+          batch.set(doc(db, 'tenants', activeTenantId, 'products', prod.id), cleanFirestorePayload(prod));
+          if (activeTenantId === initialTenants[0].tenantId) {
+            batch.set(doc(db, 'products', prod.id), cleanFirestorePayload(prod));
+          }
+        }
+        await batch.commit();
+      }
+    } catch (e) {
+      console.warn('Note: saved locally, cloud sync pending:', e);
     }
   };
 
@@ -2483,6 +2662,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         addTestimonial,
         deleteTestimonial,
         updateSettings,
+        updateAllProductsVialDiscounts,
         resetDefaults,
         showToast,
         setToast,

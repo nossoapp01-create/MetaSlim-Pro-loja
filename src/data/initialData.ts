@@ -133,6 +133,10 @@ export const initialStoreSettings: StoreSettings = {
   resale: initialResaleSettings,
   consultationUrl: 'https://consulta.metaslim-pro.shop/',
   freeShippingThreshold: 100,
+  vialDiscounts: {
+    twoVialsPct: 20,
+    threeVialsPct: 30,
+  },
   enabledPaymentMethods: {
     stripe: true,
     mbway: false,
